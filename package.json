@@ -1,0 +1,19 @@
+{
+  "name": "fyp21s313-caniscan-backend",
+  "version": "0.0.1",
+  "description": "fyp-21-s3-13-caniscan-backend package. Web server for application.",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FONatureKoh/fyp21S313-CanIsCan-backend.git"
+  },
+  "author": "Thomas Koh",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/FONatureKoh/fyp21S313-CanIsCan-backend/issues"
+  },
+  "homepage": "https://github.com/FONatureKoh/fyp21S313-CanIsCan-backend#readme"
+}

@@ -9,7 +9,9 @@ app.get('/', (req, res) => {
 });
 
 /* === All /users routes matters === */
-const userRouter = require("./routes/users")
-app.use("/users", userRouter)
+const userRouter = require("./routes/users");
+app.use("/users", userRouter);
 
-app.listen(5000);
+app.listen(5000, () => {
+  console.log("Listening on port 5000!")
+});

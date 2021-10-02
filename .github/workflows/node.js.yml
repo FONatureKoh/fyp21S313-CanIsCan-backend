@@ -24,5 +24,8 @@ jobs:
     - name: Install Dependencies
       run: npm i
     
-    # - name: Stop and start pm2 service
-    #   run:
+    - name: Stop and start pm2 service
+      run: |
+        pm2 stop 1
+        pm2 start 1
+        pm2 save

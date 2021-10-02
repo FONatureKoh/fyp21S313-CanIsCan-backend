@@ -4,8 +4,8 @@ const app = express();
 app.use(express.static("public"));
 
 app.get('/', (req, res) => {
-    console.log("Route success");
-    res.json({message: "Server Load successful!"});
+  console.log("Route success");
+  res.json({message: "Server Load successful!"});
 });
 
 /* === All /users routes matters === */

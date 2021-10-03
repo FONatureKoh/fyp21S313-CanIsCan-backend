@@ -8,6 +8,11 @@ app.get('/', (req, res) => {
   res.json({message: "Server Load successful!"});
 });
 
+app.get('/cow', (req, res) => {
+  console.log("Route success");
+  res.send("Hi Kelvin. This is your Cow.");
+});
+
 /* === All /users routes matters === */
 const userRouter = require("./routes/users");
 app.use("/users", userRouter);

@@ -1,3 +1,5 @@
+require('dotenv').config()
+const dbconn = require('./models/db_model.js');
 const express = require('express');
 const app = express();
 
@@ -11,6 +13,14 @@ app.get('/', (req, res) => {
 app.get('/cow', (req, res) => {
   console.log("Route success");
   res.send("Hi Kelvin. More Cows This is your Cow.");
+});
+
+/* === Test DB Connection === */
+app.get('/dbtest', (req, res) => {
+  dbconn.query('SELECT 1', function (error, results, fields) {
+    if (error) throw error;
+    // connected!
+  });
 });
 
 /* === All /users routes matters === */

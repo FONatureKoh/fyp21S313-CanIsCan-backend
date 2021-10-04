@@ -10,7 +10,7 @@ app.get('/', (req, res) => {
 
 app.get('/cow', (req, res) => {
   console.log("Route success");
-  res.send("Hi Kelvin. This is your Cow.");
+  res.send("Hi Kelvin. More Cows This is your Cow.");
 });
 
 /* === All /users routes matters === */

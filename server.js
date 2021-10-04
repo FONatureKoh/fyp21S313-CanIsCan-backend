@@ -18,8 +18,12 @@ app.get('/cow', (req, res) => {
 /* === Test DB Connection === */
 app.get('/dbtest', (req, res) => {
   dbconn.query('SELECT 1', function (error, results, fields) {
-    if (error) throw error;
+    if (error) {
+      res.send("MySQL was not connected successfully")
+    }
+    else {
       res.send("MySQL Connected successfully");// connected!
+    }
   });
 });
 

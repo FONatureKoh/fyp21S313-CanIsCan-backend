@@ -24,6 +24,11 @@ jobs:
     - name: Install Dependencies
       run: npm i
     
+    - name: Get .env file from within the system
+      run: |
+        cd /home/fonature/foodapp-backend/expressjs-api-app/fyp21S313-CanIsCan-backend/fyp21S313-CanIsCan-backend
+        cp /home/fonature/foodapp-backend/expressjs-api-app/.env /home/fonature/foodapp-backend/expressjs-api-app/fyp21S313-CanIsCan-backend/fyp21S313-CanIsCan-backend
+
     - name: Stop and start pm2 service
       run: |
         pm2 stop 1

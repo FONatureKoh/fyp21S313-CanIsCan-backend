@@ -19,7 +19,8 @@ app.get('/cow', (req, res) => {
 app.get('/dbtest', (req, res) => {
   dbconn.query('SELECT 1', function (error, results, fields) {
     if (error) {
-      res.send("MySQL was not connected successfully")
+      console.log(error);
+      res.send("MySQL was not connected successfully");
     }
     else {
       res.send("MySQL Connected successfully");// connected!

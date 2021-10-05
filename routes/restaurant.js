@@ -14,11 +14,15 @@ router.get("/list", (req, res) => {
   });
 });
 
-/* === All routes for /restaurant/additem/:itemid ===
+router.post('/addmenuitem', (req, res) => {
+  // Restaurant_ID + Menu_Item_ID + item_name .png
+});
+
+/* === All routes for /restaurant/item/:itemid ===
 	Currently has get, put, delete
 	*/
 router
-  .route('/additem/:itemid')
+  .route('/menuitem/:itemid')
 	.get((req, res) => {
 		res.send(`Get User with username ${req.params.username}`);
 	})

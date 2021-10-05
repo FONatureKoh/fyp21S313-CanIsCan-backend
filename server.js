@@ -2,8 +2,10 @@ require('dotenv').config()
 const dbconn = require('./models/db_model.js');
 const express = require('express');
 const app = express();
+const cors = require('cors')
 
 app.use(express.static("public"));
+app.use(cors());
 
 app.get('/', (req, res) => {
   console.log("Route success");

@@ -18,9 +18,9 @@ router.post('/addmenuitem', (req, res) => {
   // Restaurant_ID + Menu_Item_ID + item_name .png
 });
 
-/* === All routes for /restaurant/item/:itemid ===
-	Currently has get, put, delete
-	*/
+/* 	=== All routes for /restaurant/item/:itemid ===
+	Currently has get, put, delete 
+	===============================================*/
 router
   .route('/menuitem/:itemid')
 	.get((req, res) => {
@@ -37,6 +37,12 @@ router
 router.param("itemid", (req, res, next, itemid) => {
 	console.log(username);
 	next();
+});
+
+/* === All routes for /restaurant/subusers === */
+router.get('/subusers', (req, res) => {
+	var sqlQuery = "";
+	dbconn.query();
 });
 
 module.exports = router;

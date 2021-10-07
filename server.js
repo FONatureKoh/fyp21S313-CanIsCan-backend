@@ -33,6 +33,10 @@ app.get('/dbtest', (req, res) => {
 const userRouter = require("./routes/users");
 app.use("/users", userRouter);
 
+/* === All /auth routes matters === */
+const authRouter = require("./routes/auth");
+app.use("/auth", authRouter);
+
 app.listen(5000, () => {
   console.log("Listening on port 5000!")
 });

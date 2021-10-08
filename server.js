@@ -14,7 +14,7 @@ app.get('/', (req, res) => {
 
 app.get('/cow', (req, res) => {
   console.log("Route success");
-  res.send("Hi Kelvin. More Cows This is your Cow. FUN FUN");
+  res.send("Hi Kelvin. More Cows This is your cat Cow. FUN FUN");
 });
 
 /* === Test DB Connection === */

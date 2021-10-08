@@ -8,16 +8,22 @@ router.use(express.json())
  * 
  */
 router.post("/login", (req, res) => {
-  console.log(req.body);
-  res.send(req.body);
-	// dbconn.query('SELECT * FROM app_users', function (error, results, fields) {
-  //   if (error) {
-  //     res.send("MySQL error: " + error);
-  //   }
-  //   else {
-  //     res.send(results);
-  //   }
-  // });
+  var username = req.body.username;
+  var password = req.body.password;
+
+  var sqlQuery = `SELECT username, user_type FROM app_user `;
+  sqlQuery += `WHERE username='${username}' AND user_password='${password}'`;
+  console.log(sqlQuery);
+  // console.log(req.body);
+  // res.send(req.body);
+	dbconn.query(sqlQuery, function (error, results, fields) {
+    if (error) {
+      res.send("MySQL error: " + error);
+    }
+    else {
+      res.send(results);
+    }
+  });
 });
 
 module.exports = router;

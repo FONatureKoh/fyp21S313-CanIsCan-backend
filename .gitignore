@@ -1,7 +1,13 @@
 # dependencies
 /node_modules
-/assets
 
 # env files
 .env
 .env.development
+
+# Essential folders to keep
+# First line excludes everything inside
+# Second line includes 1 empty file because
+# github doesn't know how to keep an empty folder
+/public/assets/*
+!/public/assets/.gitkeep 

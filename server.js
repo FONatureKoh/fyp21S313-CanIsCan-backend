@@ -12,9 +12,16 @@ app.get('/', (req, res) => {
   res.json({message: "Server Load successful!"});
 });
 
+// Cow Test api
 app.get('/cow', (req, res) => {
   console.log("Route success");
   res.send("Hi Kelvin. More Cows This is your cat Cow. FUN FUN");
+});
+
+// Cat test API
+app.get('/cats', (req, res) => {
+  console.log("Route success");
+  res.send("This is a cat. Can you see the cat?");
 });
 
 /* === Test DB Connection === */

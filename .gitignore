@@ -6,8 +6,12 @@
 .env.development
 
 # Essential folders to keep
-# First line excludes everything inside
-# Second line includes 1 empty file because
+# First few lines excludes everything inside the assets sub folders
+# and the last few lines includes 1 .gitkeep folder each, because
 # github doesn't know how to keep an empty folder
-/public/assets/*
-!/public/assets/.gitkeep 
+/public/assets/menuitem_png/*
+/public/assets/profile_png/*
+/public/assets/restaurant_png/*
+!/public/assets/menuitem_png/.gitkeep
+!/public/assets/profile_png/.gitkeep
+!/public/assets/restaurant_png/.gitkeep

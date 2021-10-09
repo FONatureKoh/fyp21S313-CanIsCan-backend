@@ -1,6 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const dbconn = require("../models/db_model");
+const multer = require("multer");
+const fs = require("fs");
+const path = require("path");
 
 router.use(express.json());
 
@@ -24,8 +27,32 @@ router.get("/retrieveMenuItems", (req, res) => {
 	})
 });
 
-router.post('/addmenuitem', (req, res) => {
+/********************************************************************
+ * Add Menu Item route
+ ********************************************************************/
+// We first set some multer config for this route
+const storage = multer.diskStorage({
+	destination: (req, file, cb) => {
+		cb(null, './public/assets/menuitem_png');
+	},
+	filename: (req, file, cb) => {
+		// This functions as the middleware, once form is built,
+		// use req.body to retrieve all the necessary variables 
+		// to construct the file name.
+		const { body: { name }} = req;
+		cb(null, name + path.extname(file.originalname)); // Date.now() + path.extname(file.originalname)
+	}
+})
+const upload = multer({storage: storage}); //{ dest: '../assets'}
+
+router.post('/addmenuitem', upload.single("file"), (req, res) => {
   // Restaurant_ID + Menu_Item_ID + item_name .png
+	console.log(req.body);
+	
+	// Get all the variables
+  const { file, body: { name } } = req;
+
+  res.send("File uploaded as " + file.originalname);
 });
 
 /* 	=== All routes for /restaurant/item/:itemid ===

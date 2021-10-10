@@ -28,6 +28,29 @@ router.get("/retrieveMenuItems", (req, res) => {
 });
 
 /********************************************************************
+ * Retrieve restaurant's information
+ ********************************************************************
+ */
+router.get("/retrieveRestaurantInfo", (req, res) => {
+	// Save the restaurantID first from the URL
+	var restaurantID = req.query.restaurantID;
+
+	// Then construct the sql query based on the query
+	var sqlQuery = "SELECT * FROM restaurant ";
+	sqlQuery += `WHERE restaurant_ID=${restaurantID}`
+
+	// Query the db and return the said fields to the frontend app
+	dbconn.query(sqlQuery, function (error, results, fields) {
+		if (error) {
+			res.send("MySQL error: " + error);
+    }
+    else {
+      res.send(results);
+		}
+	})
+});
+
+/********************************************************************
  * Add Menu Item route
  ********************************************************************/
 // We first set some multer config for this route

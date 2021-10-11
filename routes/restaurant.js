@@ -63,7 +63,7 @@ const storage = multer.diskStorage({
 		// use req.body to retrieve all the necessary variables 
 		// to construct the file name.
 		const { body: { name }} = req;
-		cb(null, name + path.extname(file.originalname)); // Date.now() + path.extname(file.originalname)
+		cb(null, name + path.extname(file.originalname)); 
 	}
 })
 const upload = multer({storage: storage}); //{ dest: '../assets'}

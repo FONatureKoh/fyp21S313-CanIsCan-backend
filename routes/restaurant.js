@@ -53,17 +53,42 @@ router.get("/retrieveRestaurantInfo", (req, res) => {
 /********************************************************************
  * Add Menu Item route
  ********************************************************************/
-// We first set some multer config for this route
+// We first set some multer config for this route. This is a middleware
 const storage = multer.diskStorage({
 	destination: (req, file, cb) => {
 		cb(null, './public/assets/menuitem_png');
 	},
 	filename: (req, file, cb) => {
-		// This functions as the middleware, once form is built,
-		// use req.body to retrieve all the necessary variables 
-		// to construct the file name.
-		const { body: { name }} = req;
-		cb(null, name + path.extname(file.originalname)); 
+		// req.body should have all the necessary stuff for the query and entry
+		// to the mysql database
+		// Restaurant_ID + Menu_Item_ID + item_name .png
+		const {
+			body: {
+				username,
+				itemName, 
+				itemPrice, 
+				itemDesc, 
+				itemAllergy
+			}
+		} = req;
+
+		/****************************************************************
+		 * Get the restaurant's ID based on the RGM's username sinice thew
+		 * RGM's account is tagged to a restaurant
+		*/
+		var sqlQuery = "SELECT restaurant_ID FROM restaurant_gm ";
+		sqlQuery += `WHERE username='${username}'`
+
+		dbconn.query(sqlQuery, function (error, results, fields) {
+			if (error) {
+				console.log(error);
+			}
+			else {
+				console.log(results);
+			}
+		})
+
+		cb(null, itemName + path.extname(file.originalname)); 
 	}
 })
 const upload = multer({storage: storage}); //{ dest: '../assets'}
@@ -73,9 +98,16 @@ router.post('/addmenuitem', upload.single("file"), (req, res) => {
 	console.log(req.body);
 	
 	// Get all the variables
-  const { file, body: { name } } = req;
+  const {
+		file, body: {
+			itemName, 
+			itemPrice, 
+			itemDesc, 
+			itemAllergy
+		}
+	} = req;
 
-  res.send("File uploaded as " + file.originalname);
+  res.send("File uploaded as " + itemName);
 });
 
 /* 	=== All routes for /restaurant/item/:itemid ===

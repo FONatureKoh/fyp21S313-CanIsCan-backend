@@ -114,27 +114,50 @@ router.post('/addmenuitem', upload.single("file"), (req, res) => {
 	Currently has get, put, delete 
 	===============================================*/
 router
-  .route('/menuitem/:itemid')
+  .route('/restaurantItem/:itemid')
 	.get((req, res) => {
-		res.send(`Get User with username ${req.params.username}`);
+		res.send(`Get item with itemID ${req.params.itemid}`);
 	})
 	.put((req, res) => {
-		res.send(`Get User with username ${req.params.username}`);
+		res.send(`Get item with itemID ${req.params.itemid}`);
 	})
 	.delete((req, res) => {
-		res.send(`Get User with username ${req.params.username}`);
+		res.send(`Get item with itemID ${req.params.itemid}`);
 	});
 
 /*  */
 router.param("itemid", (req, res, next, itemid) => {
-	console.log(username);
+	console.log(itemid);
 	next();
 });
 
-/* === All routes for /restaurant/subusers === */
+/* === All routes for RGM subuser stuff === */
 router.get('/subusers', (req, res) => {
 	var sqlQuery = "";
 	dbconn.query();
+});
+
+router.get('/rgm/addSubUser', (req, res) => {
+	var sqlQuery = "";
+	dbconn.query();
+});
+
+router
+  .route('/rgm/subUser/:subuser_ID')
+	.get((req, res) => {
+		res.send(`Get item with itemID ${req.params.itemid}`);
+	})
+	.put((req, res) => {
+		res.send(`Get item with itemID ${req.params.itemid}`);
+	})
+	.delete((req, res) => {
+		res.send(`Get item with itemID ${req.params.itemid}`);
+	});
+
+/*  */
+router.param("subuser_ID", (req, res, next, subuser_ID) => {
+	console.log(subuser_ID);
+	next();
 });
 
 module.exports = router;

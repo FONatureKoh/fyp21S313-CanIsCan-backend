@@ -8,6 +8,7 @@ router.use(express.json())
  * Authentication function
  * 
  */
+
 router.post("/login", (req, res) => {
   var username = req.body.username;
   var password = req.body.password;
@@ -19,12 +20,12 @@ router.post("/login", (req, res) => {
   // res.send(req.body);
 	dbconn.query(sqlQuery, function (error, results, fields) {
     if (error) {
-      res.status(404).send("MySQL error: " + error);
+      res.status(400).send("MySQL error: " + error);
     }
     else {
       // Retrieve the username and usertype
       const selectedUsername = results[0].username;
-      const selectedUsertype = results[0].usertype;
+      const selectedUsertype = results[0].user_type;
 
       // Construct an object with those params
       const userData = {
@@ -35,22 +36,34 @@ router.post("/login", (req, res) => {
       // Now we serialise things
       const accessToken = jwt.sign(userData, process.env.ACCESS_TOKEN_SECRET);
       
-      res.json({ accessToken: accessToken })
+      res.json({
+        accessToken: accessToken,
+        userType: selectedUsertype
+      })
+
+      console.log(userData);
       // res.send(results);
     }
   });
 });
 
+router.get("/username", authenticateToken, (req, res) => {
+  // console.log(req);
+  res.status(200).json({
+    username: res.locals.userData.username
+  });
+});
+
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorisation'];
-  const token = authHeader && authHeader.split(' ')[1];
+  const token = authHeader; //  && authHeader.split(' ')[1]
   if (token == null) return res.sendStatus(404);
 
   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, userData) => {
-    if (err) return res.sendStatus(403)
-    req.body.username
+    if (err) return res.sendStatus(403);
+    res.locals.userData = userData;
+    next();
   })
-
 }
 
 module.exports = router;

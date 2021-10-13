@@ -4,6 +4,7 @@
 # env files
 .env
 .env.development
+requests.rest
 
 # Essential folders to keep
 # First few lines excludes everything inside the assets sub folders

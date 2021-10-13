@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const dbconn = require("../models/db_model");
 
-/* === Returns current list of users === */
+/* */
 router.get("/list", (req, res) => {
 	console.log(req);
 	dbconn.query('SELECT * FROM app_user', function (error, results, fields) {

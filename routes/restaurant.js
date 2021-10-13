@@ -72,8 +72,8 @@ const storage = multer.diskStorage({
 			}
 		} = req;
 
-		/****************************************************************
-		 * Get the restaurant's ID based on the RGM's username sinice thew
+		/**********************************************************************
+		 * Get the restaurant's ID based on the RGM's username since the			*
 		 * RGM's account is tagged to a restaurant
 		*/
 		var sqlQuery = "SELECT restaurant_ID FROM restaurant_gm ";

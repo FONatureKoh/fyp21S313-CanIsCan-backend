@@ -1,8 +1,9 @@
-require('dotenv').config()
+require('dotenv').config();
 const dbconn = require('./models/db_model.js');
 const express = require('express');
 const app = express();
-const cors = require('cors')
+const cors = require('cors');
+const path = require('path');
 
 app.use(express.static("public"));
 app.use(cors());
@@ -22,6 +23,13 @@ app.get('/cow', (req, res) => {
 app.get('/cats', (req, res) => {
   console.log("Route success");
   res.send("This is a cat. Can you see the cat?");
+});
+
+// Image Test API
+app.get('/image/:imageName', (req, res) => {
+  // console.log(path.resolve(`../0-test-pictures/${req.params.imageName}`));
+  console.log(req.params.imageName);
+  res.sendFile(path.resolve(`../0-test-pictures/${req.params.imageName}`));
 });
 
 /* === Test DB Connection === */

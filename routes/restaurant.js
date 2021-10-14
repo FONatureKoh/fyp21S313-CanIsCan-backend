@@ -99,7 +99,7 @@ const storage = multer.diskStorage({
 })
 const upload = multer({storage: storage}); //{ dest: '../assets'}
 
-router.post('/addmenuitem', upload.single("file"), (req, res) => {
+router.post('/addmenuitem', authTokenMiddleware, upload.single("file"), (req, res) => {
   // Restaurant_ID + Menu_Item_ID + item_name .png
 	console.log(req.body);
 	

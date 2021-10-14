@@ -16,14 +16,14 @@ router.use(express.json());
  * 
  */
 function accessTokenParser(bearerToken) {
-	console.log("Parser function token: " + bearerToken);
+	// console.log("Parser function token: " + bearerToken);
 	const authHeader = bearerToken;
   const token = authHeader && authHeader.split(' ')[1]
 
 	return jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, userData) => {
     if (err) return null;
 
-		console.log(userData);
+		// console.log(userData);
 		return userData;
   });
 }

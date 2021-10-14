@@ -52,7 +52,7 @@ router.post("/login", (req, res) => {
         
         // Send the response back to front end app
         res.status(200).json({
-          accessToken: accessToken,
+          accessToken: "Bearer " + accessToken,
           userType: selectedUsertype
         })
       }

@@ -32,7 +32,8 @@ router.get("/retrieveMenuItems", (req, res) => {
  * Retrieve restaurant's information																				*
  ****************************************************************************
  */
-router.route("/restaurantProfile")
+router
+	.route("/restaurantProfile")
 	.get(authTokenMiddleware, (req, res) => {
 		// Firstly, we get the username of the RGM of the restaurant
 		const { username } = res.locals.userData;

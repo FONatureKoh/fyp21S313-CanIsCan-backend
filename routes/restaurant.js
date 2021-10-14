@@ -4,6 +4,7 @@ const dbconn = require("../models/db_model");
 const multer = require("multer");
 const fs = require("fs");
 const path = require("path");
+const authTokenMiddleware = require("../middleware/authTokenMiddleware");
 
 router.use(express.json());
 
@@ -27,27 +28,31 @@ router.get("/retrieveMenuItems", (req, res) => {
 	})
 });
 
-/********************************************************************
- * Retrieve restaurant's information
- ********************************************************************
+/****************************************************************************
+ * Retrieve restaurant's information																				*
+ ****************************************************************************
  */
-router.get("/retrieveRestaurantInfo", (req, res) => {
-	// Save the restaurantID first from the URL
-	var restaurantID = req.query.restaurantID;
+router.route("/restaurantProfile")
+	.get(authTokenMiddleware, (req, res) => {
+		// Firstly, we get the username of the RGM of the restaurant
+		const { username } = res.locals.userData;
 
-	// Then construct the sql query based on the query
-	var sqlQuery = "SELECT * FROM restaurant ";
-	sqlQuery += `WHERE restaurant_ID=${restaurantID}`
+		// Then, we construct the sql query with the username in mind.
+		var sqlQuery = "SELECT restaurant_ID, restaurant_name, rest_address_info, ";
+		sqlQuery += "postal_code, rest_phone_no, rest_email, restaurant_cat, ";
+		sqlQuery += "restaurant_closing_time, rest_op_hours ";
+		sqlQuery += "FROM restaurant JOIN restaurant_gm ";
+		sqlQuery += `ON restaurant_ID = rgm_restaurant_ID AND rgm_username='${username}'`;
 
-	// Query the db and return the said fields to the frontend app
-	dbconn.query(sqlQuery, function (error, results, fields) {
-		if (error) {
-			res.send("MySQL error: " + error);
-    }
-    else {
-      res.send(results);
-		}
-	})
+		// Query the db and return the said fields to the frontend app
+		dbconn.query(sqlQuery, function (error, results, fields) {
+			if (error) {
+				res.status(400).send({ errorMsg: "MySQL error: " + error });
+			}
+			else {
+				res.status(200).send(results[0]);
+			}
+		})
 });
 
 /********************************************************************

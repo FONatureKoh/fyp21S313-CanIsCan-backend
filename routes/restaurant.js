@@ -5,8 +5,28 @@ const multer = require("multer");
 const fs = require("fs");
 const path = require("path");
 const authTokenMiddleware = require("../middleware/authTokenMiddleware");
+const jwt = require("jsonwebtoken");
 
+// Body Parser
 router.use(express.json());
+
+/**************************************************************************
+ * Router functions 																											*
+ **************************************************************************
+ * 
+ */
+function accessTokenParser(bearerToken) {
+	console.log("Parser function token: " + bearerToken);
+	const authHeader = bearerToken;
+  const token = authHeader && authHeader.split(' ')[1]
+
+	return jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, userData) => {
+    if (err) return null;
+
+		console.log(userData);
+		return userData;
+  });
+}
 
 /* === Returns all menu and menu items based on restaurantID === */
 router.get("/retrieveMenuItems", (req, res) => {
@@ -68,9 +88,11 @@ const storage = multer.diskStorage({
 		// req.body should have all the necessary stuff for the query and entry
 		// to the mysql database
 		// Restaurant_ID + Menu_Item_ID + item_name .png
+		const userData = accessTokenParser(req.headers['authorisation']);
+		const username = userData["username"]
+
 		const {
 			body: {
-				username,
 				itemName, 
 				itemPrice, 
 				itemDesc, 
@@ -78,12 +100,13 @@ const storage = multer.diskStorage({
 			}
 		} = req;
 
+
 		/**********************************************************************
 		 * Get the restaurant's ID based on the RGM's username since the			*
 		 * RGM's account is tagged to a restaurant
 		*/
-		var sqlQuery = "SELECT restaurant_ID FROM restaurant_gm ";
-		sqlQuery += `WHERE username='${username}'`
+		var sqlQuery = "SELECT rgm_restaurant_ID FROM restaurant_gm ";
+		sqlQuery += `WHERE rgm_username='${username}'`
 
 		dbconn.query(sqlQuery, function (error, results, fields) {
 			if (error) {
@@ -99,7 +122,7 @@ const storage = multer.diskStorage({
 })
 const upload = multer({storage: storage}); //{ dest: '../assets'}
 
-router.post('/addmenuitem', authTokenMiddleware, upload.single("file"), (req, res) => {
+router.post('/addmenuitem', authTokenMiddleware, upload.single("imageFile"), (req, res) => {
   // Restaurant_ID + Menu_Item_ID + item_name .png
 	console.log(req.body);
 	

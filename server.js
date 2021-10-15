@@ -29,7 +29,11 @@ app.get('/cats', (req, res) => {
 app.get('/image/:imageName', (req, res) => {
   // console.log(path.resolve(`../0-test-pictures/${req.params.imageName}`));
   console.log(req.params.imageName);
-  res.sendFile(path.resolve(`../0-test-pictures/${req.params.imageName}`));
+  
+  const pathName = process.env.ASSETS_SAVE_LOC + "rest_items_png/" + req.params.imageName;
+  console.log(pathName);
+
+  res.sendFile(path.resolve(pathName));
 });
 
 /* === Test DB Connection === */

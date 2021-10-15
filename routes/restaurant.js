@@ -79,10 +79,13 @@ router
 /********************************************************************
  * Add Menu Item route
  ********************************************************************/
+// Step 1 is to find the exact location on the server to save the file
+const pathName = process.env.ASSETS_SAVE_LOC + "rest_items_png/"
+
 // We first set some multer config for this route. This is a middleware
 const storage = multer.diskStorage({
 	destination: (req, file, cb) => {
-		cb(null, './public/assets/rest_item_png');
+		cb(null, path.resolve(pathName));
 	},
 	filename: (req, file, cb) => {
 		// req.body should have all the necessary stuff for the query and entry

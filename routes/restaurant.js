@@ -101,7 +101,7 @@ const storage = multer.diskStorage({
 				itemDesc, 
 				itemAllergy
 			}
-		} = req;
+		} = req.body;
 
 		var sqlQuery = "SELECT rgm_restaurant_ID FROM restaurant_gm ";
 		sqlQuery += `WHERE rgm_username='${username}'`

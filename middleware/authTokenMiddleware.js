@@ -12,7 +12,7 @@ module.exports = function authenticateToken (req, res, next) {
   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, userData) => {
     if (err) return res.sendStatus(403);
 
-    res.headers("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Origin", "*");
     res.locals.userData = userData;
     next();
   });

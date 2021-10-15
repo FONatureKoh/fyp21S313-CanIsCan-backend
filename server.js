@@ -14,7 +14,7 @@ const corsOptions ={
     optionSuccessStatus:200
 }
 
-app.use(cors());
+app.use(cors(corsOptions));
 
 app.get('/', (req, res) => {
   console.log("Route success");

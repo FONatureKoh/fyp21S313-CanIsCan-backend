@@ -92,7 +92,9 @@ const storage = multer.diskStorage({
 		// to the mysql database
 		// Restaurant_ID + Menu_Item_ID + item_name .png
 		const userData = accessTokenParser(req.headers['authorisation']);
-		const username = userData["username"]
+		// const username = userData["username"]
+
+		console.log(req.body);
 
 		const {
 			body: {
@@ -101,19 +103,19 @@ const storage = multer.diskStorage({
 				itemDesc, 
 				itemAllergy
 			}
-		} = req.body;
+		} = req;
 
-		var sqlQuery = "SELECT rgm_restaurant_ID FROM restaurant_gm ";
-		sqlQuery += `WHERE rgm_username='${username}'`
+		// var sqlQuery = "SELECT rgm_restaurant_ID FROM restaurant_gm ";
+		// sqlQuery += `WHERE rgm_username='${username}'`
 
-		dbconn.query(sqlQuery, function (error, results, fields) {
-			if (error) {
-				console.log(error);
-			}
-			else {
-				console.log(results);
-			}
-		})
+		// dbconn.query(sqlQuery, function (error, results, fields) {
+		// 	if (error) {
+		// 		console.log(error);
+		// 	}
+		// 	else {
+		// 		console.log(results);
+		// 	}
+		// })
 
 		cb(null, itemName + path.extname(file.originalname)); 
 	}
@@ -122,7 +124,7 @@ const upload = multer({storage: storage}); //{ dest: '../assets'}
 
 router.post('/addmenuitem', authTokenMiddleware, upload.single("imageFile"), (req, res) => {
   // Restaurant_ID + Menu_Item_ID + item_name .png
-	console.log(req.body);
+	// console.log(req.body);
 	
 	// Get all the variables
   const {

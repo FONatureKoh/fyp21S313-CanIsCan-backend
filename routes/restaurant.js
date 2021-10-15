@@ -82,7 +82,7 @@ router
 // We first set some multer config for this route. This is a middleware
 const storage = multer.diskStorage({
 	destination: (req, file, cb) => {
-		cb(null, './public/assets/menuitem_png');
+		cb(null, './public/assets/rest_item_png');
 	},
 	filename: (req, file, cb) => {
 		// req.body should have all the necessary stuff for the query and entry
@@ -100,11 +100,6 @@ const storage = multer.diskStorage({
 			}
 		} = req;
 
-
-		/**********************************************************************
-		 * Get the restaurant's ID based on the RGM's username since the			*
-		 * RGM's account is tagged to a restaurant
-		*/
 		var sqlQuery = "SELECT rgm_restaurant_ID FROM restaurant_gm ";
 		sqlQuery += `WHERE rgm_username='${username}'`
 

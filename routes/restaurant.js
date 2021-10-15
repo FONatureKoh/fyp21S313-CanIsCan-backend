@@ -117,7 +117,7 @@ const storage = multer.diskStorage({
 		// 	}
 		// })
 
-		cb(null, itemName + path.extname(file.originalname)); 
+		cb(null, "itemName" + path.extname(file.originalname)); 
 	}
 })
 const upload = multer({storage: storage}); //{ dest: '../assets'}

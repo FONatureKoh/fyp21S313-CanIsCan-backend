@@ -29,7 +29,10 @@ function accessTokenParser(bearerToken) {
   });
 }
 
-/* === Returns all menu and menu items based on restaurantID === */
+/****************************************************************************
+ * Retrieve restaurant's menu and all items information											*
+ ****************************************************************************
+ */
 router.get("/retrieveMenuItems", (req, res) => {
 	// Save the restaurantID first from the URL
 	var restaurantID = req.query.restaurantID;
@@ -45,6 +48,57 @@ router.get("/retrieveMenuItems", (req, res) => {
     }
     else {
       res.send(results);
+		}
+	})
+});
+
+/****************************************************************************
+ * Retrieve restaurant's item categories information												*
+ ****************************************************************************
+ */
+router.get("/retrieveCategories", (req, res) => {
+	// Save the restaurantID first from the URL
+	var restaurantID = req.query.restaurantID;
+
+	// Then construct the sql query based on the query
+	var sqlQuery = "SELECT menu_type FROM rest_menu ";
+	sqlQuery += `WHERE rm_restaurant_ID=${restaurantID} `;
+	sqlQuery += "GROUP BY menu_type";
+
+	// Query the db and return the said fields to the frontend app
+	dbconn.query(sqlQuery, function (error, results, fields) {
+		if (error) {
+			res.send("MySQL error: " + error);
+    }
+    else {
+      res.status(200).send(results);
+		}
+	})
+});
+
+/****************************************************************************
+ * Retrieve restaurant's items based on categories ID information						*
+ ****************************************************************************
+ */
+router.get("/retrieveCategoriesItems", (req, res) => {
+	// Save the restaurantID first from the URL
+	var restaurantID = req.query.restaurantID;
+
+	// Then construct the sql query based on the query
+	var sqlQuery = "SELECT menu_type, menu_item_ID, item_name, item_desc, ";
+	sqlQuery += "item_allergen_warning, item_price "; 
+	sqlQuery += "FROM rest_menu JOIN menu_item ";
+	sqlQuery += `ON rm_restaurant_ID=${restaurantID} AND menu_ID=item_menu_ID `;
+	sqlQuery += "ORDER BY menu_type, item_name";
+
+	// Query the db and return the said fields to the frontend app
+	dbconn.query(sqlQuery, function (error, results, fields) {
+		if (error) {
+			res.send("MySQL error: " + error);
+    }
+    else {
+			// console.log(results);
+      res.status(200).send(results);
 		}
 	})
 });

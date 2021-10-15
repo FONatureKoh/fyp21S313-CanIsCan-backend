@@ -9,6 +9,7 @@ const jwt = require("jsonwebtoken");
 
 // Body Parser
 router.use(express.json());
+router.use(express.urlencoded({extended: true}));
 
 /**************************************************************************
  * Router functions 																											*
@@ -92,8 +93,9 @@ const storage = multer.diskStorage({
 		// to the mysql database
 		// Restaurant_ID + Menu_Item_ID + item_name .png
 		const userData = accessTokenParser(req.headers['authorisation']);
-		// const username = userData["username"]
+		const username = userData["username"]
 
+		console.log(req.file);
 		console.log(req.body);
 
 		const {
@@ -135,7 +137,8 @@ router.post('/addmenuitem', authTokenMiddleware, upload.single("imageFile"), (re
 			itemAllergy
 		}
 	} = req;
-
+	
+	console.log(req.file, req.body);
   res.send("File uploaded as " + itemName);
 });
 

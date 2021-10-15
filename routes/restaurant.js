@@ -134,7 +134,6 @@ router.post('/addmenuitem', authTokenMiddleware, upload.single("imageFile"), (re
 		}
 	} = req;
 
-	res.header("Access-Control-Allow-Origin", "*");
   res.send("File uploaded as " + itemName);
 });
 

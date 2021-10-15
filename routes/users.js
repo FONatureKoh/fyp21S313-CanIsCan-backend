@@ -37,7 +37,7 @@ router
 		switch (userType) {
 			case "Restaurant General Manager":
 				// Then, we construct the sql query with the username in mind.
-				var sqlQuery = "SELECT username, first_name, last_name, phone_no "
+				var sqlQuery = "SELECT username, first_name, last_name, phone_no, home_address, home_postal_code "
 				sqlQuery += "FROM app_user JOIN restaurant_gm "
 				sqlQuery += `ON username=rgm_username WHERE rgm_username='${username}'`;
 

@@ -11,6 +11,7 @@ app.use(express.static("public"));
 const corsOptions ={
   origin: ['http://localhost:3000', 'https://cancanfoodapp.xyz'],
   credentials: true,            //access-control-allow-credentials:true
+  allowedHeaders: ['Content-Type', 'Authorisation'],
   optionSuccessStatus: 200
 }
 

@@ -10,7 +10,7 @@ const { v4: uuidv4 } = require('uuid');
 
 // Body Parser
 router.use(express.json());
-router.use(express.urlencoded({extended: true}));
+router.use(authTokenMiddleware);
 
 /**************************************************************************
  * Router functions 																											*
@@ -100,7 +100,7 @@ router.get("/retrieveCategories", (req, res) => {
  ****************************************************************************
  */
 router.route("/itemCategory")
-	.get(authTokenMiddleware, (req, res) => {
+	.get((req, res) => {
 		// Some useful variables for this route
 		var selectedRestID;
 		// Save the restaurantID first from the header and also auth
@@ -155,7 +155,7 @@ router.get("/retrieveCategoriesItems", (req, res) => {
  */
 router
 	.route("/restaurantProfile")
-	.get(authTokenMiddleware, (req, res) => {
+	.get((req, res) => {
 		// Firstly, we get the username of the RGM of the restaurant
 		const { username } = res.locals.userData;
 
@@ -197,7 +197,7 @@ const storage = multer.diskStorage({
 const upload = multer({storage: storage}); //{ dest: '../assets'}
 
 // Step 3: We write the post route for when we add an item to the db
-router.post('/addmenuitem', authTokenMiddleware, upload.single("imageFile"), (req, res) => {
+router.post('/addmenuitem', upload.single("imageFile"), (req, res) => {
 	// Get all the useful variables from the req
   const {
 		file, body: {
@@ -236,13 +236,19 @@ router.post('/addmenuitem', authTokenMiddleware, upload.single("imageFile"), (re
 router
   .route('/restaurantItem/:itemid')
 	.get((req, res) => {
+		// This one simply gets the items based on the itemID (if its ever needed)
 		res.send(`Get item with itemID ${req.params.itemid}`);
 	})
 	.put((req, res) => {
+		// 1. Get all the variables from the form and also the file
+		// 2. Check if there was a new file in the first place
+		// 3. If there is a new file, delete the old file
+		// 4. Save all the new variables into the database
 		res.send(`Updating item with itemID ${req.params.itemid}`);
 	})
 	.delete((req, res) => {
-		res.send(`Get item with itemID ${req.params.itemid}`);
+		// This should delete the item based on the itemID
+		res.send(`Deleted item with itemID ${req.params.itemid}`);
 	});
 
 /*  */

@@ -6,6 +6,9 @@ const dbconn = require("../models/db_model");
 // Body parser
 router.use(express.json());
 
+// Universal Middleware
+router.use(authTokenMiddleware);
+
 /* */
 router.get("/list", (req, res) => {
 	console.log(req);
@@ -27,7 +30,7 @@ router.get("/list", (req, res) => {
 */
 router
   .route('/profilemanagement')
-	.get(authTokenMiddleware, (req, res) => {
+	.get((req, res) => {
 		// Get the userData from the access token
 		const {
 			username, userType
@@ -56,7 +59,7 @@ router
 				break;
 		}
 	})
-	.put(authTokenMiddleware, (req, res) => {
+	.put((req, res) => {
 		res.send();
 	});
 

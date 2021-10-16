@@ -14,7 +14,7 @@ router.use(express.json())
  */
 
 router.post("/login", (req, res) => {
-  console.log(req.body);
+  // console.log(req.body);
   // First we get the two values from the req body
   const {
     username, password
@@ -32,7 +32,7 @@ router.post("/login", (req, res) => {
 
     // Query to auth the user. If found, proceed, otherwise throw 400 Bad Request.
     dbconn.query(sqlQuery, function (error, results, fields) {
-      console.log(results);
+      // console.log(results);
       if (error) {
         res.status(400).send({ errorMsg: "MySQL error: " + error });
       }

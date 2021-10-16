@@ -39,7 +39,7 @@ router.get("/retrieveMenuItems", (req, res) => {
 
 	// Then construct the sql query based on the query
 	var sqlQuery = "SELECT * FROM rest_menu JOIN menu_item ";
-	sqlQuery += `ON restaurant_ID=${restaurantID} AND menu_ID=item_menu_ID`
+	sqlQuery += `ON rm_restaurant_ID=${restaurantID} AND menu_ID=item_menu_ID`
 
 	// Query the db and return the said fields to the frontend app
 	dbconn.query(sqlQuery, function (error, results, fields) {

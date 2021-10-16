@@ -6,6 +6,7 @@ const fs = require("fs");
 const path = require("path");
 const authTokenMiddleware = require("../middleware/authTokenMiddleware");
 const jwt = require("jsonwebtoken");
+const { v4: uuidv4 } = require('uuid');
 
 // Body Parser
 router.use(express.json());
@@ -27,6 +28,24 @@ function accessTokenParser(bearerToken) {
 		// console.log(userData);
 		return userData;
   });
+}
+
+function retrieveRestID(rgm_username) {
+	// Then, we construct the sql query with the username in mind.
+	var sqlQuery = "SELECT rgm_restaurant_ID ";
+	sqlQuery += "FROM restaurant_gm ";
+	sqlQuery += `WHERE rgm_username='${rgm_username}'`;
+
+	// Query the db and return the said fields to the frontend app
+	dbconn.query(sqlQuery, function (error, results, fields) {
+		if (error) {
+			console.log("MySQL error at restaurant.j line 42");
+		}
+		else {
+			console.log(results[0].rgm_restaurant_ID);
+			return results[0].rgm_restaurant_ID;
+		}
+	})
 }
 
 /****************************************************************************
@@ -53,7 +72,7 @@ router.get("/retrieveMenuItems", (req, res) => {
 });
 
 /****************************************************************************
- * Retrieve restaurant's item categories information												*
+ * Retrieve restaurant's item category / categories information							*
  ****************************************************************************
  */
 router.get("/retrieveCategories", (req, res) => {
@@ -75,6 +94,33 @@ router.get("/retrieveCategories", (req, res) => {
 		}
 	})
 });
+
+/****************************************************************************
+ * Retrieve restaurant's item category / categories information (New)				*
+ ****************************************************************************
+ */
+router.route("/itemCategory")
+	.get(authTokenMiddleware, (req, res) => {
+		// Some useful variables for this route
+		var selectedRestID;
+		// Save the restaurantID first from the header and also auth
+		const { username } = res.locals.userData;
+
+		// Then construct the sql query based on username to get restaurant_ID
+		var sqlQuery = "SELECT DISTINCT ric_name, ric_ID ";
+		sqlQuery += "FROM rest_item_categories JOIN restaurant_gm ";
+		sqlQuery += `WHERE rgm_username='${username}' AND ric_restaurant_ID=rgm_restaurant_ID `;
+
+		// Query the db and return the said fields to the frontend app
+		dbconn.query(sqlQuery, function (error, results, fields) {
+			if (error) {
+				res.status(400).send("MySQL error: " + error);
+			}
+			else {
+				res.status(200).send(results);
+			}
+		})
+	});
 
 /****************************************************************************
  * Retrieve restaurant's items based on categories ID information						*
@@ -128,72 +174,72 @@ router
 			else {
 				res.status(200).send(results[0]);
 			}
-		})
+		});
 });
 
-/********************************************************************
- * Add Menu Item route
- ********************************************************************/
-// Step 1 is to find the exact location on the server to save the file
+/*****************************************************************************************
+ * Restaurant Items Add, Get, Put, Delete
+ *****************************************************************************************/
+// Step 1: Find the exact location on the server to save the file
 const pathName = process.env.ASSETS_SAVE_LOC + "rest_items_png/"
 
-// We first set some multer config for this route. This is a middleware
+// Step 2: Config Multer to the exact location for upload and get a uuidv4 random
+// uuid for the file name
 const storage = multer.diskStorage({
 	destination: (req, file, cb) => {
 		cb(null, path.resolve(pathName));
 	},
 	filename: (req, file, cb) => {
-		// req.body should have all the necessary stuff for the query and entry
-		// to the mysql database
-		// Restaurant_ID + ri_item_ID + item_name .png
-		const userData = accessTokenParser(req.headers['authorisation']);
-		const username = userData["username"]
-
-		console.log(req.file);
-		console.log(req.body);
-
-		const {
-			body: {
-				itemName, 
-				itemPrice, 
-				itemDesc, 
-				itemAllergy
-			}
-		} = req;
-
-		cb(null, "itemName" + path.extname(file.originalname)); 
+		const itemName = Date.now() + '-' + uuidv4();
+		cb(null, itemName + path.extname(file.originalname)); 
 	}
 })
 const upload = multer({storage: storage}); //{ dest: '../assets'}
 
+// Step 3: We write the post route for when we add an item to the db
 router.post('/addmenuitem', authTokenMiddleware, upload.single("imageFile"), (req, res) => {
-  // Restaurant_ID + ri_item_ID + item_name .png
-	// console.log(req.body);
-	
-	// Get all the variables
+	// Get all the useful variables from the req
   const {
 		file, body: {
+			itemAvailability,
 			itemName, 
 			itemPrice, 
 			itemDesc, 
-			itemAllergy
+			itemAllergy,
+			itemCategory
 		}
 	} = req;
 	
-	console.log(req.file, req.body);
-  res.send("File uploaded as " + itemName);
+	// Console log for testing, please comment out when done
+	console.log("restaurant.js line 196 ", file, req.body);
+
+	// Construct insert sqlQuery 
+	var sqlQuery = "INSERT INTO `rest_item`(`ri_cat_ID`, `item_name`, `item_png_ID`, ";
+	sqlQuery += " `item_desc`, `item_allergen_warning`, `item_price`, `item_availability`) ";
+	sqlQuery += `VALUES (${itemCategory}, '${itemName}', '${file.filename}', `;
+	sqlQuery += `'${itemDesc}', '${itemAllergy}', ${itemPrice}, ${itemAvailability})`;
+
+	// Make sqlQuery
+	dbconn.query(sqlQuery, function(error, results, fields) {
+		if (error) {
+			console.log(error);
+			res.status(400).send({ errorMsg: "MySQL error: " + error });
+		}
+		else {
+			console.log(results);
+			res.status(200).send(`File uploaded for ${itemName} with image name ${file.filename}`);
+		}
+	});
 });
 
-/* 	=== All routes for /restaurant/item/:itemid ===
-	Currently has get, put, delete 
-	===============================================*/
+// Step 4: Create the routes for editing and getting information
 router
   .route('/restaurantItem/:itemid')
 	.get((req, res) => {
 		res.send(`Get item with itemID ${req.params.itemid}`);
 	})
 	.put((req, res) => {
-		res.send(`Get item with itemID ${req.params.itemid}`);
+		res.send(`Updating item with itemID ${req.params.itemid}`);
 	})
 	.delete((req, res) => {
 		res.send(`Get item with itemID ${req.params.itemid}`);

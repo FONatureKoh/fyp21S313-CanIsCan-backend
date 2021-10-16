@@ -5,7 +5,7 @@ module.exports = function authenticateToken (req, res, next) {
   const token = authHeader && authHeader.split(' ')[1]
 
   // For testing, remember to comment out
-  // console.log(req);
+  // console.log("Auth Middleware activated!");
 
   if (token == null) return res.status(400).json({ errorMsg: "Token Error please try again" });
 

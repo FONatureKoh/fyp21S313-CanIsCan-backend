@@ -8,9 +8,6 @@ const authTokenMiddleware = require("../middleware/authTokenMiddleware");
 const jwt = require("jsonwebtoken");
 const { v4: uuidv4 } = require('uuid');
 
-// Universal router Middleware
-router.use(authTokenMiddleware);
-
 // Body Parser
 router.use(express.json());
 router.use(express.urlencoded({extended: true}));
@@ -103,7 +100,7 @@ router.get("/retrieveCategories", (req, res) => {
  ****************************************************************************
  */
 router.route("/itemCategory")
-	.get((req, res) => {
+	.get(authTokenMiddleware, (req, res) => {
 		// Some useful variables for this route
 		var selectedRestID;
 		// Save the restaurantID first from the header and also auth
@@ -158,7 +155,7 @@ router.get("/retrieveCategoriesItems", (req, res) => {
  */
 router
 	.route("/restaurantProfile")
-	.get((req, res) => {
+	.get(authTokenMiddleware, (req, res) => {
 		// Firstly, we get the username of the RGM of the restaurant
 		const { username } = res.locals.userData;
 
@@ -200,7 +197,7 @@ const storage = multer.diskStorage({
 const upload = multer({storage: storage}); //{ dest: '../assets'}
 
 // Step 3: We write the post route for when we add an item to the db
-router.post('/addmenuitem', upload.single("imageFile"), (req, res) => {
+router.post('/addmenuitem', authTokenMiddleware, upload.single("imageFile"), (req, res) => {
 	// Get all the useful variables from the req
   const {
 		file, body: {

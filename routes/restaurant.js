@@ -38,8 +38,8 @@ router.get("/retrieveMenuItems", (req, res) => {
 	var restaurantID = req.query.restaurantID;
 
 	// Then construct the sql query based on the query
-	var sqlQuery = "SELECT * FROM rest_menu JOIN menu_item ";
-	sqlQuery += `ON rm_restaurant_ID=${restaurantID} AND menu_ID=item_menu_ID`
+	var sqlQuery = "SELECT * FROM rest_item_categories JOIN rest_item ";
+	sqlQuery += `ON ric_restaurant_ID=${restaurantID} AND ric_ID=ri_cat_ID`
 
 	// Query the db and return the said fields to the frontend app
 	dbconn.query(sqlQuery, function (error, results, fields) {
@@ -61,9 +61,9 @@ router.get("/retrieveCategories", (req, res) => {
 	var restaurantID = req.query.restaurantID;
 
 	// Then construct the sql query based on the query
-	var sqlQuery = "SELECT menu_type FROM rest_menu ";
-	sqlQuery += `WHERE rm_restaurant_ID=${restaurantID} `;
-	sqlQuery += "GROUP BY menu_type";
+	var sqlQuery = "SELECT ric_name FROM rest_item_categories ";
+	sqlQuery += `WHERE ric_restaurant_ID=${restaurantID} `;
+	sqlQuery += "GROUP BY ric_name";
 
 	// Query the db and return the said fields to the frontend app
 	dbconn.query(sqlQuery, function (error, results, fields) {
@@ -85,11 +85,11 @@ router.get("/retrieveCategoriesItems", (req, res) => {
 	var restaurantID = req.query.restaurantID;
 
 	// Then construct the sql query based on the query
-	var sqlQuery = "SELECT menu_type, menu_item_ID, item_name, item_desc, ";
+	var sqlQuery = "SELECT ric_name, ri_item_ID, item_name, item_desc, ";
 	sqlQuery += "item_allergen_warning, item_price "; 
-	sqlQuery += "FROM rest_menu JOIN menu_item ";
-	sqlQuery += `ON rm_restaurant_ID=${restaurantID} AND menu_ID=item_menu_ID `;
-	sqlQuery += "ORDER BY menu_type, item_name";
+	sqlQuery += "FROM rest_item_categories JOIN rest_item ";
+	sqlQuery += `ON ric_restaurant_ID=${restaurantID} AND ric_ID=ri_cat_ID `;
+	sqlQuery += "ORDER BY ric_name, item_name";
 
 	// Query the db and return the said fields to the frontend app
 	dbconn.query(sqlQuery, function (error, results, fields) {
@@ -145,7 +145,7 @@ const storage = multer.diskStorage({
 	filename: (req, file, cb) => {
 		// req.body should have all the necessary stuff for the query and entry
 		// to the mysql database
-		// Restaurant_ID + Menu_Item_ID + item_name .png
+		// Restaurant_ID + ri_item_ID + item_name .png
 		const userData = accessTokenParser(req.headers['authorisation']);
 		const username = userData["username"]
 
@@ -161,25 +161,13 @@ const storage = multer.diskStorage({
 			}
 		} = req;
 
-		// var sqlQuery = "SELECT rgm_restaurant_ID FROM restaurant_gm ";
-		// sqlQuery += `WHERE rgm_username='${username}'`
-
-		// dbconn.query(sqlQuery, function (error, results, fields) {
-		// 	if (error) {
-		// 		console.log(error);
-		// 	}
-		// 	else {
-		// 		console.log(results);
-		// 	}
-		// })
-
 		cb(null, "itemName" + path.extname(file.originalname)); 
 	}
 })
 const upload = multer({storage: storage}); //{ dest: '../assets'}
 
 router.post('/addmenuitem', authTokenMiddleware, upload.single("imageFile"), (req, res) => {
-  // Restaurant_ID + Menu_Item_ID + item_name .png
+  // Restaurant_ID + ri_item_ID + item_name .png
 	// console.log(req.body);
 	
 	// Get all the variables

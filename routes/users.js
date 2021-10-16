@@ -32,16 +32,18 @@ router
   .route('/profilemanagement')
 	.get((req, res) => {
 		// Get the userData from the access token
+		console.log(res.locals.userData)
 		const {
 			username, userType
 		} = res.locals.userData;
 
 		// Construct a Switch to handle the sql query based on the userType
 		switch (userType) {
+			// RGM User Type ==========================================================
 			case "Restaurant General Manager":
-				// Then, we construct the sql query with the username in mind.
-				var sqlQuery = "SELECT username, first_name, last_name, phone_no, home_address, home_postal_code "
-				sqlQuery += "FROM app_user JOIN restaurant_gm "
+				var sqlQuery = "SELECT username, first_name, last_name, phone_no, ";
+				sqlQuery += "home_address, home_postal_code ";
+				sqlQuery += "FROM app_user JOIN restaurant_gm ";
 				sqlQuery += `ON username=rgm_username WHERE rgm_username='${username}'`;
 
 				// Query the db and return the said fields to the frontend app
@@ -54,12 +56,30 @@ router
 					}
 				})
 				break;
-		
+			// =========================================================================		
 			default:
 				break;
 		}
 	})
 	.put((req, res) => {
+		res.send();
+	});
+
+/****************************************************************************
+ * User Password Management																									*
+ ****************************************************************************
+ * This route should be used to manage the password
+*/
+router
+  .route('/userpassword')
+	.get((req, res) => {
+		// 1. So long as the access token is verified, allow password retrieval		
+	})
+	.put((req, res) => {
+		// 1. This route should receive the old password first, so that the 
+		// password can be verified
+		// 2. If the old password matches, then proceed to update the password
+		// 3. res should send status 200 and a successMsg
 		res.send();
 	});
 

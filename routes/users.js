@@ -32,7 +32,7 @@ router
   .route('/profilemanagement')
 	.get((req, res) => {
 		// Get the userData from the access token
-		console.log(res.locals.userData)
+		// console.log(res.locals.userData)
 		const {
 			username, userType
 		} = res.locals.userData;
@@ -75,15 +75,49 @@ router
 	.get((req, res) => {
 		// 1. So long as the access token is verified, allow password retrieval		
 	})
+	.post((req, res) => {
+		// PURPOSE: This special post request is to put accross the old password
+		// in a FormData so that it can be verified by the MySQL and then server
+		// will respond with a success message.
+
+		// Console test
+		// console.log("POST request");
+
+		// 1. Retrieve the password from the form
+		const { oldPassword } =  req.body;
+
+		// 2. Establish a SqlQuery, remembering to get the username from userData
+		const { username } = res.locals.userData;
+
+		var sqlQuery = `SELECT * FROM app_user `;
+		sqlQuery += `WHERE username='${username}' AND BINARY user_password='${oldPassword}'`
+		
+		// 3. Do the query and return the success message
+		dbconn.query(sqlQuery, function(error, results, fields) {
+			if (error) {
+				res.status(400).json({ api_msg: "MySQL error occurred: " + error });
+			}
+			else {
+				if (results.length) {
+					res.status(200).json({ api_msg: "password match" });
+				}
+				else {
+					res.status(200).send({ api_msg: "password mismatch" });
+				}
+			}
+		});
+	})
 	.put((req, res) => {
-		// As always, get the username
-		const username = res.locals.userData.username;
-		console.log(username);
+		// Console Test
+		// console.log("PUT Request");
+
+		// As always, get the username and also the user_type
+		const { username, userType } = res.locals.userData;
+
 		// 1. This route should receive the old password first, so that the 
 		// password can be verified
 		// Set the password variables
 		const { oldPassword, newPassword } = req.body;
-		console.log(oldPassword, newPassword);
 
 		// 2. If the old password matches, then proceed to update the password.
 		// Therefore the query should be constructed to match first the oldpassword
@@ -94,15 +128,18 @@ router
 		// 3. res should send status 200 and a successMsg
 		dbconn.query(sqlQuery, function(error, results, fields) {
 			if (error) {
-				res.status(400).json({ errorMsg: "MySQL Query error: " + error });
+				res.status(400).json({ api_msg: "MySQL Query error: " + error });
 			}
 			else {
-				console.log(results);
+				// console.log(results);
 				if (results['changedRows'] == 1){
-					res.status(200).json({ successMsg: "Password has been updated!" });
+					res.status(200).json({ 
+						api_msg: "Password has been updated!", 
+						userType: userType
+					 });
 				}
 				else {
-					res.status(400).json({ errorMsg: "Old password mismatch." });
+					res.status(200).json({ api_msg: "Old password mismatch or Username Error!" });
 				}
 			}
 		});

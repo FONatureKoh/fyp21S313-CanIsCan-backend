@@ -41,7 +41,7 @@ router
 		switch (userType) {
 			// RGM User Type ==========================================================
 			case "Restaurant General Manager":
-				var sqlQuery = "SELECT username, first_name, last_name, phone_no, ";
+				var sqlQuery = "SELECT username, user_type, first_name, last_name, phone_no, ";
 				sqlQuery += "home_address, home_postal_code ";
 				sqlQuery += "FROM app_user JOIN restaurant_gm ";
 				sqlQuery += `ON username=rgm_username WHERE rgm_username='${username}'`;
@@ -56,7 +56,31 @@ router
 					}
 				})
 				break;
+			// =========================================================================
+			// Restaurant Deliveries Manager User Type =================================
+			case "Restaurant Deliveries Manager":
+				res.status(200).json({ username: username, userType: userType });
+
+				break;
 			// =========================================================================		
+			// Restaurant Reservation Manager User Type ================================
+			case "Restaurant Reservation Manager":
+				res.status(200).json({ username: username, userType: userType });
+
+				break;
+			// =========================================================================
+			// System Administrator User Type ==========================================
+			case "System Administrator":
+				res.status(200).json({ username: username, userType: userType });
+
+				break;
+			// =========================================================================
+			// Customer User Type ======================================================
+			case "Customer":
+				res.status(200).json({ username: username, userType: userType });
+
+				break;
+			// =========================================================================	
 			default:
 				break;
 		}

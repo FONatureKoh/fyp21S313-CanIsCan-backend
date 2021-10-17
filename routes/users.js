@@ -76,11 +76,36 @@ router
 		// 1. So long as the access token is verified, allow password retrieval		
 	})
 	.put((req, res) => {
+		// As always, get the username
+		const username = res.locals.userData.username;
+		console.log(username);
 		// 1. This route should receive the old password first, so that the 
 		// password can be verified
-		// 2. If the old password matches, then proceed to update the password
+		// Set the password variables
+		const { oldPassword, newPassword } = req.body;
+		console.log(oldPassword, newPassword);
+
+		// 2. If the old password matches, then proceed to update the password.
+		// Therefore the query should be constructed to match first the oldpassword
+		// and username, then if match, the update should be allowed
+		var sqlQuery = `UPDATE app_user SET user_password='${newPassword}' `;
+		sqlQuery += `WHERE username='${username}' AND user_password='${oldPassword}'`;
+
 		// 3. res should send status 200 and a successMsg
-		res.send();
+		dbconn.query(sqlQuery, function(error, results, fields) {
+			if (error) {
+				res.status(400).json({ errorMsg: "MySQL Query error: " + error });
+			}
+			else {
+				console.log(results);
+				if (results['changedRows'] == 1){
+					res.status(200).json({ successMsg: "Password has been updated!" });
+				}
+				else {
+					res.status(400).json({ errorMsg: "Old password mismatch." });
+				}
+			}
+		});
 	});
 
 /* === All routes for /users/:username ===

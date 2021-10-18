@@ -158,18 +158,20 @@ router.get('/itemImage/:imageName', (req, res) => {
   // console.log(path.resolve(`../0-test-pictures/${req.params.imageName}`));
   // console.log(req.params.imageName);
   // console.log(pathName);
-  const pathName = process.env.ASSETS_SAVE_LOC + "rest_items_png/" + req.params.imageName;
-  
-	// Check if path exist. If yes, great, otherwise send an error image instead
-	fs.access(pathName, fs.F_OK, (err) => {
-		if (err) {
-			// console.log(err);
-			res.status(200).sendFile(path.resolve('./public/assets/error_img.png'));
-		}
-		else {
-			res.status(200).sendFile(path.resolve(pathName));
-		}
-	})
+	if (req.params.imageName != "") {
+		const pathName = process.env.ASSETS_SAVE_LOC + "rest_items_png/" + req.params.imageName;
+
+		// Check if path exist. If yes, great, otherwise send an error image instead
+		fs.access(pathName, fs.F_OK, (err) => {
+			if (err) {
+				// console.log(err);
+				res.status(200).sendFile(path.resolve('./public/assets/error_img.png'));
+			}
+			else {
+				res.status(200).sendFile(path.resolve(pathName));
+			}
+		})
+	}
 });
 
 /****************************************************************************
@@ -209,6 +211,8 @@ router
 const storage = multer.diskStorage({
 	destination: (req, file, cb) => {
 		// Step 1: Find the exact location on the server to save the file
+		// console.log("Multer Config");
+		// console.log(path.resolve(pathName));
 		const pathName = process.env.ASSETS_SAVE_LOC + "rest_items_png/";
 
 		cb(null, path.resolve(pathName));
@@ -216,6 +220,7 @@ const storage = multer.diskStorage({
 	filename: (req, file, cb) => {
 		// Step 2: Config Multer to the exact location for upload and get a uuidv4 random
 		// uuid for the file name
+		// console.log("Multer Config");
 		if (file) {
 			const itemName = Date.now() + '-' + uuidv4();
 			cb(null, itemName + path.extname(file.originalname)); 
@@ -268,10 +273,12 @@ router
 		res.send(`Get item with itemID ${req.params.itemid}`);
 	})
 	.put(upload.single("imageFile"), (req, res) => {
+		// console.log("PUT REQUEST");
 		// 1. Get all the variables from the form and also the file
 		const {
 				file, body: {
 				itemID,
+				itemPngID,
 				itemRestID,
 				itemName, 
 				itemPrice, 
@@ -293,11 +300,19 @@ router
 			const pathName = process.env.ASSETS_SAVE_LOC + `rest_items_png/${itemPngID}`;
 
 			// Once delete, we can proceed to save the data into the database
-			fs.unlink(pathName, (err) => {
-				if (err) {
-					console.error(err);
-				}
-			});
+			console.log(path.resolve(pathName));
+			// if (fs.existsSync(path.resolve(pathName))) {
+			// 	// If error, means the old file doesn't exist anyway, so no need to delete the old file
+			// 	res.status(200).send(`Updating item with itemID ${req.params.itemid}, no new image!`);
+			// }
+			// else {
+			// 	// If no error, means the file can be found, so got to delete the old file
+			// 	console.log("You are here at restaurant.js 304");
+			// 	fs.unlink(pathName);
+			// 	res.status(200).send(`Updating item with itemID ${req.params.itemid}, new image found!`);
+			// }
+
+			res.status(200).send(`Updating item with itemID ${req.params.itemid}, new image found!`);
 
 			var sqlUpdateQuery = `UPDATE rest_item SET 
 			ri_rest_ID=[value-2],ri_cat_ID=[value-3],item_name=[value-4],item_png_ID=[value-5],item_desc=[value-6],item_allergen_warning=[value-7],item_price=[value-8],item_availability=[value-9] 
@@ -306,11 +321,7 @@ router
 		else {
 			console.log("There's nothing to do since there's no file.");
 		}
-
-		
-
 		// 4. Save all the new variables into the database
-		res.send(`Updating item with itemID ${req.params.itemid}`);
 	})
 	.delete((req, res) => {
 		// This should delete the item based on the itemID

@@ -30,24 +30,6 @@ function accessTokenParser(bearerToken) {
   });
 }
 
-function retrieveRestID(rgm_username) {
-	// Then, we construct the sql query with the username in mind.
-	var sqlQuery = "SELECT rgm_restaurant_ID ";
-	sqlQuery += "FROM restaurant_gm ";
-	sqlQuery += `WHERE rgm_username='${rgm_username}'`;
-
-	// Query the db and return the said fields to the frontend app
-	dbconn.query(sqlQuery, function (error, results, fields) {
-		if (error) {
-			console.log("MySQL error at restaurant.j line 42");
-		}
-		else {
-			console.log(results[0].rgm_restaurant_ID);
-			return results[0].rgm_restaurant_ID;
-		}
-	})
-}
-
 /****************************************************************************
  * Retrieve restaurant's menu and all items information											*
  ****************************************************************************
@@ -127,26 +109,58 @@ router.route("/itemCategory")
  ****************************************************************************
  */
 router.get("/retrieveCategoriesItems", (req, res) => {
-	// Save the restaurantID first from the URL
-	var restaurantID = req.query.restaurantID;
+	// 1. Since we only have the username in the accesstoken, a nested sqlquery
+	// will be needed to bring out the correct data dynamically. Lets get the
+	// variables accordingly first
+	const rgmUsername = res.locals.userData.username;
+	console.log(rgmUsername);
 
-	// Then construct the sql query based on the query
-	var sqlQuery = "SELECT ric_name, ri_item_ID, item_name, item_desc, ";
-	sqlQuery += "item_allergen_warning, item_price "; 
-	sqlQuery += "FROM rest_item_categories JOIN rest_item ";
-	sqlQuery += `ON ric_restaurant_ID=${restaurantID} AND ric_ID=ri_cat_ID `;
-	sqlQuery += "ORDER BY ric_name, item_name";
+	// 2. The first query should get the restaurant ID
+	var sqlQueryRestID = `SELECT rgm_restaurant_ID FROM restaurant_gm `;
+	sqlQueryRestID += `WHERE rgm_username='${rgmUsername}'`;
 
-	// Query the db and return the said fields to the frontend app
-	dbconn.query(sqlQuery, function (error, results, fields) {
+	dbconn.query(sqlQueryRestID, function(error, results, fields){
 		if (error) {
-			res.send("MySQL error: " + error);
-    }
-    else {
-			// console.log(results);
-      res.status(200).send(results);
+			res.status(400).send();
+			console.log(error);
 		}
-	})
+		else {
+			// 3. Once selected, then we'll use that ID to retrieve everything else
+			const rest_ID = results[0].rgm_restaurant_ID;
+			
+			// 4. Return the data accordingly. This should not fail in retrieve, so
+			// we should only account for an sql error.
+			var sqlQuery = "SELECT ric_name, ri_item_ID, item_name, item_png_ID, ";
+			sqlQuery += "item_desc, item_allergen_warning, item_price, item_availability "; 
+			sqlQuery += "FROM rest_item_categories JOIN rest_item ";
+			sqlQuery += `ON ric_restaurant_ID=${rest_ID} AND ric_ID=ri_cat_ID `;
+			sqlQuery += "ORDER BY ric_name, item_name";
+
+			dbconn.query(sqlQuery, function (error, results, fields) {
+				if (error) {
+					res.send("MySQL error: " + error);
+			  }
+			  else {
+					// console.log(results);
+			    res.status(200).send(results);
+				}
+			})
+		}
+	});
+});
+
+/****************************************************************************
+ * Retrieve restaurant's items imaage																				*
+ ****************************************************************************
+ */
+router.get('/itemImage/:imageName', (req, res) => {
+  // console.log(path.resolve(`../0-test-pictures/${req.params.imageName}`));
+  // console.log(req.params.imageName);
+  // console.log(pathName);
+
+  const pathName = process.env.ASSETS_SAVE_LOC + "rest_items_png/" + req.params.imageName;
+  
+  res.sendFile(path.resolve(pathName));
 });
 
 /****************************************************************************

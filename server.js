@@ -34,17 +34,6 @@ app.get('/cats', (req, res) => {
   res.send("This is a cat. Can you see the cat?");
 });
 
-// Image Test API
-app.get('/image/:imageName', (req, res) => {
-  // console.log(path.resolve(`../0-test-pictures/${req.params.imageName}`));
-  console.log(req.params.imageName);
-  
-  const pathName = process.env.ASSETS_SAVE_LOC + "rest_items_png/" + req.params.imageName;
-  console.log(pathName);
-
-  res.sendFile(path.resolve(pathName));
-});
-
 /* === Test DB Connection === */
 app.get('/dbtest', (req, res) => {
   dbconn.query('SELECT 1', function (error, results, fields) {
@@ -72,3 +61,17 @@ app.use("/restaurant", restaurantRouter);
 app.listen(5000, () => {
   console.log("Listening on port 5000!")
 });
+
+/****************************************************************************
+ * Retrieve restaurant's items imaage																				*
+ ****************************************************************************
+ */
+// app.get('/itemImage/:imageName', (req, res) => {
+//   // console.log(path.resolve(`../0-test-pictures/${req.params.imageName}`));
+//   // console.log(req.params.imageName);
+//   // console.log(pathName);
+
+//   const pathName = process.env.ASSETS_SAVE_LOC + "rest_items_png/" + req.params.imageName;
+  
+//   res.sendFile(path.resolve(pathName));
+// });

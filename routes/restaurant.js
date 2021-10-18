@@ -162,7 +162,7 @@ router.get('/itemImage/:imageName', (req, res) => {
 	// Check if path exist. If yes, great, otherwise send an error image instead
 	fs.access(pathName, fs.F_OK, (err) => {
 		if (err) {
-			console.log(err);
+			// console.log(err);
 			res.status(200).sendFile(path.resolve('./public/assets/error_img.png'));
 		}
 		else {

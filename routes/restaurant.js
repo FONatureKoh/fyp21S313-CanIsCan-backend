@@ -210,10 +210,14 @@ router
  */
 const storage = multer.diskStorage({
 	destination: (req, file, cb) => {
-		// Step 1: Find the exact location on the server to save the file
+		// Test Console I just thinking. When i thinking the mouse dances
 		// console.log("Multer Config");
 		// console.log(path.resolve(pathName));
+		// console.log(path.resolve(pathName));
+
+		// Step 1: Find the exact location on the server to save the file
 		const pathName = process.env.ASSETS_SAVE_LOC + "rest_items_png/";
+
 
 		cb(null, path.resolve(pathName));
 	},
@@ -296,32 +300,75 @@ router
 		if (file) {
 			console.log("We need to do something about that file.");
 			// 3. If there is a new file, delete the old file
+			// 4. Save all the new variables into the database
 			// First we find the path once again
 			const pathName = process.env.ASSETS_SAVE_LOC + `rest_items_png/${itemPngID}`;
 
 			// Once delete, we can proceed to save the data into the database
 			console.log(path.resolve(pathName));
-			// if (fs.existsSync(path.resolve(pathName))) {
-			// 	// If error, means the old file doesn't exist anyway, so no need to delete the old file
-			// 	res.status(200).send(`Updating item with itemID ${req.params.itemid}, no new image!`);
-			// }
-			// else {
-			// 	// If no error, means the file can be found, so got to delete the old file
-			// 	console.log("You are here at restaurant.js 304");
-			// 	fs.unlink(pathName);
-			// 	res.status(200).send(`Updating item with itemID ${req.params.itemid}, new image found!`);
-			// }
 
-			res.status(200).send(`Updating item with itemID ${req.params.itemid}, new image found!`);
+			// Check if the file exist, if yes delete the old file first then save into MySQL
+			if(fs.existsSync(path.resolve(pathName))) {
+				fs.unlink(path.resolve(pathName));
+				
+				// Construct the Update Query Yea
+				var sqlUpdateQuery = `UPDATE rest_item `;
+				sqlUpdateQuery += `SET ri_rest_ID=${itemRestID}, ri_cat_ID=${itemCategory}, item_name='${itemName}', `;
+				sqlUpdateQuery += `item_png_ID='${file.filename}', item_desc='${itemDesc}', item_allergen_warning='${itemAllergy}', `;
+				sqlUpdateQuery += `item_price=${itemPrice}, item_availability=${itemAvailability} `;
+				sqlUpdateQuery += `WHERE ri_item_ID=${itemID}`; 
 
-			var sqlUpdateQuery = `UPDATE rest_item SET 
-			ri_rest_ID=[value-2],ri_cat_ID=[value-3],item_name=[value-4],item_png_ID=[value-5],item_desc=[value-6],item_allergen_warning=[value-7],item_price=[value-8],item_availability=[value-9] 
-			WHERE ri_item_ID=${itemID}`;
+				// Query the MySQL Yea
+				dbconn.query(sqlUpdateQuery, function(error, results, fields){
+					if (error) {
+						res.status(200).json({ api_msg: "Update error, double check for when new image is uploaded!" }); 
+					}
+					else {
+						res.status(200).json({ api_msg: `Updating item with itemID ${req.params.itemid}, new image found! Old image deleted` });
+					}
+				});
+
+				
+			}
+			else {
+				var sqlUpdateQuery = `UPDATE rest_item `;
+				sqlUpdateQuery += `SET ri_rest_ID=${itemRestID}, ri_cat_ID=${itemCategory}, item_name='${itemName}', `;
+				sqlUpdateQuery += `item_png_ID='${file.filename}', item_desc='${itemDesc}', item_allergen_warning='${itemAllergy}', `;
+				sqlUpdateQuery += `item_price=${itemPrice}, item_availability=${itemAvailability} `;
+				sqlUpdateQuery += `WHERE ri_item_ID=${itemID}`;
+
+				// Query the MySQL 
+				dbconn.query(sqlUpdateQuery, function(error, results, fields){
+					if (error) {
+						console.log(error); 
+					}
+					else {
+						res.status(200).send(`Updating item with itemID ${req.params.itemid}, new image found!`);
+						console.log(results);
+					}
+				});
+			}
 		}
 		else {
+			// Since no new imageFile is detected, then just update the data to the MySQL database
+			var sqlUpdateQuery = `UPDATE rest_item `;
+			sqlUpdateQuery += `SET ri_rest_ID=${itemRestID}, ri_cat_ID=${itemCategory}, item_name='${itemName}', `;
+			sqlUpdateQuery += `item_desc='${itemDesc}', item_allergen_warning='${itemAllergy}', `;
+			sqlUpdateQuery += `item_price=${itemPrice}, item_availability=${itemAvailability} `;
+			sqlUpdateQuery += `WHERE ri_item_ID=${itemID}`;
+
+			// Query the MySQL
+			dbconn.query(sqlUpdateQuery, function(error, results, fields){
+				if (error) {
+					console.log(error); 
+				}
+				else {
+					res.status(200).send(`Updating item with itemID ${req.params.itemid}!`);
+					console.log(results);
+				}
+			});
 			console.log("There's nothing to do since there's no file.");
 		}
-		// 4. Save all the new variables into the database
 	})
 	.delete((req, res) => {
 		// This should delete the item based on the itemID

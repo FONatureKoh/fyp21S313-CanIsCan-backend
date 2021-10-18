@@ -157,12 +157,18 @@ router.get('/itemImage/:imageName', (req, res) => {
   // console.log(path.resolve(`../0-test-pictures/${req.params.imageName}`));
   // console.log(req.params.imageName);
   // console.log(pathName);
-
   const pathName = process.env.ASSETS_SAVE_LOC + "rest_items_png/" + req.params.imageName;
   
-  res.status(200).sendFile(path.resolve(pathName), (err) => {
-		res.json({ api_msg: "File not found" })
-	});
+	// Check if path exist. If yes, great, otherwise send an error image instead
+	fs.access(pathName, fs.F_OK, (err) => {
+		if (err) {
+			console.log(err);
+			res.status(200).sendFile(path.resolve('./public/assets/error_img.png'));
+		}
+		else {
+			res.status(200).sendFile(path.resolve(pathName));
+		}
+	})
 });
 
 /****************************************************************************
@@ -195,7 +201,10 @@ router
 
 /*****************************************************************************************
  * Restaurant Items Add, Get, Put, Delete
- *****************************************************************************************/
+ ****************************************************************************************
+ * Item add, edit, delete, retrieve get
+ * 
+ */
 // Step 1: Find the exact location on the server to save the file
 const pathName = process.env.ASSETS_SAVE_LOC + "rest_items_png/"
 
@@ -206,8 +215,10 @@ const storage = multer.diskStorage({
 		cb(null, path.resolve(pathName));
 	},
 	filename: (req, file, cb) => {
-		const itemName = Date.now() + '-' + uuidv4();
-		cb(null, itemName + path.extname(file.originalname)); 
+		if (file) {
+			const itemName = Date.now() + '-' + uuidv4();
+			cb(null, itemName + path.extname(file.originalname)); 
+		}
 	}
 })
 const upload = multer({storage: storage}); //{ dest: '../assets'}
@@ -257,6 +268,19 @@ router
 	})
 	.put((req, res) => {
 		// 1. Get all the variables from the form and also the file
+		const {
+				file, body: {
+				itemID,
+				itemName, 
+				itemPrice, 
+				itemDesc, 
+				itemAllergy,
+				itemCategory,
+				itemAvailability
+			}
+		} = req;
+
+		console.log(req.body);
 		// 2. Check if there was a new file in the first place
 		// 3. If there is a new file, delete the old file
 		// 4. Save all the new variables into the database

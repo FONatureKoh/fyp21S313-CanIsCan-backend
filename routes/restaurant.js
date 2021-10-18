@@ -318,7 +318,7 @@ router
 				sqlUpdateQuery += `item_price=${itemPrice}, item_availability=${itemAvailability} `;
 				sqlUpdateQuery += `WHERE ri_item_ID=${itemID}`; 
 
-				// Query the MySQL Yea
+				// Query the MySQL 
 				dbconn.query(sqlUpdateQuery, function(error, results, fields){
 					if (error) {
 						res.status(200).json({ api_msg: "Update error, double check for when new image is uploaded!" }); 
@@ -327,8 +327,6 @@ router
 						res.status(200).json({ api_msg: `Updating item with itemID ${req.params.itemid}, new image found! Old image deleted` });
 					}
 				});
-
-				
 			}
 			else {
 				var sqlUpdateQuery = `UPDATE rest_item `;
@@ -337,14 +335,13 @@ router
 				sqlUpdateQuery += `item_price=${itemPrice}, item_availability=${itemAvailability} `;
 				sqlUpdateQuery += `WHERE ri_item_ID=${itemID}`;
 
-				// Query the MySQL 
+				// Query the MySQL
 				dbconn.query(sqlUpdateQuery, function(error, results, fields){
 					if (error) {
-						console.log(error); 
+						res.status(200).json({ api_msg: "Update error, double check for when new image is uploaded!" }); 
 					}
 					else {
-						res.status(200).send(`Updating item with itemID ${req.params.itemid}, new image found!`);
-						console.log(results);
+						res.status(200).json({ api_msg: `Updating item with itemID ${req.params.itemid}, new image found!` });
 					}
 				});
 			}
@@ -360,14 +357,13 @@ router
 			// Query the MySQL
 			dbconn.query(sqlUpdateQuery, function(error, results, fields){
 				if (error) {
-					console.log(error); 
+					res.status(200).json({ api_msg: "Update error, double check for when no image and only data is updated" }); 
 				}
 				else {
 					res.status(200).send(`Updating item with itemID ${req.params.itemid}!`);
 					console.log(results);
 				}
 			});
-			console.log("There's nothing to do since there's no file.");
 		}
 	})
 	.delete((req, res) => {

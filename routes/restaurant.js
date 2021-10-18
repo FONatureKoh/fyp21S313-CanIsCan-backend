@@ -130,8 +130,9 @@ router.get("/retrieveCategoriesItems", (req, res) => {
 			
 			// 4. Return the data accordingly. This should not fail in retrieve, so
 			// we should only account for an sql error.
-			var sqlQuery = "SELECT ric_name, ri_item_ID, item_name, item_png_ID, ";
-			sqlQuery += "item_desc, item_allergen_warning, item_price, item_availability "; 
+			var sqlQuery = "SELECT ric_name, ri_item_ID, ri_rest_ID, ri_cat_ID, item_name, ";
+			sqlQuery += "item_png_ID, item_desc, item_allergen_warning, "; 
+			sqlQuery += "item_price, item_availability ";
 			sqlQuery += "FROM rest_item_categories JOIN rest_item ";
 			sqlQuery += `ON ric_restaurant_ID=${rest_ID} AND ric_ID=ri_cat_ID `;
 			sqlQuery += "ORDER BY ric_name, item_name";
@@ -205,16 +206,16 @@ router
  * Item add, edit, delete, retrieve get
  * 
  */
-// Step 1: Find the exact location on the server to save the file
-const pathName = process.env.ASSETS_SAVE_LOC + "rest_items_png/"
-
-// Step 2: Config Multer to the exact location for upload and get a uuidv4 random
-// uuid for the file name
 const storage = multer.diskStorage({
 	destination: (req, file, cb) => {
+		// Step 1: Find the exact location on the server to save the file
+		const pathName = process.env.ASSETS_SAVE_LOC + "rest_items_png/";
+
 		cb(null, path.resolve(pathName));
 	},
 	filename: (req, file, cb) => {
+		// Step 2: Config Multer to the exact location for upload and get a uuidv4 random
+		// uuid for the file name
 		if (file) {
 			const itemName = Date.now() + '-' + uuidv4();
 			cb(null, itemName + path.extname(file.originalname)); 
@@ -266,11 +267,12 @@ router
 		// This one simply gets the items based on the itemID (if its ever needed)
 		res.send(`Get item with itemID ${req.params.itemid}`);
 	})
-	.put((req, res) => {
+	.put(upload.single("imageFile"), (req, res) => {
 		// 1. Get all the variables from the form and also the file
 		const {
 				file, body: {
 				itemID,
+				itemRestID,
 				itemName, 
 				itemPrice, 
 				itemDesc, 
@@ -280,9 +282,33 @@ router
 			}
 		} = req;
 
+		// Testing console, remember to remove
 		console.log(req.body);
+
 		// 2. Check if there was a new file in the first place
-		// 3. If there is a new file, delete the old file
+		if (file) {
+			console.log("We need to do something about that file.");
+			// 3. If there is a new file, delete the old file
+			// First we find the path once again
+			const pathName = process.env.ASSETS_SAVE_LOC + `rest_items_png/${itemPngID}`;
+
+			// Once delete, we can proceed to save the data into the database
+			fs.unlink(pathName, (err) => {
+				if (err) {
+					console.error(err);
+				}
+			});
+
+			var sqlUpdateQuery = `UPDATE rest_item SET 
+			ri_rest_ID=[value-2],ri_cat_ID=[value-3],item_name=[value-4],item_png_ID=[value-5],item_desc=[value-6],item_allergen_warning=[value-7],item_price=[value-8],item_availability=[value-9] 
+			WHERE ri_item_ID=${itemID}`;
+		}
+		else {
+			console.log("There's nothing to do since there's no file.");
+		}
+
+		
+
 		// 4. Save all the new variables into the database
 		res.send(`Updating item with itemID ${req.params.itemid}`);
 	})

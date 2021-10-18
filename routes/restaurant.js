@@ -236,6 +236,8 @@ const upload = multer({storage: storage}); //{ dest: '../assets'}
 // Step 3: We write the post route for when we add an item to the db
 router.post('/addmenuitem', upload.single("imageFile"), (req, res) => {
 	// Get all the useful variables from the req
+	const { username } = res.locals.userData;
+
   const {
 		file, body: {
 			itemAvailability,
@@ -250,21 +252,35 @@ router.post('/addmenuitem', upload.single("imageFile"), (req, res) => {
 	// Console log for testing, please comment out when done
 	console.log("restaurant.js line 196 ", file, req.body);
 
-	// Construct insert sqlQuery 
-	var sqlQuery = "INSERT INTO `rest_item`(`ri_cat_ID`, `item_name`, `item_png_ID`, ";
-	sqlQuery += " `item_desc`, `item_allergen_warning`, `item_price`, `item_availability`) ";
-	sqlQuery += `VALUES (${itemCategory}, '${itemName}', '${file.filename}', `;
-	sqlQuery += `'${itemDesc}', '${itemAllergy}', ${itemPrice}, ${itemAvailability})`;
+	var sqlQueryRestID = `SELECT rgm_restaurant_ID FROM restaurant_gm `;
+	sqlQueryRestID += `WHERE rgm_username='${username}'`;
 
-	// Make sqlQuery
-	dbconn.query(sqlQuery, function(error, results, fields) {
+	dbconn.query(sqlQueryRestID, function(error, results, fields){
 		if (error) {
+			res.status(400).send();
 			console.log(error);
-			res.status(400).send({ errorMsg: "MySQL error: " + error });
 		}
 		else {
-			console.log(results);
-			res.status(200).send(`File uploaded for ${itemName} with image name ${file.filename}`);
+			// 3. Once selected, then we'll use that ID to retrieve everything else
+			const rest_ID = results[0].rgm_restaurant_ID;
+
+			// Construct insert sqlQuery 
+			var sqlQuery = "INSERT INTO `rest_item`(`ri_rest_ID`, `ri_cat_ID`, `item_name`, `item_png_ID`, ";
+			sqlQuery += " `item_desc`, `item_allergen_warning`, `item_price`, `item_availability`) ";
+			sqlQuery += `VALUES (${rest_ID}, ${itemCategory}, '${itemName}', '${file.filename}', `;
+			sqlQuery += `'${itemDesc}', '${itemAllergy}', ${itemPrice}, ${itemAvailability})`;
+
+			// Make sqlQuery
+			dbconn.query(sqlQuery, function(error, results, fields) {
+				if (error) {
+					console.log(error);
+					res.status(400).send({ errorMsg: "MySQL error: " + error });
+				}
+				else {
+					console.log(results);
+					res.status(200).send(`File uploaded for ${itemName} with image name ${file.filename}`);
+				}
+			});
 		}
 	});
 });

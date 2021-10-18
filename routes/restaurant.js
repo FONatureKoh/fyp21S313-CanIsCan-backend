@@ -160,7 +160,9 @@ router.get('/itemImage/:imageName', (req, res) => {
 
   const pathName = process.env.ASSETS_SAVE_LOC + "rest_items_png/" + req.params.imageName;
   
-  res.sendFile(path.resolve(pathName));
+  res.status(200).sendFile(path.resolve(pathName), (err) => {
+		res.json({ api_msg: "File not found" })
+	});
 });
 
 /****************************************************************************

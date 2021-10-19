@@ -239,6 +239,31 @@ router
 		});
 });
 
+/****************************************************************************
+ * Retrieve restaurant's item category / categories information (New)				*
+ ****************************************************************************
+ */
+router.get('/tags', (req, res) => {
+		// Then construct the sql query based on username to get restaurant_ID
+		var sqlQuery = `SELECT restaurant_tag FROM rest_tags `;
+
+		// Query the db and return the said fields to the frontend app
+		dbconn.query(sqlQuery, function (error, results, fields) {
+			if (error) {
+				res.status(200).json({ api_msg: "MySQL error: " + error });
+			}
+			else {
+				var restaurantTags = [];
+
+				results.forEach(row => {
+					restaurantTags.push(row.restaurant_tag);
+				})
+
+				res.status(200).json({ restaurantTags: restaurantTags });
+			}
+		})
+	});
+
 /*****************************************************************************************
  * Restaurant Items Add, Get, Put, Delete
  ****************************************************************************************

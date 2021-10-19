@@ -184,15 +184,15 @@ router
 
 		// Then, we construct the sql query with the username in mind.
 		var sqlQuery = "SELECT restaurant_ID, restaurant_name, rest_address_info, ";
-		sqlQuery += "postal_code, rest_phone_no, rest_email, restaurant_cat, ";
-		sqlQuery += "restaurant_closing_time, rest_op_hours ";
+		sqlQuery += "postal_code, rest_phone_no, rest_email, rest_tag_1, ";
+		sqlQuery += "rest_closing_time ";
 		sqlQuery += "FROM restaurant JOIN restaurant_gm ";
 		sqlQuery += `ON restaurant_ID = rgm_restaurant_ID AND rgm_username='${username}'`;
 
 		// Query the db and return the said fields to the frontend app
 		dbconn.query(sqlQuery, function (error, results, fields) {
 			if (error) {
-				res.status(400).send({ errorMsg: "MySQL error: " + error });
+				res.status(200).send({ errorMsg: "MySQL error: " + error });
 			}
 			else {
 				res.status(200).send(results[0]);

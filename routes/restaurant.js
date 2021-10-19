@@ -225,7 +225,12 @@ router
 					rest_address_info: results[0].rest_address_info,
 					rest_postal_code: results[0].rest_postal_code,
 					rest_tags: rest_tags,
-					rest_status: results[0].rest_status
+					rest_status: results[0].rest_status,
+					rest_opening_time: results[0].rest_opening_time,
+					rest_closing_time: results[0].rest_closing_time,
+					rest_tag_1: results[0].rest_tag_1, 
+					rest_tag_2: results[0].rest_tag_2,
+					rest_tag_3: results[0].rest_tag_3
 				}
 
 				console.log(restaurantProfileData);

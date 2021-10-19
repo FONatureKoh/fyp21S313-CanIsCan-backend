@@ -7,6 +7,7 @@ const path = require("path");
 const authTokenMiddleware = require("../middleware/authTokenMiddleware");
 const jwt = require("jsonwebtoken");
 const { v4: uuidv4 } = require('uuid');
+const date = require('date-and-time');
 
 // Body Parser
 router.use(express.json());
@@ -173,8 +174,9 @@ router.get('/itemImage/:imageName', (req, res) => {
 });
 
 /****************************************************************************
- * Retrieve restaurant's information																				*
+ * Restaurant Profile Information and things																*
  ****************************************************************************
+ * GET route will get the information based on the rgm's username
  */
 router
 	.route("/restaurantProfile")
@@ -183,19 +185,51 @@ router
 		const { username } = res.locals.userData;
 
 		// Then, we construct the sql query with the username in mind.
-		var sqlQuery = "SELECT restaurant_ID, restaurant_name, rest_address_info, ";
-		sqlQuery += "postal_code, rest_phone_no, rest_email, rest_tag_1, ";
-		sqlQuery += "rest_closing_time ";
+		var sqlQuery = "SELECT * ";
 		sqlQuery += "FROM restaurant JOIN restaurant_gm ";
-		sqlQuery += `ON restaurant_ID = rgm_restaurant_ID AND rgm_username='${username}'`;
+		sqlQuery += `ON restaurant_ID=rgm_restaurant_ID AND rgm_username='${username}'`;
 
 		// Query the db and return the said fields to the frontend app
 		dbconn.query(sqlQuery, function (error, results, fields) {
 			if (error) {
-				res.status(200).send({ errorMsg: "MySQL error: " + error });
+				res.status(200).send({ api_msg: "MySQL error: " + error });
 			}
 			else {
-				res.status(200).send(results[0]);
+				// For this purpose, we should be creating a template to send back to the frontend
+				// based on the information that is needed to be displayed.
+				// 1. First, understand that the results form both tables together.
+				// 2. We need to transform 2 things:
+				//		- Time
+				var rest_op_hours = date.transform(results[0].rest_opening_time, 'HH:mm:ss', 'hh:mm A');
+				rest_op_hours += " to " + date.transform(results[0].rest_closing_time, 'HH:mm:ss', 'hh:mm A');
+
+				//		- Tags
+				var rest_tags = [];
+
+				if (results[0].rest_tag_1) 
+					rest_tags.push(results[0].rest_tag_1);
+
+				if (results[0].rest_tag_2) 
+					rest_tags.push(results[0].rest_tag_2);
+
+				if (results[0].rest_tag_3) 
+					rest_tags.push(results[0].rest_tag_3);
+
+				// 3. Then we send the other necessary information together with it back to the frontend
+				// in json format
+				const restaurantProfileData = {
+					restaurant_ID: results[0].restaurant_ID,
+					restaurant_name: results[0].restaurant_name,
+					rest_op_hours: rest_op_hours,
+					rest_phone_no: results[0].rest_phone_no,
+					rest_address_info: results[0].rest_address_info,
+					rest_postal_code: results[0].rest_postal_code,
+					rest_tags: rest_tags,
+					rest_status: results[0].rest_status
+				}
+
+				console.log(restaurantProfileData);
+				res.status(200).json(restaurantProfileData);
 			}
 		});
 });

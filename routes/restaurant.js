@@ -18,14 +18,12 @@ router.use(authTokenMiddleware);
  * 
  */
 function accessTokenParser(bearerToken) {
-	// console.log("Parser function token: " + bearerToken);
 	const authHeader = bearerToken;
   const token = authHeader && authHeader.split(' ')[1]
 
 	return jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, userData) => {
     if (err) return null;
 
-		// console.log(userData);
 		return userData;
   });
 }
@@ -113,7 +111,7 @@ router.get("/retrieveCategoriesItems", (req, res) => {
 	// will be needed to bring out the correct data dynamically. Lets get the
 	// variables accordingly first
 	const rgmUsername = res.locals.userData.username;
-	console.log(rgmUsername);
+	// console.log(rgmUsername);
 
 	// 2. The first query should get the restaurant ID
 	var sqlQueryRestID = `SELECT rgm_restaurant_ID FROM restaurant_gm `;
@@ -121,8 +119,8 @@ router.get("/retrieveCategoriesItems", (req, res) => {
 
 	dbconn.query(sqlQueryRestID, function(error, results, fields){
 		if (error) {
-			res.status(400).send();
-			console.log(error);
+			res.status(400).send("MySQL error: " + error);
+			// console.log(error);
 		}
 		else {
 			// 3. Once selected, then we'll use that ID to retrieve everything else
@@ -139,7 +137,7 @@ router.get("/retrieveCategoriesItems", (req, res) => {
 
 			dbconn.query(sqlQuery, function (error, results, fields) {
 				if (error) {
-					res.send("MySQL error: " + error);
+					res.status(400).send("MySQL error: " + error);
 			  }
 			  else {
 					// console.log(results);
@@ -218,7 +216,6 @@ const storage = multer.diskStorage({
 		// Step 1: Find the exact location on the server to save the file
 		const pathName = process.env.ASSETS_SAVE_LOC + "rest_items_png/";
 
-
 		cb(null, path.resolve(pathName));
 	},
 	filename: (req, file, cb) => {
@@ -250,15 +247,15 @@ router.post('/addmenuitem', upload.single("imageFile"), (req, res) => {
 	} = req;
 	
 	// Console log for testing, please comment out when done
-	console.log("restaurant.js line 196 ", file, req.body);
+	// console.log("restaurant.js line 196 ", file, req.body);
 
 	var sqlQueryRestID = `SELECT rgm_restaurant_ID FROM restaurant_gm `;
 	sqlQueryRestID += `WHERE rgm_username='${username}'`;
 
 	dbconn.query(sqlQueryRestID, function(error, results, fields){
 		if (error) {
-			res.status(400).send();
-			console.log(error);
+			res.status(400).send("MySQL error: " + error);
+			// console.log(error);
 		}
 		else {
 			// 3. Once selected, then we'll use that ID to retrieve everything else
@@ -273,12 +270,12 @@ router.post('/addmenuitem', upload.single("imageFile"), (req, res) => {
 			// Make sqlQuery
 			dbconn.query(sqlQuery, function(error, results, fields) {
 				if (error) {
-					console.log(error);
-					res.status(400).send({ errorMsg: "MySQL error: " + error });
+					//console.log(error);
+					res.status(400).send("MySQL error: " + error);
 				}
 				else {
-					console.log(results);
-					res.status(200).send(`File uploaded for ${itemName} with image name ${file.filename}`);
+					// console.log(results);
+					res.status(200).json({ api_msg: `New item with name ${itemName} added to your restaurant!` });
 				}
 			});
 		}
@@ -310,18 +307,18 @@ router
 		} = req;
 
 		// Testing console, remember to remove
-		console.log(req.body);
+		// console.log(req.body);
 
 		// 2. Check if there was a new file in the first place
 		if (file) {
-			console.log("We need to do something about that file.");
+			// console.log("We need to do something about that file.");
 			// 3. If there is a new file, delete the old file
 			// 4. Save all the new variables into the database
 			// First we find the path once again
 			const pathName = process.env.ASSETS_SAVE_LOC + `rest_items_png/${itemPngID}`;
 
 			// Once delete, we can proceed to save the data into the database
-			console.log(path.resolve(pathName));
+			// console.log(path.resolve(pathName));
 
 			// Check if the file exist, if yes delete the old file first then save into MySQL
 			if(fs.existsSync(path.resolve(pathName))) {
@@ -340,7 +337,7 @@ router
 						res.status(200).json({ api_msg: "Update error, double check for when new image is uploaded!" }); 
 					}
 					else {
-						res.status(200).json({ api_msg: `Updating item with itemID ${req.params.itemid}, new image found! Old image deleted` });
+						res.status(200).json({ api_msg: `Updated item "${itemName}"! NOTE: New image found! Old image deleted.` });
 					}
 				});
 			}
@@ -357,7 +354,7 @@ router
 						res.status(200).json({ api_msg: "Update error, double check for when new image is uploaded!" }); 
 					}
 					else {
-						res.status(200).json({ api_msg: `Updating item with itemID ${req.params.itemid}, new image found!` });
+						res.status(200).json({ api_msg: `Updated item "${itemName}"! NOTE: New image uploaded!` });
 					}
 				});
 			}
@@ -376,18 +373,18 @@ router
 					res.status(200).json({ api_msg: "Update error, double check for when no image and only data is updated" }); 
 				}
 				else {
-					res.status(200).send(`Updating item with itemID ${req.params.itemid}!`);
-					console.log(results);
+					res.status(200).json({ api_msg: `Updated item "${itemName}"!` });
 				}
 			});
 		}
 	})
 	.delete((req, res) => {
-		// This should delete the item based on the itemID
+		// NOTE: Since itemID is unique and independent of all other IDs, the MySQL query simply
+		// needs to find that ID and delete it
 		res.send(`Deleted item with itemID ${req.params.itemid}`);
 	});
 
-/*  */
+// Route Param link for 
 router.param("itemid", (req, res, next, itemid) => {
 	console.log(itemid);
 	next();
@@ -418,7 +415,7 @@ router
 
 /*  */
 router.param("subuser_ID", (req, res, next, subuser_ID) => {
-	console.log(subuser_ID);
+	// console.log(subuser_ID);
 	next();
 });
 

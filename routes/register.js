@@ -47,7 +47,7 @@ router.post("/restaurant", (req, res) => {
       // Once the app user is created, we can now create the restaurant
       var sqlRestaurantQuery = "INSERT INTO restaurant(`restaurant_name`, `rest_rgm_username`, ";
       sqlRestaurantQuery += "`rest_phone_no`, `rest_email`, `rest_status`) ";
-      sqlRestaurantQuery += `VALUES ('${restaurant_name}', '${username}', '${phone}', '${email}', 'pending');`;
+      sqlRestaurantQuery += `VALUES ('${restaurant_name}', '${username}', '${phone}', '${email}', 'pending')`;
 
       dbconn.query(sqlRestaurantQuery, function(error, results, fields){
         if (error) {
@@ -70,6 +70,49 @@ router.post("/restaurant", (req, res) => {
               res.status(200).json({ api_msg: "Successful" });
             }
           }); // Third nested query close
+        };
+      }); // Second nested query closed
+    };
+  }); // First actual query
+}); // Restaurant Register Route close
+
+/****************************************************************************
+ * Restaurant Register for an account 																			*
+ ****************************************************************************
+ */
+router.post("/customer", (req, res) => {
+  // Assuming that we pass the form data into the route
+  // 1. We will need to decode the form and draw out the data
+  console.log(req.body);
+  const {
+    email, username, password
+  } = req.body;
+
+  var sqlQuery = "INSERT INTO app_user(`username`, `user_password`, `user_type`, `account_status`) ";
+  sqlQuery += `VALUES ('${username}', '${password}', 'Customer', 'active')`;
+
+  // First query creates the app_user entry
+  dbconn.query(sqlQuery, function(error, results, fields){
+    if (error) {
+      console.log("MySQL " + error);
+      res.status(200).json({ api_msg: "username exist" });
+    }
+    else {
+      // Console log to see MySQL
+      console.log(results);
+
+      // Once the app user is created, we can now create the restaurant
+      var sqlRestaurantQuery = "INSERT INTO customer_user(`username`, `email`) ";
+      sqlRestaurantQuery += `VALUES ('${username}', '${email}')`;
+
+      dbconn.query(sqlRestaurantQuery, function(error, results, fields){
+        if (error) {
+          console.log("MySQL " + error);
+        }
+        else {
+          console.log(results);
+
+          res.status(200).json({ api_msg: "Successful" });
         };
       }); // Second nested query closed
     };

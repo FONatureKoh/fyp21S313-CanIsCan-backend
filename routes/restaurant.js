@@ -1,11 +1,11 @@
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-const dbconn = require("../models/db_model");
-const multer = require("multer");
-const fs = require("fs");
-const path = require("path");
-const authTokenMiddleware = require("../middleware/authTokenMiddleware");
-const jwt = require("jsonwebtoken");
+const dbconn = require('../models/db_model');
+const multer = require('multer');
+const fs = require('fs');
+const path = require('path');
+const authTokenMiddleware = require('../middleware/authTokenMiddleware');
+const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const date = require('date-and-time');
 
@@ -33,18 +33,18 @@ function accessTokenParser(bearerToken) {
  * Retrieve restaurant's menu and all items information											*
  ****************************************************************************
  */
-router.get("/retrieveMenuItems", (req, res) => {
+router.get('/retrieveMenuItems', (req, res) => {
 	// Save the restaurantID first from the URL
 	var restaurantID = req.query.restaurantID;
 
 	// Then construct the sql query based on the query
-	var sqlQuery = "SELECT * FROM rest_item_categories JOIN rest_item ";
+	var sqlQuery = 'SELECT * FROM rest_item_categories JOIN rest_item ';
 	sqlQuery += `ON ric_restaurant_ID=${restaurantID} AND ric_ID=ri_cat_ID`
 
 	// Query the db and return the said fields to the frontend app
 	dbconn.query(sqlQuery, function (error, results, fields) {
 		if (error) {
-			res.send("MySQL error: " + error);
+			res.send('MySQL error: ' + error);
     }
     else {
       res.send(results);
@@ -56,19 +56,19 @@ router.get("/retrieveMenuItems", (req, res) => {
  * Retrieve restaurant's item category / categories information							*
  ****************************************************************************
  */
-router.get("/retrieveCategories", (req, res) => {
+router.get('/retrieveCategories', (req, res) => {
 	// Save the restaurantID first from the URL
 	var restaurantID = req.query.restaurantID;
 
 	// Then construct the sql query based on the query
-	var sqlQuery = "SELECT ric_name FROM rest_item_categories ";
+	var sqlQuery = 'SELECT ric_name FROM rest_item_categories ';
 	sqlQuery += `WHERE ric_restaurant_ID=${restaurantID} `;
-	sqlQuery += "GROUP BY ric_name";
+	sqlQuery += 'GROUP BY ric_name';
 
 	// Query the db and return the said fields to the frontend app
 	dbconn.query(sqlQuery, function (error, results, fields) {
 		if (error) {
-			res.send("MySQL error: " + error);
+			res.send('MySQL error: ' + error);
     }
     else {
       res.status(200).send(results);
@@ -80,7 +80,7 @@ router.get("/retrieveCategories", (req, res) => {
  * Retrieve restaurant's item category / categories information (New)				*
  ****************************************************************************
  */
-router.route("/itemCategory")
+router.route('/itemCategory')
 	.get((req, res) => {
 		// Some useful variables for this route
 		var selectedRestID;
@@ -88,14 +88,14 @@ router.route("/itemCategory")
 		const { username } = res.locals.userData;
 
 		// Then construct the sql query based on username to get restaurant_ID
-		var sqlQuery = "SELECT DISTINCT ric_name, ric_ID ";
-		sqlQuery += "FROM rest_item_categories JOIN restaurant ";
-		sqlQuery += `WHERE rest_rgm_username='${username}' AND ric_restaurant_ID=restaurant_ID `;
+		var sqlQuery = 'SELECT DISTINCT ric_name, ric_ID ';
+		sqlQuery += 'FROM rest_item_categories JOIN restaurant ';
+		sqlQuery += `WHERE rest_rgm_username="${username}" AND ric_restaurant_ID=restaurant_ID `;
 
 		// Query the db and return the said fields to the frontend app
 		dbconn.query(sqlQuery, function (error, results, fields) {
 			if (error) {
-				res.status(400).send("MySQL error: " + error);
+				res.status(400).send('MySQL error: ' + error);
 			}
 			else {
 				res.status(200).send(results);
@@ -107,7 +107,7 @@ router.route("/itemCategory")
  * Retrieve restaurant's items based on categories ID information						*
  ****************************************************************************
  */
-router.get("/retrieveCategoriesItems", (req, res) => {
+router.get('/retrieveCategoriesItems', (req, res) => {
 	// 1. Since we only have the username in the accesstoken, a nested sqlquery
 	// will be needed to bring out the correct data dynamically. Lets get the
 	// variables accordingly first
@@ -120,7 +120,7 @@ router.get("/retrieveCategoriesItems", (req, res) => {
 
 	dbconn.query(sqlQueryRestID, function(error, results, fields){
 		if (error) {
-			res.status(400).send("MySQL error: " + error);
+			res.status(400).send('MySQL error: ' + error);
 			// console.log(error);
 		}
 		else {
@@ -129,16 +129,16 @@ router.get("/retrieveCategoriesItems", (req, res) => {
 			
 			// 4. Return the data accordingly. This should not fail in retrieve, so
 			// we should only account for an sql error.
-			var sqlQuery = "SELECT ric_name, ri_item_ID, ri_rest_ID, ri_cat_ID, item_name, ";
-			sqlQuery += "item_png_ID, item_desc, item_allergen_warning, "; 
-			sqlQuery += "item_price, item_availability ";
-			sqlQuery += "FROM rest_item_categories JOIN rest_item ";
+			var sqlQuery = 'SELECT ric_name, ri_item_ID, ri_rest_ID, ri_cat_ID, item_name, ';
+			sqlQuery += 'item_png_ID, item_desc, item_allergen_warning, '; 
+			sqlQuery += 'item_price, item_availability ';
+			sqlQuery += 'FROM rest_item_categories JOIN rest_item ';
 			sqlQuery += `ON ric_restaurant_ID=${rest_ID} AND ric_ID=ri_cat_ID `;
-			sqlQuery += "ORDER BY ric_name, item_name";
+			sqlQuery += 'ORDER BY ric_name, item_name';
 
 			dbconn.query(sqlQuery, function (error, results, fields) {
 				if (error) {
-					res.status(400).send("MySQL error: " + error);
+					res.status(400).send('MySQL error: ' + error);
 			  }
 			  else {
 					// console.log(results);
@@ -157,8 +157,8 @@ router.get('/itemImage/:imageName', (req, res) => {
   // console.log(path.resolve(`../0-test-pictures/${req.params.imageName}`));
   // console.log(req.params.imageName);
   // console.log(pathName);
-	if (req.params.imageName != "") {
-		const pathName = process.env.ASSETS_SAVE_LOC + "rest_items_png/" + req.params.imageName;
+	if (req.params.imageName != '') {
+		const pathName = process.env.ASSETS_SAVE_LOC + 'rest_items_png/' + req.params.imageName;
 
 		// Check if path exist. If yes, great, otherwise send an error image instead
 		fs.access(pathName, fs.F_OK, (err) => {
@@ -188,7 +188,7 @@ const restaurantBannerStorage = multer.diskStorage({
 		// console.log(path.resolve(pathName));
 
 		// Step 1: Find the exact location on the server to save the file
-		const pathName = process.env.ASSETS_SAVE_LOC + "rest_banner_png/";
+		const pathName = process.env.ASSETS_SAVE_LOC + 'rest_banner_png/';
 
 		cb(null, path.resolve(pathName));
 	},
@@ -205,19 +205,19 @@ const restaurantBannerStorage = multer.diskStorage({
 const bannerUpload = multer({storage: restaurantBannerStorage});
 
 router
-	.route("/restaurantProfile")
+	.route('/restaurantProfile')
 	.get((req, res) => {
 		// Firstly, we get the username of the RGM of the restaurant
 		const { username } = res.locals.userData;
 
 		// Then, we construct the sql query with the username in mind.
-		var sqlQuery = "SELECT * FROM restaurant ";
-		sqlQuery += `WHERE rest_rgm_username='${username}'`;
+		var sqlQuery = 'SELECT * FROM restaurant ';
+		sqlQuery += `WHERE rest_rgm_username="${username}"`;
 
 		// Query the db and return the said fields to the frontend app
 		dbconn.query(sqlQuery, function (error, results, fields) {
 			if (error) {
-				res.status(200).send({ api_msg: "MySQL error: " + error });
+				res.status(200).send({ api_msg: 'MySQL error: ' + error });
 			}
 			else {
 				// For this purpose, we should be creating a template to send back to the frontend
@@ -226,7 +226,7 @@ router
 				// 2. We need to transform 2 things:
 				//		- Time
 				var rest_op_hours = date.transform(results[0].rest_opening_time, 'HH:mm:ss', 'hh:mm A');
-				rest_op_hours += " to " + date.transform(results[0].rest_closing_time, 'HH:mm:ss', 'hh:mm A');
+				rest_op_hours += ' to ' + date.transform(results[0].rest_closing_time, 'HH:mm:ss', 'hh:mm A');
 
 				//		- Tags
 				var rest_tags = [];
@@ -285,7 +285,7 @@ router.get('/tags', (req, res) => {
 		// Query the db and return the said fields to the frontend app
 		dbconn.query(sqlQuery, function (error, results, fields) {
 			if (error) {
-				res.status(200).json({ api_msg: "MySQL error: " + error });
+				res.status(200).json({ api_msg: 'MySQL error: ' + error });
 			}
 			else {
 				var restaurantTags = [];
@@ -308,19 +308,19 @@ router.get('/tags', (req, res) => {
 const itemStorage = multer.diskStorage({
 	destination: (req, file, cb) => {
 		// Test Console I just thinking. When i thinking the mouse dances
-		// console.log("Multer Config");
+		// console.log('Multer Config');
 		// console.log(path.resolve(pathName));
 		// console.log(path.resolve(pathName));
 
 		// Step 1: Find the exact location on the server to save the file
-		const pathName = process.env.ASSETS_SAVE_LOC + "rest_items_png/";
+		const pathName = process.env.ASSETS_SAVE_LOC + 'rest_items_png/';
 
 		cb(null, path.resolve(pathName));
 	},
 	filename: (req, file, cb) => {
 		// Step 2: Config Multer to the exact location for upload and get a uuidv4 random
 		// uuid for the file name
-		// console.log("Multer Config");
+		// console.log('Multer Config');
 		if (file) {
 			const itemName = Date.now() + '-' + uuidv4();
 			cb(null, itemName + path.extname(file.originalname)); 
@@ -330,7 +330,7 @@ const itemStorage = multer.diskStorage({
 const upload = multer({storage: itemStorage}); //{ dest: '../assets'}
 
 // Step 3: We write the post route for when we add an item to the db
-router.post('/addmenuitem', upload.single("imageFile"), (req, res) => {
+router.post('/addmenuitem', upload.single('imageFile'), (req, res) => {
 	// Get all the useful variables from the req
 	const { username } = res.locals.userData;
 
@@ -349,11 +349,11 @@ router.post('/addmenuitem', upload.single("imageFile"), (req, res) => {
 	// console.log("restaurant.js line 196 ", file, req.body);
 
 	var sqlQueryRestID = `SELECT restaurant_ID FROM restaurant `;
-	sqlQueryRestID += `WHERE rest_rgm_username='${username}'`;
+	sqlQueryRestID += `WHERE rest_rgm_username="${username}"`;
 
 	dbconn.query(sqlQueryRestID, function(error, results, fields){
 		if (error) {
-			res.status(200).send("MySQL error: " + error);
+			res.status(200).send('MySQL error: ' + error);
 			// console.log(error);
 		}
 		else {
@@ -361,16 +361,16 @@ router.post('/addmenuitem', upload.single("imageFile"), (req, res) => {
 			const rest_ID = results[0].restaurant_ID;
 
 			// Construct insert sqlQuery 
-			var sqlQuery = "INSERT INTO `rest_item`(`ri_rest_ID`, `ri_cat_ID`, `item_name`, `item_png_ID`, ";
-			sqlQuery += " `item_desc`, `item_allergen_warning`, `item_price`, `item_availability`) ";
-			sqlQuery += `VALUES (${rest_ID}, ${itemCategory}, '${itemName}', '${file.filename}', `;
-			sqlQuery += `'${itemDesc}', '${itemAllergy}', ${itemPrice}, ${itemAvailability})`;
+			var sqlQuery = 'INSERT INTO `rest_item`(`ri_rest_ID`, `ri_cat_ID`, `item_name`, `item_png_ID`, ';
+			sqlQuery += ' `item_desc`, `item_allergen_warning`, `item_price`, `item_availability`) ';
+			sqlQuery += `VALUES (${rest_ID}, ${itemCategory}, "${itemName}", "${file.filename}", `;
+			sqlQuery += `"${itemDesc}", "${itemAllergy}", ${itemPrice}, ${itemAvailability})`;
 
 			// Make sqlQuery
 			dbconn.query(sqlQuery, function(error, results, fields) {
 				if (error) {
 					//console.log(error);
-					res.status(200).send("MySQL error: " + error);
+					res.status(200).send('MySQL error: ' + error);
 				}
 				else {
 					// console.log(results);
@@ -388,7 +388,7 @@ router
 		// This one simply gets the items based on the itemID (if its ever needed)
 		res.send(`Get item with itemID ${req.params.itemid}`);
 	})
-	.put(upload.single("imageFile"), (req, res) => {
+	.put(upload.single('imageFile'), (req, res) => {
 		// console.log("PUT REQUEST");
 		// 1. Get all the variables from the form and also the file
 		const {
@@ -418,23 +418,23 @@ router
 				// fs.unlink deletes old file
 				fs.unlink(path.resolve(pathName), (err) => {
 					if (err) 
-						return res.status(200).json({ api_msg: "Error deleteing the file" }); 
+						return res.status(200).json({ api_msg: 'Error deleteing the file' }); 
 					else {
 						// console.log(path.resolve(pathName) + " deleted!");
 						// Construct the Update Query Yea
 						var sqlUpdateQuery = `UPDATE rest_item `;
-						sqlUpdateQuery += `SET ri_rest_ID=${itemRestID}, ri_cat_ID=${itemCategory}, item_name='${itemName}', `;
-						sqlUpdateQuery += `item_png_ID='${file.filename}', item_desc='${itemDesc}', item_allergen_warning='${itemAllergy}', `;
+						sqlUpdateQuery += `SET ri_rest_ID=${itemRestID}, ri_cat_ID=${itemCategory}, item_name="${itemName}", `;
+						sqlUpdateQuery += `item_png_ID="${file.filename}", item_desc="${itemDesc}", item_allergen_warning="${itemAllergy}", `;
 						sqlUpdateQuery += `item_price=${itemPrice}, item_availability=${itemAvailability} `;
 						sqlUpdateQuery += `WHERE ri_item_ID=${itemID}`; 
 
 						// This will update with all the new stuff!
 						dbconn.query(sqlUpdateQuery, function(error, results, fields){
 							if (error) {
-								res.status(200).json({ api_msg: "Update error, double check for when new image is uploaded!" }); 
+								res.status(200).json({ api_msg: 'Update error, double check for when new image is uploaded!' }); 
 							}
 							else {
-								res.status(200).json({ api_msg: `Updated item "${itemName}"! NOTE: New image found! Old image deleted.` });
+								res.status(200).json({ api_msg: `Updated item '${itemName}'! NOTE: New image found! Old image deleted.` });
 							}
 						});
 					}
@@ -442,8 +442,8 @@ router
 			}
 			else {
 				var sqlUpdateQuery = `UPDATE rest_item `;
-				sqlUpdateQuery += `SET ri_rest_ID=${itemRestID}, ri_cat_ID=${itemCategory}, item_name='${itemName}', `;
-				sqlUpdateQuery += `item_png_ID='${file.filename}', item_desc='${itemDesc}', item_allergen_warning='${itemAllergy}', `;
+				sqlUpdateQuery += `SET ri_rest_ID=${itemRestID}, ri_cat_ID=${itemCategory}, item_name="${itemName}", `;
+				sqlUpdateQuery += `item_png_ID="${file.filename}", item_desc="${itemDesc}", item_allergen_warning="${itemAllergy}", `;
 				sqlUpdateQuery += `item_price=${itemPrice}, item_availability=${itemAvailability} `;
 				sqlUpdateQuery += `WHERE ri_item_ID=${itemID}`;
 
@@ -453,7 +453,7 @@ router
 						res.status(200).json({ api_msg: "Update error, double check for when new image is uploaded!" }); 
 					}
 					else {
-						res.status(200).json({ api_msg: `Updated item "${itemName}"! NOTE: New image uploaded!` });
+						res.status(200).json({ api_msg: `Updated item ${itemName}! NOTE: New image uploaded!` });
 					}
 				});
 			}
@@ -461,8 +461,8 @@ router
 		else {
 			// Since no new imageFile is detected, then just update the data to the MySQL database
 			var sqlUpdateQuery = `UPDATE rest_item `;
-			sqlUpdateQuery += `SET ri_rest_ID=${itemRestID}, ri_cat_ID=${itemCategory}, item_name='${itemName}', `;
-			sqlUpdateQuery += `item_desc='${itemDesc}', item_allergen_warning='${itemAllergy}', `;
+			sqlUpdateQuery += `SET ri_rest_ID=${itemRestID}, ri_cat_ID=${itemCategory}, item_name="${itemName}", `;
+			sqlUpdateQuery += `item_desc="${itemDesc}", item_allergen_warning="${itemAllergy}", `;
 			sqlUpdateQuery += `item_price=${itemPrice}, item_availability=${itemAvailability} `;
 			sqlUpdateQuery += `WHERE ri_item_ID=${itemID}`;
 
@@ -482,15 +482,15 @@ router
 		// needs to find that ID and delete it
 		const itemID = req.params.itemid
 
-		var sqlDeleteQuery = "DELETE FROM `rest_item` ";
+		var sqlDeleteQuery = 'DELETE FROM `rest_item` ';
 		sqlDeleteQuery += `WHERE ri_item_ID=${itemID}`;
 
 		dbconn.query(sqlDeleteQuery, function(error, results, fields) {
 			if (error) {
-				res.status(200).json({ api_msg: "MySQL " + error });
+				res.status(200).json({ api_msg: 'MySQL ' + error });
 			}
 			else {
-				res.status(200).json({ api_msg: "Item with itemID: " + itemID + " deleted." });
+				res.status(200).json({ api_msg: 'Item with itemID: ' + itemID + ' deleted.' });
 			}
 		})
 	});
@@ -503,12 +503,12 @@ router
 
 /* === All routes for RGM subuser stuff === */
 router.get('/subusers', (req, res) => {
-	var sqlQuery = "";
+	var sqlQuery = '';
 	dbconn.query();
 });
 
 router.get('/rgm/addSubUser', (req, res) => {
-	var sqlQuery = "";
+	var sqlQuery = '';
 	dbconn.query();
 });
 
@@ -525,7 +525,7 @@ router
 	});
 
 /*  */
-router.param("subuser_ID", (req, res, next, subuser_ID) => {
+router.param('subuser_ID', (req, res, next, subuser_ID) => {
 	// console.log(subuser_ID);
 	next();
 });

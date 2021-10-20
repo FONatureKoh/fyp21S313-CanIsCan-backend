@@ -495,11 +495,11 @@ router
 		})
 	});
 
-// Route Param link for 
-router.param("itemid", (req, res, next, itemid) => {
-	console.log(itemid);
-	next();
-});
+// Route Param link for itemID
+// router.param("itemid", (req, res, next, itemid) => {
+// 	// console.log(itemid);
+// 	next();
+// });
 
 /* === All routes for RGM subuser stuff === */
 router.get('/subusers', (req, res) => {

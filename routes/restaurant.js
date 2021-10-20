@@ -415,25 +415,30 @@ router
 
 			// Check if the file exist, if yes delete the old file first then save into MySQL
 			if(fs.existsSync(path.resolve(pathName))) {
-				console(path.resolve(pathName));
-				fs.unlink(path.resolve(pathName));
-				
-				// Construct the Update Query Yea
-				var sqlUpdateQuery = `UPDATE rest_item `;
-				sqlUpdateQuery += `SET ri_rest_ID=${itemRestID}, ri_cat_ID=${itemCategory}, item_name='${itemName}', `;
-				sqlUpdateQuery += `item_png_ID='${file.filename}', item_desc='${itemDesc}', item_allergen_warning='${itemAllergy}', `;
-				sqlUpdateQuery += `item_price=${itemPrice}, item_availability=${itemAvailability} `;
-				sqlUpdateQuery += `WHERE ri_item_ID=${itemID}`; 
-
-				// Query the MySQL 
-				dbconn.query(sqlUpdateQuery, function(error, results, fields){
-					if (error) {
-						res.status(200).json({ api_msg: "Update error, double check for when new image is uploaded!" }); 
-					}
+				// fs.unlink deletes old file
+				fs.unlink(path.resolve(pathName), (err) => {
+					if (err) 
+						return res.status(200).json({ api_msg: "Error deleteing the file" }); 
 					else {
-						res.status(200).json({ api_msg: `Updated item "${itemName}"! NOTE: New image found! Old image deleted.` });
+						// console.log(path.resolve(pathName) + " deleted!");
+						// Construct the Update Query Yea
+						var sqlUpdateQuery = `UPDATE rest_item `;
+						sqlUpdateQuery += `SET ri_rest_ID=${itemRestID}, ri_cat_ID=${itemCategory}, item_name='${itemName}', `;
+						sqlUpdateQuery += `item_png_ID='${file.filename}', item_desc='${itemDesc}', item_allergen_warning='${itemAllergy}', `;
+						sqlUpdateQuery += `item_price=${itemPrice}, item_availability=${itemAvailability} `;
+						sqlUpdateQuery += `WHERE ri_item_ID=${itemID}`; 
+
+						// This will update with all the new stuff!
+						dbconn.query(sqlUpdateQuery, function(error, results, fields){
+							if (error) {
+								res.status(200).json({ api_msg: "Update error, double check for when new image is uploaded!" }); 
+							}
+							else {
+								res.status(200).json({ api_msg: `Updated item "${itemName}"! NOTE: New image found! Old image deleted.` });
+							}
+						});
 					}
-				});
+				})
 			}
 			else {
 				var sqlUpdateQuery = `UPDATE rest_item `;

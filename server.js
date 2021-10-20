@@ -58,6 +58,10 @@ app.use("/auth", authRouter);
 const restaurantRouter = require("./routes/restaurant");
 app.use("/restaurant", restaurantRouter);
 
+/* === All /register routes matters === */
+const registerRouter = require("./routes/register");
+app.use("/register", registerRouter);
+
 app.listen(5000, () => {
   console.log("Listening on port 5000!")
 });

@@ -89,8 +89,8 @@ router.route("/itemCategory")
 
 		// Then construct the sql query based on username to get restaurant_ID
 		var sqlQuery = "SELECT DISTINCT ric_name, ric_ID ";
-		sqlQuery += "FROM rest_item_categories JOIN restaurant_gm ";
-		sqlQuery += `WHERE rgm_username='${username}' AND ric_restaurant_ID=rgm_restaurant_ID `;
+		sqlQuery += "FROM rest_item_categories JOIN restaurant ";
+		sqlQuery += `WHERE rest_rgm_username='${username}' AND ric_restaurant_ID=restaurant_ID `;
 
 		// Query the db and return the said fields to the frontend app
 		dbconn.query(sqlQuery, function (error, results, fields) {
@@ -115,8 +115,8 @@ router.get("/retrieveCategoriesItems", (req, res) => {
 	// console.log(rgmUsername);
 
 	// 2. The first query should get the restaurant ID
-	var sqlQueryRestID = `SELECT rgm_restaurant_ID FROM restaurant_gm `;
-	sqlQueryRestID += `WHERE rgm_username='${rgmUsername}'`;
+	var sqlQueryRestID = `SELECT restaurant_ID FROM restaurant `;
+	sqlQueryRestID += `WHERE rest_rgm_username='${rgmUsername}'`;
 
 	dbconn.query(sqlQueryRestID, function(error, results, fields){
 		if (error) {
@@ -125,7 +125,7 @@ router.get("/retrieveCategoriesItems", (req, res) => {
 		}
 		else {
 			// 3. Once selected, then we'll use that ID to retrieve everything else
-			const rest_ID = results[0].rgm_restaurant_ID;
+			const rest_ID = results[0].restaurant_ID;
 			
 			// 4. Return the data accordingly. This should not fail in retrieve, so
 			// we should only account for an sql error.
@@ -211,9 +211,8 @@ router
 		const { username } = res.locals.userData;
 
 		// Then, we construct the sql query with the username in mind.
-		var sqlQuery = "SELECT * ";
-		sqlQuery += "FROM restaurant JOIN restaurant_gm ";
-		sqlQuery += `ON restaurant_ID=rgm_restaurant_ID AND rgm_username='${username}'`;
+		var sqlQuery = "SELECT * FROM restaurant ";
+		sqlQuery += `WHERE rest_rgm_username='${username}'`;
 
 		// Query the db and return the said fields to the frontend app
 		dbconn.query(sqlQuery, function (error, results, fields) {
@@ -349,8 +348,8 @@ router.post('/addmenuitem', upload.single("imageFile"), (req, res) => {
 	// Console log for testing, please comment out when done
 	// console.log("restaurant.js line 196 ", file, req.body);
 
-	var sqlQueryRestID = `SELECT rgm_restaurant_ID FROM restaurant_gm `;
-	sqlQueryRestID += `WHERE rgm_username='${username}'`;
+	var sqlQueryRestID = `SELECT restaurant_ID FROM restaurant `;
+	sqlQueryRestID += `WHERE rest_rgm_username='${username}'`;
 
 	dbconn.query(sqlQueryRestID, function(error, results, fields){
 		if (error) {
@@ -359,7 +358,7 @@ router.post('/addmenuitem', upload.single("imageFile"), (req, res) => {
 		}
 		else {
 			// 3. Once selected, then we'll use that ID to retrieve everything else
-			const rest_ID = results[0].rgm_restaurant_ID;
+			const rest_ID = results[0].restaurant_ID;
 
 			// Construct insert sqlQuery 
 			var sqlQuery = "INSERT INTO `rest_item`(`ri_rest_ID`, `ri_cat_ID`, `item_name`, `item_png_ID`, ";

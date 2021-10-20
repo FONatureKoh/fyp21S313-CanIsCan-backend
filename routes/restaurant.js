@@ -178,6 +178,32 @@ router.get('/itemImage/:imageName', (req, res) => {
  ****************************************************************************
  * GET route will get the information based on the rgm's username
  */
+
+// First is the multer config for the restaurant banner
+const restaurantBannerStorage = multer.diskStorage({
+	destination: (req, file, cb) => {
+		// Test Console
+		// console.log("Multer Config");
+		// console.log(path.resolve(pathName));
+		// console.log(path.resolve(pathName));
+
+		// Step 1: Find the exact location on the server to save the file
+		const pathName = process.env.ASSETS_SAVE_LOC + "rest_banner_png/";
+
+		cb(null, path.resolve(pathName));
+	},
+	filename: (req, file, cb) => {
+		// Step 2: Config Multer to the exact location for upload and get a uuidv4 random
+		// uuid for the file name
+		// console.log("Multer Config");
+		if (file) {
+			const bannerName = Date.now() + '-' + uuidv4();
+			cb(null, bannerName + path.extname(file.originalname)); 
+		}
+	}
+})
+const bannerUpload = multer({storage: restaurantBannerStorage});
+
 router
 	.route("/restaurantProfile")
 	.get((req, res) => {
@@ -238,7 +264,7 @@ router
 			}
 		});
 	})
-	.put((req, res) => {
+	.put(bannerUpload.single('imageFile'), (req, res) => {
 		// Updating of the restaurant's profile
 		// 1. Upon receiving all the data from the edit form, we need to check for
 		// any new picture uploaded by the restaurant manager
@@ -275,7 +301,7 @@ router.get('/tags', (req, res) => {
 	});
 
 /*****************************************************************************************
- * Restaurant Items Add, Get, Put, Delete
+ * Restaurant Item / Items Managment
  ****************************************************************************************
  * Item add, edit, delete, retrieve get
  * 

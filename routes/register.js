@@ -19,7 +19,7 @@ router.use(express.urlencoded({ extended: true }));
 router.post("/restaurant", (req, res) => {
   // Assuming that we pass the form data into the route
   // 1. We will need to decode the form and draw out the data
-  console.log(req.body);
+  // console.log(req.body);
   const {
     username, restaurant_name, email, phone
   } = req.body;
@@ -42,7 +42,7 @@ router.post("/restaurant", (req, res) => {
     }
     else {
       // Console log to see MySQL
-      console.log(results);
+      // console.log(results);
 
       // Once the app user is created, we can now create the restaurant
       var sqlRestaurantQuery = "INSERT INTO restaurant(`restaurant_name`, `rest_rgm_username`, ";
@@ -54,8 +54,7 @@ router.post("/restaurant", (req, res) => {
           console.log("MySQL " + error);
         }
         else {
-          console.log(results);
-
+          // console.log(results);
           // If the restaurant is successful, then we can create a profile for the RGM as well
           var sqlCreateRGM = "INSERT INTO restaurant_gm(`rgm_username`) ";
           sqlCreateRGM += `VALUES ('${username}')`;
@@ -83,7 +82,7 @@ router.post("/restaurant", (req, res) => {
 router.post("/customer", (req, res) => {
   // Assuming that we pass the form data into the route
   // 1. We will need to decode the form and draw out the data
-  console.log(req.body);
+  // console.log(req.body);
   const {
     email, username, password
   } = req.body;
@@ -99,7 +98,7 @@ router.post("/customer", (req, res) => {
     }
     else {
       // Console log to see MySQL
-      console.log(results);
+      // console.log(results);
 
       // Once the app user is created, we can now create the restaurant
       var sqlRestaurantQuery = "INSERT INTO customer_user(`username`, `email`) ";
@@ -110,8 +109,6 @@ router.post("/customer", (req, res) => {
           console.log("MySQL " + error);
         }
         else {
-          console.log(results);
-
           res.status(200).json({ api_msg: "Successful" });
         };
       }); // Second nested query closed

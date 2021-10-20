@@ -117,7 +117,6 @@ async function sendMail() {
 app.get('/testemail', (req, res) => {
   sendMail()
     .then(result => {
-      console.log(result);
       res.status(200).json({ api_msg: result });
     })
     .catch((error) => console.log(error.message));

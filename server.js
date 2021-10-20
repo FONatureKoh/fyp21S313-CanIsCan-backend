@@ -65,6 +65,11 @@ const registerRouter = require("./routes/register");
 
 app.use("/register", registerRouter);
 
+/* === All /admin routes matters === */
+const adminRouter = require("./routes/admin");
+
+app.use("/admin", adminRouter);
+
 /*****************************************************************************
  * Test for sending an email                                                 *
  *****************************************************************************
@@ -99,10 +104,10 @@ async function sendMail() {
 
     const mailOptions = {
       from: 'Administrator <cancanfoodapp@gmail.com>',
-      to: 'fonaturekoh@outlook.sg',
+      to: 'kelvinkoh1995@hotmail.com',
       subject: 'This is a test for the gmail API',
       test: 'Hello world',
-      html: '<h1>Hello world </h1>'
+      html: '<h1>Hello world</h1>' + '<h2>This is a cow I guess</h2>'
     };
 
     const result = await transport.sendMail(mailOptions);

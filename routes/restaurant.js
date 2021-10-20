@@ -237,7 +237,17 @@ router
 				res.status(200).json(restaurantProfileData);
 			}
 		});
-});
+	})
+	.put((req, res) => {
+		// Updating of the restaurant's profile
+		// 1. Upon receiving all the data from the edit form, we need to check for
+		// any new picture uploaded by the restaurant manager
+		// 2. Also need to see if the Date object received can be inserted into the
+		// MySQL database
+		// 3. We can then construct the query accordingly
+		// 4. Try the query and see if it is successful. If yes return success api_msg
+
+	});
 
 /****************************************************************************
  * Retrieve restaurant's item category / categories information (New)				*
@@ -270,7 +280,7 @@ router.get('/tags', (req, res) => {
  * Item add, edit, delete, retrieve get
  * 
  */
-const storage = multer.diskStorage({
+const itemStorage = multer.diskStorage({
 	destination: (req, file, cb) => {
 		// Test Console I just thinking. When i thinking the mouse dances
 		// console.log("Multer Config");
@@ -292,7 +302,7 @@ const storage = multer.diskStorage({
 		}
 	}
 })
-const upload = multer({storage: storage}); //{ dest: '../assets'}
+const upload = multer({storage: itemStorage}); //{ dest: '../assets'}
 
 // Step 3: We write the post route for when we add an item to the db
 router.post('/addmenuitem', upload.single("imageFile"), (req, res) => {

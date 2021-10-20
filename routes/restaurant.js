@@ -353,7 +353,7 @@ router.post('/addmenuitem', upload.single("imageFile"), (req, res) => {
 
 	dbconn.query(sqlQueryRestID, function(error, results, fields){
 		if (error) {
-			res.status(400).send("MySQL error: " + error);
+			res.status(200).send("MySQL error: " + error);
 			// console.log(error);
 		}
 		else {
@@ -370,7 +370,7 @@ router.post('/addmenuitem', upload.single("imageFile"), (req, res) => {
 			dbconn.query(sqlQuery, function(error, results, fields) {
 				if (error) {
 					//console.log(error);
-					res.status(400).send("MySQL error: " + error);
+					res.status(200).send("MySQL error: " + error);
 				}
 				else {
 					// console.log(results);

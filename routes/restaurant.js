@@ -392,16 +392,10 @@ router
 		// console.log("PUT REQUEST");
 		// 1. Get all the variables from the form and also the file
 		const {
-				file, body: {
-				itemID,
-				itemPngID,
-				itemRestID,
-				itemName, 
-				itemPrice, 
-				itemDesc, 
-				itemAllergy,
-				itemCategory,
-				itemAvailability
+				file, 
+				body: {
+				itemID, itemPngID, itemRestID, itemName, itemPrice, 
+				itemDesc, itemAllergy, itemCategory, itemAvailability
 			}
 		} = req;
 
@@ -421,6 +415,7 @@ router
 
 			// Check if the file exist, if yes delete the old file first then save into MySQL
 			if(fs.existsSync(path.resolve(pathName))) {
+				console(path.resolve(pathName));
 				fs.unlink(path.resolve(pathName));
 				
 				// Construct the Update Query Yea
@@ -480,7 +475,19 @@ router
 	.delete((req, res) => {
 		// NOTE: Since itemID is unique and independent of all other IDs, the MySQL query simply
 		// needs to find that ID and delete it
-		res.send(`Deleted item with itemID ${req.params.itemid}`);
+		const itemID = req.params.itemid
+
+		var sqlDeleteQuery = "DELETE FROM `rest_item` ";
+		sqlDeleteQuery += `WHERE ri_item_ID=${itemID}`;
+
+		dbconn.query(sqlDeleteQuery, function(error, results, fields) {
+			if (error) {
+				res.status(200).json({ api_msg: "MySQL " + error });
+			}
+			else {
+				res.status(200).json({ api_msg: "Item with itemID: " + itemID + " deleted." });
+			}
+		})
 	});
 
 // Route Param link for 

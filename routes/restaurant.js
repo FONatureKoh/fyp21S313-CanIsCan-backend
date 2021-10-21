@@ -33,21 +33,38 @@ function accessTokenParser(bearerToken) {
  * Retrieve restaurant's menu and all items information											*
  ****************************************************************************
  */
-router.get('/retrieveMenuItems', (req, res) => {
+router.get('/retrieveAllItems', (req, res) => {
 	// Save the restaurantID first from the URL
-	var restaurantID = req.query.restaurantID;
+	const { username } = res.locals.userData;
 
-	// Then construct the sql query based on the query
-	var sqlQuery = 'SELECT * FROM rest_item_categories JOIN rest_item ';
-	sqlQuery += `ON ric_restaurant_ID=${restaurantID} AND ric_ID=ri_cat_ID`
+	// Construct getQuery
+	var sqlGetQuery =  `SELECT restaurant_ID FROM restaurant `;
+	sqlGetQuery += `WHERE rest_rgm_username='${username}'`;
 
-	// Query the db and return the said fields to the frontend app
-	dbconn.query(sqlQuery, function (error, results, fields) {
+	dbconn.query(sqlGetQuery, function (error, results, fields){
 		if (error) {
-			res.send('MySQL error: ' + error);
-    }
-    else {
-      res.send(results);
+			res.status(200).json({ api_msg: "MySQL " + error });
+		}
+		else {
+			const rest_ID = results[0].restaurant_ID;
+
+			// Now we do the actual query we always wanted
+			var sqlQuery = 'SELECT ric_name, ri_item_ID, ri_rest_ID, ri_cat_ID, item_name, ';
+			sqlQuery += 'item_png_ID, item_desc, item_allergen_warning, '; 
+			sqlQuery += 'item_price, item_availability ';
+			sqlQuery += 'FROM rest_item_categories JOIN rest_item ';
+			sqlQuery += `ON ric_restaurant_ID=${rest_ID} AND ric_ID=ri_cat_ID `;
+			sqlQuery += 'ORDER BY ric_name, item_name';
+
+			dbconn.query(sqlQuery, function (error, results, fields) {
+				if (error) {
+					res.status(200).json({ api_msg: "MySQL " + error });
+			  }
+			  else {
+					// console.log(results);
+			    res.status(200).send(results);
+				}
+			})
 		}
 	})
 });
@@ -92,7 +109,7 @@ router.route('/itemCategory')
 		sqlQuery += 'FROM rest_item_categories JOIN restaurant ';
 		sqlQuery += `WHERE rest_rgm_username="${username}" AND ric_restaurant_ID=restaurant_ID `;
 
-		// Query the db and return the said fields to the frontend app
+		// Query the db and return the said fields to the afrontend app
 		dbconn.query(sqlQuery, function (error, results, fields) {
 			if (error) {
 				res.status(200).json({ api_msg: 'MySQL error: ' + error });

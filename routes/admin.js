@@ -83,8 +83,7 @@ router.post("/approve/:restaurant_ID", (req, res) => {
             from: 'Administrator <cancanfoodapp@gmail.com>',
             to: mailTo,
             subject: mailSubject,
-            text: mailText,
-            html: mailHTML
+            text: mailText
           };
 
           sendMail(mailOptions)

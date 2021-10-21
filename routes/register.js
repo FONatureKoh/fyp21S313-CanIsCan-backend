@@ -32,7 +32,7 @@ router.post('/restaurant', (req, res) => {
   })
 
   var sqlQuery = 'INSERT INTO app_user(`username`, `user_password`, `user_type`, `account_status`) ';
-  sqlQuery += `VALUES ("${username}", "${default_pw}", "Restaurant General Manager", "pending")`;
+  sqlQuery += `VALUES ("${username}", "${default_pw}", "Restaurant General Manager", "active")`;
 
   // First query creates the app_user entry
   dbconn.query(sqlQuery, function(error, results, fields){

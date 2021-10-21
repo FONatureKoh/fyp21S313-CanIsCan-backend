@@ -28,7 +28,7 @@ router.post("/login", (req, res) => {
   else {
     // Create query to authenticate user
     var sqlQuery = `SELECT username, user_type FROM app_user `;
-    sqlQuery += `WHERE username='${username}' AND user_password='${password}'`;
+    sqlQuery += `WHERE username="${username}" AND user_password="${password}"`;
 
     // Query to auth the user. If found, proceed, otherwise throw 400 Bad Request.
     dbconn.query(sqlQuery, function (error, results, fields) {

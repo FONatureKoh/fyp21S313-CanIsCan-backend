@@ -33,13 +33,7 @@ async function sendMail(mailOptions) {
       }
     });
 
-    // const mailOptions = {
-    //   from: 'Administrator <cancanfoodapp@gmail.com>',
-    //   to: 'fonaturekoh@outlook.sg',
-    //   subject: 'This is a test for the gmail API',
-    //   test: 'Hello world',
-    //   html: '<h1>Hello world</h1>' + '<h2>This is a cow I guess</h2>'
-    // };
+
   
     console.log(mailOptions);
 
@@ -52,3 +46,12 @@ async function sendMail(mailOptions) {
 }
 
 module.exports = sendMail;
+
+// Mail Template
+// const mailOptions = {
+//   from: 'Administrator <cancanfoodapp@gmail.com>',
+//   to: 'fonaturekoh@outlook.sg',
+//   subject: 'This is a test for the gmail API',
+//   test: 'Hello world',
+//   html: '<h1>Hello world</h1>' + '<h2>This is a cow I guess</h2>'
+// };

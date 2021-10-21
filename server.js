@@ -1,5 +1,6 @@
 require('dotenv').config();
 const dbconn = require('./models/db_model.js');
+const sendMail = require('./models/email_model.js');
 const express = require('express');
 const app = express();
 const cors = require('cors');
@@ -70,58 +71,21 @@ const adminRouter = require("./routes/admin");
 
 app.use("/admin", adminRouter);
 
-/*****************************************************************************
- * Test for sending an email                                                 *
- *****************************************************************************
- */
-// Basic config for the google api
-const oAuth2Client = new google.auth.OAuth2(
-  process.env.EMAIL_CLIENT_ID, 
-  process.env.EMAIL_CLIENT_SECRET, 
-  process.env.REDIRECT_URL
-);
-
-oAuth2Client.setCredentials({
-  refresh_token: process.env.EMAIL_REFRESH_TOKEN
-})
-
-// Creating an async function for sending emails
-async function sendMail() {
-  try {
-    const accessToken = await oAuth2Client.getAccessToken();
-
-    const transport = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        type: 'OAuth2',
-        user: 'cancanfoodapp@gmail.com',
-        clientId: process.env.EMAIL_CLIENT_ID,
-        clientSecret: process.env.EMAIL_CLIENT_SECRET,
-        refreshToken: process.env.EMAIL_REFRESH_TOKEN,
-        accessToken: accessToken
-      }
-    });
-
-    const mailOptions = {
-      from: 'Administrator <cancanfoodapp@gmail.com>',
-      to: 'kelvinkoh1995@hotmail.com',
-      subject: 'This is a test for the gmail API',
-      test: 'Hello world',
-      html: '<h1>Hello world</h1>' + '<h2>This is a cow I guess</h2>'
-    };
-
-    const result = await transport.sendMail(mailOptions);
-    return result;
-  }
-  catch (error) {
-    return error;
-  }
-
-}
-
 app.get('/testemail', (req, res) => {
-  sendMail()
+  const mailOptions = {
+    from: 'Administrator <cancanfoodapp@gmail.com>',
+    to: 'fonaturekoh@outlook.sg',
+    subject: 'This is a test for the gmail API',
+    text: 'Hello world',
+    html: '<h1>Hello world</h1>' + '<h2>This is a cow I guess</h2>'
+  };
+  
+  // console.log(mailOptions);
+
+  sendMail(mailOptions)
     .then(result => {
+      console.log("sendmail triggered")
+      console.log(result);
       res.status(200).json({ api_msg: result });
     })
     .catch((error) => console.log(error.message));

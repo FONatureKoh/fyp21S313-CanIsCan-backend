@@ -23,7 +23,10 @@ jobs:
         node-version: ${{ matrix.node-version }}
 
     - name: Install Dependencies using Yarn
-      run: yarn
+      run: |
+        yarn clean
+        yarn cache clean
+        yarn
     
     - name: Get .env file from within the system
       run: |

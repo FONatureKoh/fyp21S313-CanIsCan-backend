@@ -35,6 +35,32 @@ router.get("/pending", (req, res) => {
  * Route Template                     																			*
  ****************************************************************************
  */
+router.post("/approve/:restaurant_ID", (req, res) => {
+  // 1. Get the restaurant's ID
+  const restID = req.params.restaurant_ID;
+
+  // 2. Update status of restaurant
+  var sqlUpdateQuery = `UPDATE restaurant SET rest_status="first" `;
+  sqlUpdateQuery += `WHERE restaurant_ID=${restID}`;
+
+  // send query to sql server
+  dbconn.query(sqlUpdateQuery, function(error, results, fields){
+    if (error) {
+      res.status(200).json({ api_msg: "MySQL " + error });
+    }
+    else {
+      res.status(200).json({ api_msg: "Successful!" });
+    }
+  })
+  // 3. Send email to the restaurant's registered email address with the first
+  // login password
+  // 4. Response back to axios call with api_msg 
+});
+
+/****************************************************************************
+ * Route Template                     																			*
+ ****************************************************************************
+ */
 // router.get("/pending", (req, res) => {});
 
 module.exports = router;

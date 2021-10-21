@@ -24,7 +24,6 @@ jobs:
 
     - name: Install Dependencies using Yarn
       run: |
-        yarn clean
         yarn cache clean
         yarn
     

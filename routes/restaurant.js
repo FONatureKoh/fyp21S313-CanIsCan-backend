@@ -516,6 +516,32 @@ router
 // 	next();
 // });
 
+/****************************************************************************
+ * Retrieve restaurant's item category / categories information (New)				*
+ ****************************************************************************
+ */
+router.get('/restaurantStatus', (req, res) => {
+	// To get the restaurant's status we just need to get to the restaurant table 
+	// and match it to the restaurant's status
+	// 1. First step is to get username from the middleware
+	const { username } = res.locals.userData;
+
+	// 2. Then we construct the query
+	var sqlGetQuery = `SELECT rest_status FROM restaurant `;
+	sqlGetQuery += `WHERE rest_rgm_username="${username}"`;
+	
+	// 3. Then after that we make the dbconn
+	dbconn.query(sqlGetQuery, function(error, results, fields){
+		if (error) {
+			res.status(200).json({ api_msg: "MySQL " + error });
+		}
+		else {
+			// 4. Return the restaurant's status
+			res.status(200).send(results[0].rest_status);
+		}
+	})
+});
+
 /* === All routes for RGM subuser stuff === */
 router.get('/subusers', (req, res) => {
 	var sqlQuery = '';

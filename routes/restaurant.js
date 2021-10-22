@@ -188,7 +188,7 @@ const restaurantBannerStorage = multer.diskStorage({
 		// console.log(path.resolve(pathName));
 
 		// Step 1: Find the exact location on the server to save the file
-		const pathName = process.env.ASSETS_SAVE_LOC + 'rest_banner_png/';
+		const pathName = process.env.ASSETS_SAVE_LOC + 'rest_banners/';
 
 		cb(null, path.resolve(pathName));
 	},
@@ -272,6 +272,13 @@ router
 		// 3. We can then construct the query accordingly
 		// 4. Try the query and see if it is successful. If yes return success api_msg
 
+	})
+	.post(bannerUpload.single('bannerImage'), (req, res) => {
+		// This post route is for first login / firstLog / firstLogin 
+		// 1. Get username from the token
+		// 2. Get the other data from the req (including filename and fields)
+		// 3. Update the table with all the data gotten.
+		res.status(200).json({ api_msg: "You got to the route! RestauratProfile" });
 	});
 
 /****************************************************************************

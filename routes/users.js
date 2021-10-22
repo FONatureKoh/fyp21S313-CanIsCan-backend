@@ -123,8 +123,12 @@ router
 		// Firstly we'll get some other necessary data from the form
 		const {
 			file, body: {
-
-
+				fname,
+				lname,
+				phoneNo,
+				email,
+				address,
+				postalCode
 			}
 		}	= req;
 
@@ -133,8 +137,20 @@ router
 		switch (userType) {
 			// RGM User Type ==========================================================
 			case "Restaurant General Manager":
-				res.status(200).json({ api_msg: "You got to the route! profilemanagement route!" });
+				// User update stuff
+				var sqlUpdateQuery = `UPDATE restaurant_gm SET rgm_username="${username}",`
+				sqlUpdateQuery += `picture_ID="${file.filename}",first_name="${fname}",last_name="${lname}",`
+				sqlUpdateQuery += `phone_no=${phoneNo},email="${email}",home_address="${address}",home_postal_code=${postalCode} `;
+				sqlUpdateQuery += `WHERE rgm_username="${username}"`;
 
+				dbconn.query(sqlUpdateQuery, function(error, results, fields){
+					if (error) {
+						res.status(200).json({ api_msg: "MySQL " + error });
+					}
+					else {
+						res.status(200).json({ api_msg: "Successful!" });
+					}
+				})
 
 				break;
 			// =========================================================================
@@ -165,9 +181,6 @@ router
 			default:
 				break;
 		}
-
-		
-		console.log(req.body);
 	});
 
 /****************************************************************************

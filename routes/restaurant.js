@@ -291,7 +291,7 @@ router
 
 		// 3. Update the table with all the data gotten.
 		var sqlUpdateQuery = `UPDATE restaurant SET rest_banner_ID="${file.filename}",`
-		sqlUpdateQuery += `rest_address_info="${address}",rest_postal_code=${postalCode}`
+		sqlUpdateQuery += `rest_address_info="${address}",rest_postal_code=${postalCode},rest_status="active"`
 
 		if (tagsArray[0]) {
 			sqlUpdateQuery += `,rest_tag_1="${tagsArray[0]}"`;

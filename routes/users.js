@@ -1,7 +1,10 @@
 const express = require("express");
+const multer = require("multer");
 const authTokenMiddleware = require("../middleware/authTokenMiddleware");
 const router = express.Router();
 const dbconn = require("../models/db_model");
+const path = require("path");
+const { v4: uuidv4 } = require('uuid');
 
 // Body parser
 router.use(express.json());
@@ -28,6 +31,27 @@ router.get("/list", (req, res) => {
  * userType: Restaurant General Manager, Restaurant Deliveries Manager,			*
  * Restaurant Reservation Manager
 */
+// Multer config for all user profile management
+const profileStorage = multer.diskStorage({
+	destination: (req, file, cb) => {
+		// Step 1: Find the exact location on the server to save the file
+		const pathName = process.env.ASSETS_SAVE_LOC + 'profile_pictures/';
+
+		cb(null, path.resolve(pathName));
+	},
+	filename: (req, file, cb) => {
+		// Step 2: Config Multer to the exact location for upload and get a uuidv4 random
+		// uuid for the file name
+		// console.log('Multer Config');
+		console.log(file);
+		if (file) {
+			const profilePictureName = Date.now() + '-' + uuidv4();
+			cb(null, profilePictureName + path.extname(file.originalname)); 
+		}
+	}
+})
+const profileUpload = multer({storage: profileStorage}); //{ dest: '../assets'}
+
 router
   .route('/profilemanagement')
 	.get((req, res) => {
@@ -87,6 +111,63 @@ router
 	})
 	.put((req, res) => {
 		res.send();
+	})
+	.post(profileUpload.single("profileImage"), (req, res) => {
+		// Okay, so the uniqueness of this route is that we need to dynamically choose
+		// the usertype so that the route knows which user to post to. Lets say its an
+		// RGM, then we need to put to the rgm table so on and forth
+		// 1. Get the username and usertype from the accesstoken
+		const { username, userType } = res.locals.userData;
+		
+		// 2. since we can get the usertype from the token, we can move straight from there.
+		// Firstly we'll get some other necessary data from the form
+		const {
+			file, body: {
+
+
+			}
+		}	= req;
+
+		// 3. Thereafter, we just update everything into the table and we should be
+		// done. Getting all the fields updated is the part.
+		switch (userType) {
+			// RGM User Type ==========================================================
+			case "Restaurant General Manager":
+				res.status(200).json({ api_msg: "You got to the route! profilemanagement route!" });
+
+
+				break;
+			// =========================================================================
+			// Restaurant Deliveries Manager User Type =================================
+			case "Restaurant Deliveries Manager":
+				res.status(200).json({ username: username, userType: userType });
+
+				break;
+			// =========================================================================		
+			// Restaurant Reservation Manager User Type ================================
+			case "Restaurant Reservation Manager":
+				res.status(200).json({ username: username, userType: userType });
+
+				break;
+			// =========================================================================
+			// System Administrator User Type ==========================================
+			case "System Administrator":
+				res.status(200).json({ username: username, userType: userType });
+
+				break;
+			// =========================================================================
+			// Customer User Type ======================================================
+			case "Customer":
+				res.status(200).json({ username: username, userType: userType });
+
+				break;
+			// =========================================================================	
+			default:
+				break;
+		}
+
+		
+		console.log(req.body);
 	});
 
 /****************************************************************************
@@ -168,6 +249,12 @@ router
 			}
 		});
 	});
+
+/****************************************************************************
+ * User Profile 																									*
+ ****************************************************************************
+ * This route should be used to manage the password
+*/
 
 /* === All routes for /users/:username ===
 	Currently has get, put, delete

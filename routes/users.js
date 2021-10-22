@@ -208,7 +208,7 @@ router
 		const { username } = res.locals.userData;
 
 		var sqlQuery = `SELECT * FROM app_user `;
-		sqlQuery += `WHERE username='${username}' AND BINARY user_password='${oldPassword}'`
+		sqlQuery += `WHERE username="${username}" AND BINARY user_password="${oldPassword}"`
 		
 		// 3. Do the query and return the success message
 		dbconn.query(sqlQuery, function(error, results, fields) {

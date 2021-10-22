@@ -97,8 +97,7 @@ router.get('/retrieveCategories', (req, res) => {
  * Retrieve restaurant's item category / categories information (New)				*
  ****************************************************************************
  */
-router.route('/itemCategory')
-	.get((req, res) => {
+router.get('/itemCategory', (req, res) => {
 		// Some useful variables for this route
 		var selectedRestID;
 		// Save the restaurantID first from the header and also auth
@@ -118,6 +117,55 @@ router.route('/itemCategory')
 				res.status(200).send(results);
 			}
 		})
+	});
+
+/****************************************************************************
+ * Restaurant New / Add Items Category																			*
+ ****************************************************************************
+ */
+router.post('/createNewCategory', (req, res) => {
+	// 1. Get the restaurant gm username
+	const { username } = res.locals.userData;
+
+	// Get the ric_name also from the params
+	const { ric_name } = req.body;
+
+	// 2. Get the restaurant's ID from the restaurant table
+	var sqlGetQuery = `SELECT restaurant_ID FROM restaurant `;
+	sqlGetQuery += `WHERE rest_rgm_username="${username}"`;
+
+	dbconn.query(sqlGetQuery, function(error, results, fields){
+		if (error) {
+			res.status(200).json({ api_msg: "MySQL " + error });
+		}
+		else {
+			// Set the rest_ID first 
+			const rest_ID = results[0].restaurant_ID;
+
+			// 3. Create a new entry in the rest_item_categories
+			var sqlInsertQuery = "INSERT INTO rest_item_categories(`ric_restaurant_ID`, `ric_name`) ";
+			sqlInsertQuery += `VALUES (${rest_ID}, "${ric_name}")`;
+
+			dbconn.query(sqlInsertQuery, function(error, results, fields){
+				if (error) {
+					res.status(200).json({ api_msg: "MySQL " + error });
+				}
+				else {
+					console.log(results);
+					res.status(200).json({ api_msg: "Successful!" });
+				}
+			})
+		}
+	})
+});
+
+/****************************************************************************
+ * Restaurant Items Category Management																			*
+ ****************************************************************************
+ */
+router.route('/itemCategoryManagement')
+	.get((req, res) => {
+		res.status(200).json({ api_msg: "itemCategoryManagement Route" });
 	});
 
 /****************************************************************************
@@ -320,7 +368,7 @@ router
 	});
 
 /****************************************************************************
- * Retrieve restaurant's item category / categories information (New)				*
+ * Retrieve all available Restaurant Tags																		*
  ****************************************************************************
  */
 router.get('/tags', (req, res) => {
@@ -562,7 +610,7 @@ router
 // });
 
 /****************************************************************************
- * Retrieve restaurant's item category / categories information (New)				*
+ * Retrieve restaurant's status																							*
  ****************************************************************************
  */
 router.get('/restaurantStatus', (req, res) => {

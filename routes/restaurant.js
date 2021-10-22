@@ -276,9 +276,47 @@ router
 	.post(bannerUpload.single('bannerImage'), (req, res) => {
 		// This post route is for first login / firstLog / firstLogin 
 		// 1. Get username from the token
+		const { username } = res.locals.userData;
+		
 		// 2. Get the other data from the req (including filename and fields)
+		const { 
+			file, body: {
+				address,
+				postalCode,
+				tags
+			}
+		} = req;
+
+		const tagsArray = tags.split(",");
+
 		// 3. Update the table with all the data gotten.
-		res.status(200).json({ api_msg: "You got to the route! RestauratProfile" });
+		var sqlUpdateQuery = `UPDATE restaurant SET rest_banner_ID="${file.filename}",`
+		sqlUpdateQuery += `rest_address_info="${address}",rest_postal_code=${postalCode}`
+
+		if (tagsArray[0]) {
+			sqlUpdateQuery += `,rest_tag_1="${tagsArray[0]}"`;
+		}
+
+		if (tagsArray[1]) {
+			sqlUpdateQuery += `,rest_tag_2="${tagsArray[1]}"`;
+		}
+
+		if (tagsArray[2]) {
+			sqlUpdateQuery += `,rest_tag_3="${tagsArray[2]}"`;
+		}
+
+		sqlUpdateQuery += ` WHERE rest_rgm_username="${username}"`;
+
+		dbconn.query(sqlUpdateQuery, function(error, results, fields){
+			if (error) {
+				res.status(200).json({ api_msg: "MySQL " + error });
+			}
+			else {
+				res.status(200).json({ api_msg: "Successful!" });
+			}
+		})
+
+		console.log(req.file, req.body);
 	});
 
 /****************************************************************************

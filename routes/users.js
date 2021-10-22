@@ -213,7 +213,7 @@ router
 		// 3. Do the query and return the success message
 		dbconn.query(sqlQuery, function(error, results, fields) {
 			if (error) {
-				res.status(400).json({ api_msg: "MySQL error occurred: " + error });
+				res.status(200).json({ api_msg: "MySQL error occurred: " + error });
 			}
 			else {
 				if (results.length) {
@@ -246,7 +246,7 @@ router
 		// 3. res should send status 200 and a successMsg
 		dbconn.query(sqlQuery, function(error, results, fields) {
 			if (error) {
-				res.status(400).json({ api_msg: "MySQL Query error: " + error });
+				res.status(200).json({ api_msg: "MySQL Query error: " + error });
 			}
 			else {
 				// console.log(results);

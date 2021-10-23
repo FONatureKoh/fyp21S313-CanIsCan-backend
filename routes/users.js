@@ -65,20 +65,113 @@ router
 		switch (userType) {
 			// RGM User Type ==========================================================
 			case "Restaurant General Manager":
-				var sqlQuery = "SELECT username, user_type, first_name, last_name, phone_no, ";
-				sqlQuery += "home_address, home_postal_code ";
-				sqlQuery += "FROM app_user JOIN restaurant_gm ";
-				sqlQuery += `ON username=rgm_username WHERE rgm_username='${username}'`;
+				var sqlGetQuery = "SELECT username, user_type, first_name, last_name, phone_no, ";
+				sqlGetQuery += "email, home_address, home_postal_code ";
+				sqlGetQuery += "FROM app_user JOIN restaurant_gm ";
+				sqlGetQuery += `ON username=rgm_username WHERE rgm_username='${username}'`;
 
 				// Query the db and return the said fields to the frontend app
-				dbconn.query(sqlQuery, function (error, results, fields) {
+				dbconn.query(sqlGetQuery, function (error, results, fields) {
 					if (error) {
-						res.status(400).send({ errorMsg: "MySQL error: " + error });
+						res.status(200).send({ api_msg: "MySQL error: " + error });
 					}
 					else {
 						res.status(200).send(results[0]);
 					}
 				})
+				break;
+			// =========================================================================
+			// Restaurant Deliveries Manager User Type =================================
+			// Restaurant Reservation Manager User Type ================================
+			case "Restaurant Deliveries Manager":
+			case "Restaurant Reservation Manager":
+				var sqlGetQuery = "SELECT username, user_type, first_name, last_name, phone_no, ";
+				sqlGetQuery += "email, home_address, home_postal_code ";
+				sqlGetQuery += "FROM app_user JOIN restaurant_subuser ";
+				sqlGetQuery += `ON username="${username}" WHERE username=subuser_username`;
+
+				// Query the db and return the said fields to the frontend app
+				dbconn.query(sqlGetQuery, function (error, results, fields) {
+					if (error) {
+						res.status(200).send({ api_msg: "MySQL error: " + error });
+					}
+					else {
+						console.log(results[0]);
+						res.status(200).send(results[0]);
+					}
+				});
+
+				break;
+			// =========================================================================
+			// System Administrator User Type ==========================================
+			case "System Administrator":
+				var sqlGetQuery = "SELECT username, user_type, first_name, last_name, phone_no, ";
+				sqlGetQuery += "email, home_address, home_postal_code ";
+				sqlGetQuery += "FROM app_user JOIN admin_user ";
+				sqlGetQuery += `ON username="${username}" WHERE username=admin_username`;
+
+				// Query the db and return the said fields to the frontend app
+				dbconn.query(sqlGetQuery, function (error, results, fields) {
+					if (error) {
+						res.status(200).send({ api_msg: "MySQL error: " + error });
+					}
+					else {
+						console.log(results[0]);
+						res.status(200).send(results[0]);
+					}
+				});
+
+				break;
+			// =========================================================================
+			// Customer User Type ======================================================
+			case "Customer":
+				var sqlGetQuery = "SELECT username, user_type, first_name, last_name, ";
+				sqlGetQuery += "phone_no, email ";
+				sqlGetQuery += "FROM app_user JOIN customer_user ";
+				sqlGetQuery += `ON username="${username}" WHERE username=cust_username`;
+
+				// Query the db and return the said fields to the frontend app
+				dbconn.query(sqlGetQuery, function (error, results, fields) {
+					if (error) {
+						res.status(200).send({ api_msg: "MySQL error: " + error });
+					}
+					else {
+						console.log(results[0]);
+						res.status(200).send(results[0]);
+					}
+				});
+
+				break;
+			// =========================================================================	
+			default:
+				break;
+		}
+	})
+	.put((req, res) => {
+		// Get the userData from the access token
+		// console.log(res.locals.userData)
+		const {
+			username, userType
+		} = res.locals.userData;
+
+		// We also get other important stuff from the req
+		const {
+			file, body: {
+				fname,
+				lname,
+				phoneNo,
+				email,
+				address,
+				postalCode
+			}
+		}	= req;
+
+		// Construct a Switch to handle the sql query based on the userType
+		switch (userType) {
+			// RGM User Type ==========================================================
+			case "Restaurant General Manager":
+				res.status(200).json({ username: username, userType: userType });
+
 				break;
 			// =========================================================================
 			// Restaurant Deliveries Manager User Type =================================
@@ -108,9 +201,6 @@ router
 			default:
 				break;
 		}
-	})
-	.put((req, res) => {
-		res.send();
 	})
 	.post(profileUpload.single("profileImage"), (req, res) => {
 		// Okay, so the uniqueness of this route is that we need to dynamically choose

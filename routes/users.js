@@ -26,6 +26,30 @@ router.get("/list", (req, res) => {
 });
 
 /****************************************************************************
+ * Retrieve restaurant's items imaage																				*
+ ****************************************************************************
+ */
+router.get('/profileImage/:imageName', (req, res) => {
+  // console.log(path.resolve(`../0-test-pictures/${req.params.imageName}`));
+  // console.log(req.params.imageName);
+  // console.log(pathName);
+	if (req.params.imageName != '') {
+		const pathName = process.env.ASSETS_SAVE_LOC + 'profile_pictures/' + req.params.imageName;
+
+		// Check if path exist. If yes, great, otherwise send an error image instead
+		fs.access(pathName, fs.F_OK, (err) => {
+			if (err) {
+				// console.log(err);
+				res.status(200).sendFile(path.resolve('./public/assets/error_img.png'));
+			}
+			else {
+				res.status(200).sendFile(path.resolve(pathName));
+			}
+		})
+	}
+});
+
+/****************************************************************************
  * User profile Management																									*
  ****************************************************************************
  * userType: Restaurant General Manager, Restaurant Deliveries Manager,			*

@@ -635,33 +635,79 @@ router.get('/restaurantStatus', (req, res) => {
 	})
 });
 
-/* === All routes for RGM subuser stuff === */
-router.get('/subusers', (req, res) => {
-	var sqlQuery = '';
-	dbconn.query();
-});
+/****************************************************************************
+ * Get all restaurant subusers																							*
+ ****************************************************************************
+ */
+router.get('/rgm/allsubusers', (req, res) => {
+	// This one gets the users and returns all the users accordingly
+	// 1. We'll need to once again get the restaurant's ID based on RGM username
+	const { username } = res.locals.userData;
 
-router.get('/rgm/addSubUser', (req, res) => {
-	var sqlQuery = '';
-	dbconn.query();
-});
+	var sqlQuery = `SELECT restaurant_ID FROM restaurant `;
+	sqlQuery += `WHERE rest_rgm_username="${username}"`;
 
-router
-  .route('/rgm/subUser/:subuser_ID')
-	.get((req, res) => {
-		res.send(`Get item with itemID ${req.params.itemid}`);
+	dbconn.query(sqlQuery, function(error, results, fields){
+		if (error) {
+			res.status(200).send({ api_msg: "MySQL " + error });
+		}
+		else {
+			// 2. Using the ID, we get all the subusers
+			const rest_ID = results[0].restaurant_ID;
+
+			var sqlGetQuery = `SELECT subuser_ID, subuser_rest_ID, subuser_username, `;
+			sqlGetQuery += ` first_name, last_name, phone_no, email, subuser_type `;
+			sqlGetQuery += `FROM restaurant_subuser WHERE subuser_rest_ID=${rest_ID}`;
+
+			// 3. With that we can return the whole result query from the SQL, and then
+			// we'll parse the data accordingly with an async function at the frontend
+			dbconn.query(sqlGetQuery, function(error, results, fields){
+				if (error) {
+					res.status(200).send({ api_msg: "MySQL " + error });
+				}
+				else {
+					res.status(200).send(results);
+				}
+			})
+		}
 	})
+});
+
+/****************************************************************************
+ * Add new restaurant subuser																								*
+ ****************************************************************************
+ */
+router.post('/rgm/addsubuser', (req, res) => {
+	// We're trying to add the subuser here
+	// 1. Get the RGM that is making the request, cos we need the restaurant ID
+	// 2. Once we get the restaurant ID, we can then construct a POST query to create the new
+	// user. We must generate a default password for that user as well and create a user in the
+	// app_user table
+	// 3. Once done with that, we send an email to the subuser with the login details
+
+	var sqlPostQuery = ``
+});
+
+/****************************************************************************
+ * RGM edit details of subuser																							*
+ ****************************************************************************
+ * The idea for this part is to allow the RGM to change the role of the subuser
+ * or other details if that is ever required
+ */
+router
+  .route('/rgm/subuser/:subuser_ID')
 	.put((req, res) => {
-		res.send(`Get item with itemID ${req.params.itemid}`);
+		res.send(`Get item with itemID ${req.params.subuser_ID}`);
 	})
 	.delete((req, res) => {
-		res.send(`Get item with itemID ${req.params.itemid}`);
+		res.send(`Get item with itemID ${req.params.subuser_ID}`);
 	});
 
-/*  */
-router.param('subuser_ID', (req, res, next, subuser_ID) => {
-	// console.log(subuser_ID);
-	next();
-});
 
 module.exports = router;
+
+/*  */
+// router.param('subuser_ID', (req, res, next, subuser_ID) => {
+// 	// console.log(subuser_ID);
+// 	next();
+// });

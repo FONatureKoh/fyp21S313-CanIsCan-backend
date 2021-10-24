@@ -53,7 +53,7 @@ router.get('/profileImage/:imageName', (req, res) => {
  * User profile Management																									*
  ****************************************************************************
  * userType: Restaurant General Manager, Restaurant Deliveries Manager,			*
- * Restaurant Reservation Manager
+ * Restaurant Reservations Manager
 */
 // Multer config for all user profile management
 const profileStorage = multer.diskStorage({
@@ -106,9 +106,9 @@ router
 				break;
 			// =========================================================================
 			// Restaurant Deliveries Manager User Type =================================
-			// Restaurant Reservation Manager User Type ================================
+			// Restaurant Reservations Manager User Type ================================
 			case "Restaurant Deliveries Manager":
-			case "Restaurant Reservation Manager":
+			case "Restaurant Reservations Manager":
 				var sqlGetQuery = "SELECT username, user_type, first_name, last_name, phone_no, ";
 				sqlGetQuery += "email, home_address, home_postal_code ";
 				sqlGetQuery += "FROM app_user JOIN restaurant_subuser ";
@@ -212,9 +212,9 @@ router
 				break;
 			// =========================================================================
 			// Restaurant Deliveries Manager User Type =================================
-			// Restaurant Reservation Manager User Type ================================
+			// Restaurant Reservations Manager User Type ================================
 			case "Restaurant Deliveries Manager":
-			case "Restaurant Reservation Manager":
+			case "Restaurant Reservations Manager":
 				res.status(200).json({ username: username, userType: userType });
 
 				break;
@@ -283,8 +283,8 @@ router
 
 				break;
 			// =========================================================================		
-			// Restaurant Reservation Manager User Type ================================
-			case "Restaurant Reservation Manager":
+			// Restaurant Reservations Manager User Type ================================
+			case "Restaurant Reservations Manager":
 				res.status(200).json({ username: username, userType: userType });
 
 				break;

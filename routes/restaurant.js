@@ -696,6 +696,21 @@ router.post('/rgm/addsubuser', (req, res) => {
  */
 router
   .route('/rgm/subuser/:subuser_ID')
+	.get((req, res) => {
+		// constructing the sql query
+		var sqlGetQuery = `SELECT subuser_ID, subuser_rest_ID, subuser_username, `;
+		sqlGetQuery += ` first_name, last_name, phone_no, email, subuser_type `;
+		sqlGetQuery += `FROM restaurant_subuser WHERE subuser_ID=${req.params.subuser_ID}`;
+
+		dbconn.query(sqlGetQuery, function(error, results, fields){
+			if (error) {
+				res.status(200).send({ api_msg: "MySQL " + error });
+			}
+			else {
+				res.status(200).send(results[0]);
+			}
+		});
+	})
 	.put((req, res) => {
 		res.send(`Get item with itemID ${req.params.subuser_ID}`);
 	})

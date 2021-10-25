@@ -28,7 +28,8 @@ router.post('/restaurant', (req, res) => {
   const default_pw = pw_gen.generate({
     length: 15,
     numbers: true,
-    symbols: '!@#$%^?-+*'
+    symbols: '!@#$%^?-+*',
+    strict: true
   })
 
   var sqlQuery = 'INSERT INTO app_user(`username`, `user_password`, `user_type`, `account_status`) ';

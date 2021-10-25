@@ -368,10 +368,6 @@ router
 		// Transforms string to Array
 		const tagsArray = tags.split(",");
 
-		// Transform to timestamp 
-		// const opening_timestamp = opening_time.getHours() + ":" + opening_time.getMinutes() + ":" + opening_time.getSeconds(); 
-		// const closing_timestamp = closing_time.getHours() + ":" + closing_time.getMinutes() + ":" + closing_time.getSeconds();
-
 		console.log(file, req.body);
 
 		if (file) {

@@ -236,6 +236,30 @@ router.get('/itemImage/:imageName', (req, res) => {
 });
 
 /****************************************************************************
+ * Retrieve restaurant's items imaage																				*
+ ****************************************************************************
+ */
+router.get('/restaurantBanner/:imageName', (req, res) => {
+  // console.log(path.resolve(`../0-test-pictures/${req.params.imageName}`));
+  // console.log(req.params.imageName);
+  // console.log(pathName);
+	if (req.params.imageName != '') {
+		const pathName = process.env.ASSETS_SAVE_LOC + 'rest_banners/' + req.params.imageName;
+
+		// Check if path exist. If yes, great, otherwise send an error image instead
+		fs.access(pathName, fs.F_OK, (err) => {
+			if (err) {
+				// console.log(err);
+				res.status(200).sendFile(path.resolve('./public/assets/error_img.png'));
+			}
+			else {
+				res.status(200).sendFile(path.resolve(pathName));
+			}
+		})
+	}
+});
+
+/****************************************************************************
  * Restaurant Profile Information and things																*
  ****************************************************************************
  * GET route will get the information based on the rgm's username
@@ -307,8 +331,10 @@ router
 				const restaurantProfileData = {
 					restaurant_ID: results[0].restaurant_ID,
 					restaurant_name: results[0].restaurant_name,
+					rest_banner_ID: results[0].rest_banner_ID,
 					rest_op_hours: rest_op_hours,
 					rest_phone_no: results[0].rest_phone_no,
+					rest_email: results[0].rest_email,
 					rest_address_info: results[0].rest_address_info,
 					rest_postal_code: results[0].rest_postal_code,
 					rest_tags: rest_tags,
@@ -320,15 +346,88 @@ router
 					rest_tag_3: results[0].rest_tag_3
 				}
 
-				console.log(restaurantProfileData);
+				// console.log(restaurantProfileData);
 				res.status(200).json(restaurantProfileData);
 			}
 		});
 	})
-	.put(bannerUpload.single('imageFile'), (req, res) => {
+	.put(bannerUpload.single('bannerImage'), (req, res) => {
 		// Updating of the restaurant's profile
+		const { username } = res.locals.userData;
 		// 1. Upon receiving all the data from the edit form, we need to check for
 		// any new picture uploaded by the restaurant manager
+		// So lets get all the data from the req body
+		const {
+			file, 
+			body: {
+				restaurantName, phoneNo, email, address, postal_code, 
+				opening_time, closing_time, tags
+			}
+		} = req
+
+		// Transforms string to Array
+		const tagsArray = tags.split(",");
+
+		// Transform to timestamp 
+		// const opening_timestamp = opening_time.getHours() + ":" + opening_time.getMinutes() + ":" + opening_time.getSeconds(); 
+		// const closing_timestamp = closing_time.getHours() + ":" + closing_time.getMinutes() + ":" + closing_time.getSeconds();
+
+		console.log(file, req.body);
+
+		if (file) {
+			var sqlUpdateQuery = `UPDATE restaurant SET restaurant_name="${restaurantName}",`;
+			sqlUpdateQuery += `rest_banner_ID="${file.filename}",rest_phone_no=${phoneNo},`;
+			sqlUpdateQuery += `rest_email="${email}",rest_address_info="${address}",`;
+			sqlUpdateQuery += `rest_postal_code=${postal_code},rest_opening_time="${opening_time}",`;
+			sqlUpdateQuery += `rest_closing_time="${closing_time}"`;
+			
+			if (tagsArray[0]) 
+				sqlUpdateQuery += `,rest_tag_1="${tagsArray[0]}"`;
+			
+			if (tagsArray[1]) 
+				sqlUpdateQuery += `,rest_tag_2="${tagsArray[1]}"`;
+			
+			if (tagsArray[2]) 
+				sqlUpdateQuery += `,rest_tag_3="${tagsArray[2]}"`;
+
+			sqlUpdateQuery += ` WHERE rest_rgm_username="${username}"`;
+			
+			dbconn.query(sqlUpdateQuery, function(error, results, fields){
+				if (error) {
+					res.status(200).json({ api_msg: "MySql " + error});
+				}
+				else {
+					res.status(200).send({ api_msg: "There's a file. Update successful!" });
+				}
+			});			
+		}
+		else {
+			var sqlUpdateQuery = `UPDATE restaurant SET restaurant_name="${restaurantName}",`;
+			sqlUpdateQuery += `rest_phone_no=${phoneNo},`;
+			sqlUpdateQuery += `rest_email="${email}",rest_address_info="${address}",`;
+			sqlUpdateQuery += `rest_postal_code=${postal_code},rest_opening_time="${opening_time}",`;
+			sqlUpdateQuery += `rest_closing_time="${closing_time}"`;
+			
+			if (tagsArray[0]) 
+				sqlUpdateQuery += `,rest_tag_1="${tagsArray[0]}"`;
+			
+			if (tagsArray[1]) 
+				sqlUpdateQuery += `,rest_tag_2="${tagsArray[1]}"`;
+			
+			if (tagsArray[2]) 
+				sqlUpdateQuery += `,rest_tag_3="${tagsArray[2]}"`;
+
+			sqlUpdateQuery += ` WHERE rest_rgm_username="${username}"`;
+			
+			dbconn.query(sqlUpdateQuery, function(error, results, fields){
+				if (error) {
+					res.status(200).json({ api_msg: "MySql " + error});
+				}
+				else {
+					res.status(200).send({ api_msg: "There's no file. Update successful!" });
+				}
+			});
+		}
 		// 2. Also need to see if the Date object received can be inserted into the
 		// MySQL database
 		// 3. We can then construct the query accordingly

@@ -9,6 +9,8 @@ const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const date = require('date-and-time');
 const pw_gen = require('generate-password');
+const sendMail = require('../models/email_model');
+const { sendSubUserEmail } = require('../models/email_templates');
 
 // Body Parser
 router.use(express.json());
@@ -694,24 +696,76 @@ router.post('/rgm/addsubuser', (req, res) => {
 	// 1. Get the RGM that is making the request, cos we need the restaurant ID
 	const { username } = res.locals.userData;
 
-	const {} = req.body;
+	const {subuser_username, fname, lname, email, phone, role} = req.body;
 
-	var sqlGetQuery = `SELECT restaurant_ID FROM restaurant `;
-	sqlGetQuery += `WHERE rest_rgm_username="${username} "`;
+	console.log(req.body);
+
+	var sqlGetQuery = `SELECT restaurant_ID, restaurant_name FROM restaurant `;
+	sqlGetQuery += `WHERE rest_rgm_username="${username}"`;
 
 	dbconn.query(sqlGetQuery, function(error, results, fields){
 		if (error) {
 			res.status(200).send({ api_msg: "MySQL " + error });
 		}
 		else {
-			const rest_ID = results[0].restaurant_ID;
-			
-			console.log(rest_ID);
-
 			// 2. Once we get the restaurant ID, we can then construct a POST query to create the new
 			// user. We must generate a default password for that user as well and create a user in the
 			// app_user table
+			// Get restaurant ID and name
+			const { restaurant_ID, restaurant_name } = results[0];
+			console.log(restaurant_ID, restaurant_name);
 			
+			// Generate a default password
+			const subuser_pw = default_pw;
+			
+			// Create new user in app_user
+			var sqlPostQuery = "INSERT INTO app_user(`username`, `user_password`, `user_type`, `account_status`)";
+			sqlPostQuery += `VALUES ("${subuser_username}", "${subuser_pw}", "${role}", "first")`;
+
+			dbconn.query(sqlPostQuery, function(error, results, fields){
+				if (error) {
+					res.status(200).send({ api_msg: "MySQL " + error });
+				}
+				else {
+					if (results.affectedRows > 0) {
+						// Insert successful, proceed on with the profile creation
+						var sqlProfilePostQuery = "INSERT INTO restaurant_subuser(`subuser_rest_ID`, `subuser_username`, "
+						sqlProfilePostQuery += "`first_name`, `last_name`, `phone_no`, `email`, `subuser_type`) ";
+						sqlProfilePostQuery += `VALUES (${restaurant_ID}, "${subuser_username}", "${fname}", "${lname}", `
+						sqlProfilePostQuery += `${phone}, "${email}", "${role}")`
+
+						dbconn.query(sqlProfilePostQuery, function(error, results, fields){
+							if (error) {
+								res.status(200).send({ api_msg: "MySQL " + error });
+							}
+							else {
+								sendSubUserEmail(subuser_username, subuser_pw, email, restaurant_name)
+									.then((mailOptions) => {
+										sendMail(mailOptions)
+											.then((response) => {
+												// Console log
+												console.log("Send mail has been triggered successfully for adding a subuser");
+
+												// send response back to frontend
+												res.status(200).send({ api_msg: `Successful subuser creation for subuser ${subuser_username}!` });
+											})
+											.catch(error => console.log(error));
+									})
+									.catch(error => console.log(error));								
+							}
+						}); // Closed for third query
+
+
+						
+					}
+					
+				}
+			})
+
+
+
+			// res.status(200).send({ api_msg: results });
+
 
 		}
 	})

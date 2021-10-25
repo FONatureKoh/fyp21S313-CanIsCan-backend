@@ -28,7 +28,7 @@ router.post('/restaurant', (req, res) => {
   const default_pw = pw_gen.generate({
     length: 15,
     numbers: true,
-    symbols: '!@#$%^?-+*',
+    symbols: '!@#$*?%^&',
     strict: true
   })
 

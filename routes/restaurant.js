@@ -8,10 +8,22 @@ const authTokenMiddleware = require('../middleware/authTokenMiddleware');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const date = require('date-and-time');
+const pw_gen = require('generate-password');
 
 // Body Parser
 router.use(express.json());
 router.use(authTokenMiddleware);
+
+/**************************************************************************
+ * Router Constants																												*
+ **************************************************************************/
+// Generate a default password
+const default_pw = pw_gen.generate({
+	length: 15,
+	numbers: true,
+	symbols: '!@#$*?%^&',
+	strict: true
+})
 
 /**************************************************************************
  * Router functions 																											*
@@ -680,9 +692,30 @@ router.get('/rgm/allsubusers', (req, res) => {
 router.post('/rgm/addsubuser', (req, res) => {
 	// We're trying to add the subuser here
 	// 1. Get the RGM that is making the request, cos we need the restaurant ID
-	// 2. Once we get the restaurant ID, we can then construct a POST query to create the new
-	// user. We must generate a default password for that user as well and create a user in the
-	// app_user table
+	const { username } = res.locals.userData;
+
+	const {} = req.body;
+
+	var sqlGetQuery = `SELECT restaurant_ID FROM restaurant `;
+	sqlGetQuery += `WHERE rest_rgm_username="${username} "`;
+
+	dbconn.query(sqlGetQuery, function(error, results, fields){
+		if (error) {
+			res.status(200).send({ api_msg: "MySQL " + error });
+		}
+		else {
+			const rest_ID = results[0].restaurant_ID;
+			
+			console.log(rest_ID);
+
+			// 2. Once we get the restaurant ID, we can then construct a POST query to create the new
+			// user. We must generate a default password for that user as well and create a user in the
+			// app_user table
+			
+
+		}
+	})
+	
 	// 3. Once done with that, we send an email to the subuser with the login details
 
 	var sqlPostQuery = ``

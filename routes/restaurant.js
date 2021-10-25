@@ -1,18 +1,30 @@
+// Express Server imports
 const express = require('express');
 const router = express.Router();
+
+// Database matters
 const dbconn = require('../models/db_model');
-const multer = require('multer');
-const fs = require('fs');
-const path = require('path');
-const authTokenMiddleware = require('../middleware/authTokenMiddleware');
-const jwt = require('jsonwebtoken');
+
+// General Imports
 const { v4: uuidv4 } = require('uuid');
 const date = require('date-and-time');
 const pw_gen = require('generate-password');
+const fs = require('fs');
+const path = require('path');
+
+// For image uploads
+const multer = require('multer');
+
+// Email Modules
 const sendMail = require('../models/email_model');
 const { sendSubUserEmail } = require('../models/email_templates');
 
-// Body Parser
+// Middle Ware stuffs
+const authTokenMiddleware = require('../middleware/authTokenMiddleware');
+
+/**************************************************************************
+ * Router Middlewares and parsers																					*
+ **************************************************************************/
 router.use(express.json());
 router.use(authTokenMiddleware);
 
@@ -29,19 +41,7 @@ const default_pw = pw_gen.generate({
 
 /**************************************************************************
  * Router functions 																											*
- **************************************************************************
- * 
- */
-function accessTokenParser(bearerToken) {
-	const authHeader = bearerToken;
-  const token = authHeader && authHeader.split(' ')[1]
-
-	return jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, userData) => {
-    if (err) return null;
-
-		return userData;
-  });
-}
+ **************************************************************************/
 
 /****************************************************************************
  * Retrieve restaurant's menu and all items information											*
@@ -739,8 +739,11 @@ router.post('/rgm/addsubuser', (req, res) => {
 								res.status(200).send({ api_msg: "MySQL " + error });
 							}
 							else {
+								// 3. Once done with that, we send an email to the subuser with the login details
+								// sendSubUserEmail calls a template
 								sendSubUserEmail(subuser_username, subuser_pw, email, restaurant_name)
 									.then((mailOptions) => {
+										// Call the sendMail transporter
 										sendMail(mailOptions)
 											.then((response) => {
 												// Console log
@@ -754,25 +757,11 @@ router.post('/rgm/addsubuser', (req, res) => {
 									.catch(error => console.log(error));								
 							}
 						}); // Closed for third query
-
-
-						
 					}
-					
 				}
-			})
-
-
-
-			// res.status(200).send({ api_msg: results });
-
-
+			}); // Close for second Query
 		}
-	})
-	
-	// 3. Once done with that, we send an email to the subuser with the login details
-
-	var sqlPostQuery = ``
+	}); // Close first query
 });
 
 /****************************************************************************

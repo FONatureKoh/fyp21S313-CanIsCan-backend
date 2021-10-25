@@ -1,15 +1,31 @@
-const express = require("express");
-const multer = require("multer");
-const authTokenMiddleware = require("../middleware/authTokenMiddleware");
+// Express Server imports
+const express = require('express');
 const router = express.Router();
-const dbconn = require("../models/db_model");
-const path = require("path");
+
+// Database matters
+const dbconn = require('../models/db_model');
+
+// General Imports
 const { v4: uuidv4 } = require('uuid');
+const datetime_T = require('date-and-time');
+const pw_gen = require('generate-password');
+const fs = require('fs');
+const path = require('path');
 
-// Body parser
+// For image uploads
+const multer = require('multer');
+
+// Email Modules
+const sendMail = require('../models/email_model');
+const { sendSubUserEmail } = require('../models/email_templates');
+
+// Middle Ware stuffs
+const authTokenMiddleware = require('../middleware/authTokenMiddleware');
+
+/**************************************************************************
+ * Router Middlewares and parsers																					*
+ **************************************************************************/
 router.use(express.json());
-
-// Universal Middleware
 router.use(authTokenMiddleware);
 
 /* */
@@ -23,6 +39,30 @@ router.get("/list", (req, res) => {
       res.send(results);
     }
   });
+});
+
+/****************************************************************************
+ * Retrieve restaurant's items imaage																				*
+ ****************************************************************************
+ */
+router.get('/profileImage/:imageName', (req, res) => {
+  // console.log(path.resolve(`../0-test-pictures/${req.params.imageName}`));
+  // console.log(req.params.imageName);
+  // console.log(pathName);
+	if (req.params.imageName != '') {
+		const pathName = process.env.ASSETS_SAVE_LOC + 'profile_pictures/' + req.params.imageName;
+
+		// Check if path exist. If yes, great, otherwise send an error image instead
+		fs.access(pathName, fs.F_OK, (err) => {
+			if (err) {
+				// console.log(err);
+				res.status(200).sendFile(path.resolve('./public/assets/error_img.png'));
+			}
+			else {
+				res.status(200).sendFile(path.resolve(pathName));
+			}
+		})
+	}
 });
 
 /****************************************************************************
@@ -89,8 +129,8 @@ router
 		switch (userType) {
 			// RGM User Type ==========================================================
 			case "Restaurant General Manager":
-				var sqlGetQuery = "SELECT username, user_type, first_name, last_name, phone_no, ";
-				sqlGetQuery += "email, home_address, home_postal_code ";
+				var sqlGetQuery = "SELECT username, user_type, picture_ID, first_name, last_name, ";
+				sqlGetQuery += "phone_no, email, home_address, home_postal_code ";
 				sqlGetQuery += "FROM app_user JOIN restaurant_gm ";
 				sqlGetQuery += `ON username=rgm_username WHERE rgm_username='${username}'`;
 
@@ -100,7 +140,18 @@ router
 						res.status(200).send({ api_msg: "MySQL error: " + error });
 					}
 					else {
-						res.status(200).send(results[0]);
+						const dataJson = {
+							profile_image: results[0].picture_ID,
+							username: results[0].username,
+							first_name: results[0].first_name,
+							last_name: results[0].last_name,
+							phone_no: results[0].phone_no,
+							email: results[0].email,
+							address: results[0].home_address,
+							postal_code: results[0].home_postal_code
+						}
+
+						res.status(200).send(dataJson);
 					}
 				})
 				break;
@@ -109,8 +160,8 @@ router
 			// Restaurant Reservations Manager User Type ================================
 			case "Restaurant Deliveries Manager":
 			case "Restaurant Reservations Manager":
-				var sqlGetQuery = "SELECT username, user_type, first_name, last_name, phone_no, ";
-				sqlGetQuery += "email, home_address, home_postal_code ";
+				var sqlGetQuery = "SELECT username, user_type, subuser_picture_ID, first_name, ";
+				sqlGetQuery += "last_name, phone_no, email, home_address, home_postal_code ";
 				sqlGetQuery += "FROM app_user JOIN restaurant_subuser ";
 				sqlGetQuery += `ON username="${username}" WHERE username=subuser_username`;
 
@@ -120,8 +171,18 @@ router
 						res.status(200).send({ api_msg: "MySQL error: " + error });
 					}
 					else {
-						console.log(results[0]);
-						res.status(200).send(results[0]);
+						const dataJson = {
+							profile_image: results[0].subuser_picture_ID,
+							username: results[0].username,
+							first_name: results[0].first_name,
+							last_name: results[0].last_name,
+							phone_no: results[0].phone_no,
+							email: results[0].email,
+							address: results[0].home_address,
+							postal_code: results[0].home_postal_code
+						}
+
+						res.status(200).send(dataJson);
 					}
 				});
 
@@ -140,8 +201,18 @@ router
 						res.status(200).send({ api_msg: "MySQL error: " + error });
 					}
 					else {
-						console.log(results[0]);
-						res.status(200).send(results[0]);
+						const dataJson = {
+							profile_image: results[0].picture_ID,
+							username: results[0].username,
+							first_name: results[0].first_name,
+							last_name: results[0].last_name,
+							phone_no: results[0].phone_no,
+							email: results[0].email,
+							address: results[0].home_address,
+							postal_code: results[0].home_postal_code
+						}
+
+						res.status(200).send(dataJson);
 					}
 				});
 
@@ -195,9 +266,9 @@ router
 			// RGM User Type ==========================================================
 			case "Restaurant General Manager":
 				// Steps to edit profile for all users, generally the same less the customer
-				var sqlUpdateQuery = `UPDATE restaurant_gm SET rgm_username="${username}",`
-				sqlUpdateQuery += `picture_ID="${file.filename}",first_name="${fname}",last_name="${lname}",`
-				sqlUpdateQuery += `phone_no=${phoneNo},email="${email}",home_address="${address}",home_postal_code=${postalCode} `;
+				var sqlUpdateQuery = `UPDATE restaurant_gm SET picture_ID="${file.filename}",`
+				sqlUpdateQuery += `first_name="${fname}",last_name="${lname}",phone_no=${phoneNo},`
+				sqlUpdateQuery += `email="${email}",home_address="${address}",home_postal_code=${postalCode} `;
 				sqlUpdateQuery += `WHERE rgm_username="${username}"`;
 
 				dbconn.query(sqlUpdateQuery, function(error, results, fields){
@@ -215,7 +286,38 @@ router
 			// Restaurant Reservations Manager User Type ================================
 			case "Restaurant Deliveries Manager":
 			case "Restaurant Reservations Manager":
-				res.status(200).json({ username: username, userType: userType });
+				// Steps to edit profile for all users, generally the same less the customer
+				if (file) {
+					var sqlUpdateQuery = `UPDATE restaurant_subuser SET subuser_picture_ID="${file.filename}",`
+					sqlUpdateQuery += `first_name="${fname}",last_name="${lname}",phone_no=${phoneNo},`
+					sqlUpdateQuery += `email="${email}",home_address="${address}",home_postal_code=${postalCode} `;
+					sqlUpdateQuery += `WHERE subuser_username="${username}"`;
+
+					dbconn.query(sqlUpdateQuery, function(error, results, fields){
+						if (error) {
+							res.status(200).json({ api_msg: "MySQL " + error });
+						}
+						else {
+							res.status(200).json({ api_msg: "Successful!" });
+						}
+					});
+				}
+				else {
+					var sqlUpdateQuery = `UPDATE restaurant_subuser SET `
+					sqlUpdateQuery += `first_name="${fname}",last_name="${lname}",phone_no=${phoneNo},`
+					sqlUpdateQuery += `email="${email}",home_address="${address}",home_postal_code=${postalCode} `;
+					sqlUpdateQuery += `WHERE subuser_username="${username}"`;
+
+					dbconn.query(sqlUpdateQuery, function(error, results, fields){
+						if (error) {
+							res.status(200).json({ api_msg: "MySQL " + error });
+						}
+						else {
+							res.status(200).json({ api_msg: "Successful!" });
+						}
+					});
+				}
+				
 
 				break;
 			// =========================================================================

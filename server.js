@@ -71,6 +71,11 @@ const adminRouter = require("./routes/admin");
 
 app.use("/admin", adminRouter);
 
+/* === All /admin routes matters === */
+const customerRouter = require("./routes/customer");
+
+app.use("/customer", customerRouter);
+
 app.get('/testemail', (req, res) => {
   const mailOptions = {
     from: 'Administrator <cancanfoodapp@gmail.com>',

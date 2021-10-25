@@ -360,7 +360,7 @@ router
 		const {
 			file, 
 			body: {
-				restaurantName, phoneNo, email, address, postal_code, 
+				originalImageID, restaurantName, phoneNo, email, address, postal_code, 
 				opening_time, closing_time, tags
 			}
 		} = req
@@ -391,15 +391,38 @@ router
 				sqlUpdateQuery += `,rest_tag_3="${tagsArray[2]}"`;
 
 			sqlUpdateQuery += ` WHERE rest_rgm_username="${username}"`;
-			
-			dbconn.query(sqlUpdateQuery, function(error, results, fields){
-				if (error) {
-					res.status(200).json({ api_msg: "MySql " + error});
-				}
-				else {
-					res.status(200).send({ api_msg: "There's a file. Update successful!" });
-				}
-			});			
+
+			// Path of original file
+			const pathName = process.env.ASSETS_SAVE_LOC + 'rest_banners/' + originalImageID ;
+
+			// Check if the file exist, if yes delete the old file first then save into MySQL
+			if(fs.existsSync(path.resolve(pathName))) {
+				// fs.unlink deletes old file
+				fs.unlink(path.resolve(pathName), (err) => {
+					if (err) 
+						return res.status(200).json({ api_msg: 'Error deleteing the file' }); 
+					else {
+						dbconn.query(sqlUpdateQuery, function(error, results, fields){
+							if (error) {
+								res.status(200).json({ api_msg: "MySql " + error});
+							}
+							else {
+								res.status(200).send({ api_msg: "There's a file. Update successful!" });
+							}
+						});	
+					}
+				});
+			}
+			else {
+				dbconn.query(sqlUpdateQuery, function(error, results, fields){
+					if (error) {
+						res.status(200).json({ api_msg: "MySql " + error});
+					}
+					else {
+						res.status(200).send({ api_msg: "There's a file. Update successful!" });
+					}
+				});
+			}
 		}
 		else {
 			var sqlUpdateQuery = `UPDATE restaurant SET restaurant_name="${restaurantName}",`;

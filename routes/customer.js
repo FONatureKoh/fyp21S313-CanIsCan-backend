@@ -169,5 +169,30 @@ router.get('/selectedRestaurantInfo/:tag', (req, res) => {
 	})
 });
 
+/****************************************************************************
+ * Retrieve restaurant's menu and all items information											*
+ ****************************************************************************/
+router.get('/allRestaurantItems/:restID', (req, res) => {
+	// Save the restaurantID first from the URL
+	const { username } = res.locals.userData;
+  const restID = req.params.restID;
+
+	// Construct getQuery
+	var sqlGetQuery =  `SELECT * FROM rest_item JOIN rest_item_categories `;
+  sqlGetQuery += `ON ri_cat_ID=ric_ID AND ri_rest_ID=${restID} `
+  sqlGetQuery += `ORDER BY ric_name`;
+
+	dbconn.query(sqlGetQuery, function (error, results, fields){
+		if (error) {
+			res.status(200).json({ api_msg: "MySQL " + error });
+		}
+		else {
+      // Since the result is an Array, we will need to transform accordingly
+      // using the for each array element method
+      res.status(200).send(results);
+		}
+	})
+});
+
 // Router Export
 module.exports = router;

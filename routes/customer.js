@@ -194,5 +194,39 @@ router.get('/allRestaurantItems/:restID', (req, res) => {
 	})
 });
 
+/****************************************************************************
+ * Retrieve all of the customer's personal orders                           *
+ ****************************************************************************/
+router.get('/alldeliveryorders', (req, res) => {
+	// Save the restaurantID first from the URL
+	const { username } = res.locals.userData;
+
+  // 1. Get the customer's ID from the customer_users table
+  var sqlGetIDQuery = `SELECT customer_ID FROM customer_user `;
+  sqlGetIDQuery += `WHERE cust_username="${username}"`;
+
+  dbconn.query(sqlGetIDQuery, function(error, results, fields){
+    if (error) {
+      res.status(200).send({ api_msg: "MySQL " + error });
+    }
+    else{
+      const custID = results[0].customer_ID;
+      // 2. Then simply return all the orders that matches the customer's ID 
+      // and we will parse the info at the front
+      var sqlGetQuery = `SELECT * FROM delivery_order WHERE o_cust_ID=${custID}`;
+
+      dbconn.query(sqlGetQuery, function(error, results, field) {
+        if (error) {
+          res.status(200).send({ api_msg: "MySQL " + error });
+        }
+        else {
+          res.status(200).send(results);
+        }
+      }) // close nested query
+    }
+  }) // close first query
+});
+
+
 // Router Export
 module.exports = router;

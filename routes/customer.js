@@ -201,6 +201,8 @@ router.get('/alldeliveryorders', (req, res) => {
 	// Save the restaurantID first from the URL
 	const { username } = res.locals.userData;
 
+  console.log(username);
+
   // 1. Get the customer's ID from the customer_users table
   var sqlGetIDQuery = `SELECT customer_ID FROM customer_user `;
   sqlGetIDQuery += `WHERE cust_username="${username}"`;
@@ -227,6 +229,27 @@ router.get('/alldeliveryorders', (req, res) => {
   }) // close first query
 });
 
+/****************************************************************************
+ * Retrieve all of the customer's order items                               *
+ ****************************************************************************/
+router.get('/orderitems/:orderID', (req, res) => {
+	// Save the restaurantID first from the URL
+	const { username } = res.locals.userData;
+  const orderID = req.params.orderID;
+
+  // 1. Get the customer's ID from the customer_users table
+  var sqlGetIDQuery = `SELECT * FROM do_item `;
+  sqlGetIDQuery += `WHERE do_order_ID="${orderID}"`;
+
+  dbconn.query(sqlGetIDQuery, function(error, results, fields){
+    if (error) {
+      res.status(200).send({ api_msg: "MySQL " + error });
+    }
+    else{
+      res.status(200).send(results);
+    }
+  }) // close first query
+});
 
 // Router Export
 module.exports = router;

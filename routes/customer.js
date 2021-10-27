@@ -13,7 +13,7 @@ const fs = require('fs');
 const path = require('path');
 
 // For image uploads
-const multer = require('multer');
+// const multer = require('multer');
 
 // Email Modules
 const sendMail = require('../models/email_model');
@@ -26,6 +26,7 @@ const authTokenMiddleware = require('../middleware/authTokenMiddleware');
  * Router Middlewares and parsers																					*
  **************************************************************************/
 router.use(express.json());
+router.use(express.urlencoded({ extended: true }))
 router.use(authTokenMiddleware);
 
 /****************************************************************************
@@ -354,6 +355,23 @@ router.post('/submitreview', (req, res) => {
       }); // Close for nested query
     }
   })  // Close for first query
+  // We will then have to look at triggering a function to update the restaurant's
+  // rating without affecting this route. 
+});
+
+/****************************************************************************
+ * Submit an order to the system                                            *
+ ****************************************************************************/
+router.post('/submitorder', (req, res) => {
+	// Save the restaurantID first from the URL
+	const { username } = res.locals.userData;
+  console.log(req.body);
+  
+  // First things for this, first we need to get the Customer's name
+  var sqlGetNameQuery = `SELECT first_name, last_name FROM customer_user `;
+  sqlGetNameQuery += `WHERE cust_username="${username}"`;
+  
+  res.status(200).send("yea something happened");
   // We will then have to look at triggering a function to update the restaurant's
   // rating without affecting this route. 
 });

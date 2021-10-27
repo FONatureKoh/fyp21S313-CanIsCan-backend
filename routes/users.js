@@ -129,10 +129,8 @@ router
 		switch (userType) {
 			// RGM User Type ==========================================================
 			case "Restaurant General Manager":
-				var sqlGetQuery = "SELECT username, user_type, picture_ID, first_name, last_name, ";
-				sqlGetQuery += "phone_no, email, home_address, home_postal_code ";
-				sqlGetQuery += "FROM app_user JOIN restaurant_gm ";
-				sqlGetQuery += `ON username=rgm_username WHERE rgm_username='${username}'`;
+				var sqlGetQuery = "SELECT * FROM restaurant_gm ";
+				sqlGetQuery += `WHERE rgm_username="${username}"`;
 
 				// Query the db and return the said fields to the frontend app
 				dbconn.query(sqlGetQuery, function (error, results, fields) {
@@ -142,7 +140,8 @@ router
 					else {
 						const dataJson = {
 							profile_image: results[0].picture_ID,
-							username: results[0].username,
+							username: results[0].rgm_username,
+							userType: userType,
 							first_name: results[0].first_name,
 							last_name: results[0].last_name,
 							phone_no: results[0].phone_no,
@@ -160,10 +159,8 @@ router
 			// Restaurant Reservations Manager User Type ================================
 			case "Restaurant Deliveries Manager":
 			case "Restaurant Reservations Manager":
-				var sqlGetQuery = "SELECT username, user_type, subuser_picture_ID, first_name, ";
-				sqlGetQuery += "last_name, phone_no, email, home_address, home_postal_code ";
-				sqlGetQuery += "FROM app_user JOIN restaurant_subuser ";
-				sqlGetQuery += `ON username="${username}" WHERE username=subuser_username`;
+				var sqlGetQuery = "SELECT * FROM restaurant_subuser ";
+				sqlGetQuery += `WHERE subuser_username="${username}"`;
 
 				// Query the db and return the said fields to the frontend app
 				dbconn.query(sqlGetQuery, function (error, results, fields) {
@@ -173,7 +170,8 @@ router
 					else {
 						const dataJson = {
 							profile_image: results[0].subuser_picture_ID,
-							username: results[0].username,
+							username: results[0].subuser_username,
+							userType: userType,
 							first_name: results[0].first_name,
 							last_name: results[0].last_name,
 							phone_no: results[0].phone_no,
@@ -220,10 +218,8 @@ router
 			// =========================================================================
 			// Customer User Type ======================================================
 			case "Customer":
-				var sqlGetQuery = "SELECT username, user_type, first_name, last_name, ";
-				sqlGetQuery += "phone_no, email ";
-				sqlGetQuery += "FROM app_user JOIN customer_user ";
-				sqlGetQuery += `ON username="${username}" WHERE username=cust_username`;
+				var sqlGetQuery = "SELECT * FROM customer_user JOIN cust_address ";
+				sqlGetQuery += `ON customer_ID=ca_cust_ID WHERE cust_username="${username}"`;
 
 				// Query the db and return the said fields to the frontend app
 				dbconn.query(sqlGetQuery, function (error, results, fields) {
@@ -231,8 +227,19 @@ router
 						res.status(200).send({ api_msg: "MySQL error: " + error });
 					}
 					else {
-						console.log(results[0]);
-						res.status(200).send(results[0]);
+						const dataJson = {
+							profile_image: results[0].picture_ID,
+							username: results[0].username,
+							userType: userType,
+							first_name: results[0].first_name,
+							last_name: results[0].last_name,
+							phone_no: results[0].phone_no,
+							email: results[0].email,
+							address: results[0].address_info,
+							postal_code: results[0].postal_code
+						}
+
+						res.status(200).send(dataJson);
 					}
 				});
 

@@ -15,12 +15,16 @@ const path = require('path');
 // For image uploads
 // const multer = require('multer');
 
+// Google maps api stuff
+const { Client, defaultAxiosInstance } = require('@googlemaps/google-maps-services-js');
+
 // Email Modules
 const sendMail = require('../models/email_model');
 const { sendSubUserEmail } = require('../models/email_templates');
 
 // Middle Ware stuffs
 const authTokenMiddleware = require('../middleware/authTokenMiddleware');
+const { response } = require('express');
 
 /**************************************************************************
  * Router Middlewares and parsers																					*
@@ -375,6 +379,52 @@ router.post('/submitorder', (req, res) => {
   // We will then have to look at triggering a function to update the restaurant's
   // rating without affecting this route. 
 });
+
+/****************************************************************************
+ * Testing the map services google api                                      *
+ ****************************************************************************/
+router.get('/testapi', (req, res) => {
+  // Get the api key
+  const apikey = process.env.GOOGLE_MAPS_API_KEY;
+
+  // api declaration
+  const apiClient = new Client({});
+
+  // Directions api test
+  apiClient.directions({
+    params: {
+      origin: "68 Verde Avenue, Singapore 688336",
+      destination: "21 Choa Chu Kang Ave 4, Singapore 689812",
+      mode: "driving",
+      units: "metric",
+      key: apikey
+    }
+  }, defaultAxiosInstance)
+  .then(response => {
+    res.status(200).json(response.data);
+    // res.status(200).json(response.data.routes[0].legs[0].distance.value);
+  })
+  .catch(error => {
+    console.log(error);
+  })
+
+  // For geocoding
+  // apiClient.geocode({
+  //   params: {
+  //     address: "68 Verde Avenue",
+  //     key: apikey
+  //   },
+  //   timeout: 10000
+  // }, defaultAxiosInstance)
+  // .then(response => {
+  //   console.log(response.data.results[0]);
+  // })
+  // .catch(error => {
+  //   console.log(error)
+  // })
+});
+
+
 
 // Router Export
 module.exports = router;

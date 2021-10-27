@@ -201,7 +201,7 @@ router.get('/alldeliveryorders', (req, res) => {
 	// Save the restaurantID first from the URL
 	const { username } = res.locals.userData;
 
-  console.log(username);
+  // console.log(username);
 
   // 1. Get the customer's ID from the customer_users table
   var sqlGetIDQuery = `SELECT customer_ID FROM customer_user `;

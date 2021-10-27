@@ -318,5 +318,45 @@ router.get('/orderitems/:orderID', (req, res) => {
   }) // close first query
 });
 
+/****************************************************************************
+ * Submit Restaurant Review                                                 *
+ ****************************************************************************/
+router.post('/submitreview', (req, res) => {
+	// Save the restaurantID first from the URL
+	const { username } = res.locals.userData;
+  const { restID, restName, restRating, reviewTitle, reviewDesc } = req.body;
+  
+  // First things for this, first we need to get the Customer's name
+  var sqlGetNameQuery = `SELECT first_name, last_name FROM customer_user `;
+  sqlGetNameQuery += `WHERE cust_username="${username}"`;
+
+  dbconn.query(sqlGetNameQuery, function(error, results, fields){
+    if (error) {
+      res.status(200).send({ api_msg: "MySQL " + error });
+    }
+    else {
+      // Construct full name
+      const fullName = results[0].first_name + " " + results[0].last_name;
+
+      // Then we construct an insert query within that query to push the review
+      var sqlInsertQuery = "INSERT INTO rest_review(`rr_rest_ID`, `rr_rest_name`, "
+      sqlInsertQuery += "`rr_cust_name`, `review_rating`, `review_title`, `review_desc`)" 
+      sqlInsertQuery += `VALUES (${restID}, "${restName}", "${fullName}", "${restRating}",`
+      sqlInsertQuery += `"${reviewTitle}", "${reviewDesc}")`
+
+      dbconn.query(sqlInsertQuery, function(error, results, fields){
+        if (error) {
+          res.status(200).send({ api_msg: "MySQL " + error });
+        }
+        else {
+          res.status(200).send({ api_msg: "Successful review!" });
+        }
+      }); // Close for nested query
+    }
+  })  // Close for first query
+  // We will then have to look at triggering a function to update the restaurant's
+  // rating without affecting this route. 
+});
+
 // Router Export
 module.exports = router;

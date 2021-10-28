@@ -915,6 +915,69 @@ router
 
 module.exports = router;
 
+/****************************************************************************
+ * Everything below is for the subuser 																			*
+ ***************************************************************************
+ * Subuser covers for the Deliveries Manager and Reservations Manager
+ * */
+
+/****************************************************************************
+ * Retrieve all of the customer's personal orders                           *
+ ****************************************************************************/
+router.get('/pendingdeliveryorders', (req, res) => {
+	// Save the restaurantID first from the URL
+	const { username } = res.locals.userData;
+
+  // console.log(username);
+
+  // 1. Get the customer's ID from the customer_users table
+  var sqlGetIDQuery = `SELECT subuser_rest_ID FROM restaurant_subuser `;
+  sqlGetIDQuery += `WHERE subuser_username="${username}"`;
+
+  dbconn.query(sqlGetIDQuery, function(error, results, fields){
+    if (error) {
+      res.status(200).send({ api_msg: "MySQL " + error });
+    }
+    else{
+      const restID = results[0].subuser_rest_ID;
+      // 2. Then simply return all the orders that matches the customer's ID 
+      // and we will parse the info at the front
+      var sqlGetQuery = `SELECT * FROM delivery_order WHERE o_rest_ID=${restID}`;
+
+      dbconn.query(sqlGetQuery, function(error, results, field) {
+        if (error) {
+          res.status(200).send({ api_msg: "MySQL " + error });
+        }
+        else {
+          res.status(200).send(results);
+        }
+      }) // close nested query
+    }
+  }) // close first query
+});
+
+/****************************************************************************
+ * Retrieve all of the customer's order items                               *
+ ****************************************************************************/
+router.get('/doitems/:orderID', (req, res) => {
+	// Save the restaurantID first from the URL
+	const { username } = res.locals.userData;
+  const orderID = req.params.orderID;
+
+  // 1. Get the customer's ID from the customer_users table
+  var sqlGetIDQuery = `SELECT * FROM do_item `;
+  sqlGetIDQuery += `WHERE do_order_ID="${orderID}"`;
+
+  dbconn.query(sqlGetIDQuery, function(error, results, fields){
+    if (error) {
+      res.status(200).send({ api_msg: "MySQL " + error });
+    }
+    else{
+      res.status(200).send(results);
+    }
+  }) // close first query
+});
+
 /*  */
 // router.param('subuser_ID', (req, res, next, subuser_ID) => {
 // 	// console.log(subuser_ID);

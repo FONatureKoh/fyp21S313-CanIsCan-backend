@@ -125,6 +125,13 @@ router
 			username, userType
 		} = res.locals.userData;
 
+		if (username == null) {
+			res.status(200).send({ api_msg: "No username found, did something go wrong?" });
+			return;
+		}
+
+		console.log(username, userType);
+
 		// Construct a Switch to handle the sql query based on the userType
 		switch (userType) {
 			// RGM User Type ==========================================================
@@ -168,6 +175,7 @@ router
 						res.status(200).send({ api_msg: "MySQL error: " + error });
 					}
 					else {
+						console.log(results);
 						const dataJson = {
 							profile_image: results[0].subuser_picture_ID,
 							username: results[0].subuser_username,

@@ -130,7 +130,7 @@ router
 			return;
 		}
 
-		console.log(username, userType);
+		// console.log(username, userType);
 
 		// Construct a Switch to handle the sql query based on the userType
 		switch (userType) {
@@ -175,7 +175,7 @@ router
 						res.status(200).send({ api_msg: "MySQL error: " + error });
 					}
 					else {
-						console.log(results);
+						// console.log(results);
 						const dataJson = {
 							profile_image: results[0].subuser_picture_ID,
 							username: results[0].subuser_username,
@@ -237,7 +237,7 @@ router
 					else {
 						const dataJson = {
 							profile_image: results[0].picture_ID,
-							username: results[0].username,
+							username: results[0].cust_username,
 							userType: userType,
 							first_name: results[0].first_name,
 							last_name: results[0].last_name,

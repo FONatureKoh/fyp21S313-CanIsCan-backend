@@ -367,13 +367,65 @@ router.post('/submitreview', (req, res) => {
  * Submit an order to the system                                            *
  ****************************************************************************/
 router.post('/submitorder', (req, res) => {
-	// Save the restaurantID first from the URL
+	// Save some important variables
 	const { username } = res.locals.userData;
+  const { doID, restID, restName, orderDateTime, address, floorunit, postalCode,
+    companyName, deliveryNote, totalCost, orderItems} = req.body;
+
+  // Transform date to sql formate
+  const sqlOrderDateTime = datetime_T.format(new Date(orderDateTime), "YYYY-MM-DD HH:mm:ss");
+  const sqlTotalCost = parseFloat(totalCost).toFixed(2);
+
   console.log(req.body);
-  
+
+  // We're trying to submit an order here. This has 3 parts. One is to create the 
+  // order first in the table. Then to put the items into the items table, and end off
+  // when sending an email to the customer, with the items and order details, and 
+  // delivery time.
+
+
   // First things for this, first we need to get the Customer's name
-  var sqlGetNameQuery = `SELECT first_name, last_name FROM customer_user `;
-  sqlGetNameQuery += `WHERE cust_username="${username}"`;
+  var sqlGetInfoQuery = `SELECT customer_ID, first_name, last_name FROM customer_user `;
+  sqlGetInfoQuery += `WHERE cust_username="${username}"`;
+  
+  dbconn.query(sqlGetInfoQuery, function(err, results, fields){
+    if (err) {
+      console.log(err);
+    }
+    else {
+      console.log(results);
+      const custID = results[0].customer_ID
+      const fullName = results[0].first_name + " " + results[0].last_name;
+
+      // 1. We create the query for insert into order table, and query
+      var sqlInsertQuery = "INSERT INTO delivery_order(`order_ID`, `o_cust_ID`, `o_rest_ID`, ";
+      sqlInsertQuery += "`o_cust_name`, `o_rest_name`, `o_datetime`, `delivery_address`, ";
+      sqlInsertQuery += "`delivery_floorunit`, `delivery_postal_code`, `delivery_note`, ";
+      sqlInsertQuery += "`total_cost`, `order_delivery_time`, `order_status`, `payment_status`)";
+      sqlInsertQuery += `VALUES ("${doID}", ${custID}, ${restID}, "${fullName}", "${restName}", "${sqlOrderDateTime}", `;
+      sqlInsertQuery += `"${address}", "${floorunit}", ${postalCode},"${deliveryNote}", ${sqlTotalCost}, "0:30:00", "Pending", 1)`;
+
+      dbconn.query(sqlInsertQuery, function(err, results, fields){
+        if (err) {
+          console.log(err);
+        }
+        else {
+          console.log(results);
+          const itemsArrayLength = orderItems.length;
+
+          for (i = 0; i < itemsArrayLength; i++) {
+            console.log(orderItems[i]);
+          }
+        }
+      })
+      // 2. We insert the order items into the items table
+      // 3. Send the email to the customer accordingly
+
+    }
+  });
+
+
+
   
   res.status(200).send("yea something happened");
   // We will then have to look at triggering a function to update the restaurant's

@@ -45,9 +45,9 @@ router.get('/singleRestaurantInfo/:restID', (req, res) => {
 	var sqlGetQuery =  `SELECT * FROM restaurant `;
   sqlGetQuery += `WHERE restaurant_ID=${restID}`
 
-	dbconn.query(sqlGetQuery, function (error, results, fields){
-		if (error) {
-			res.status(200).json({ api_msg: "MySQL " + error });
+	dbconn.query(sqlGetQuery, function (err, results, fields){
+		if (err) {
+			res.status(200).json({ api_msg: "MySQL " + err });
 		}
 		else {
       // Since the result is an Array, we will need to transform accordingly
@@ -111,9 +111,9 @@ router.get('/allRestaurantInfo', (req, res) => {
 	// Construct getQuery
 	var sqlGetQuery =  `SELECT * FROM restaurant `;
 
-	dbconn.query(sqlGetQuery, function (error, results, fields){
-		if (error) {
-			res.status(200).json({ api_msg: "MySQL " + error });
+	dbconn.query(sqlGetQuery, function (err, results, fields){
+		if (err) {
+			res.status(200).json({ api_msg: "MySQL " + err });
 		}
 		else {
       // Since the result is an Array, we will need to transform accordingly
@@ -183,9 +183,9 @@ router.get('/selectedRestaurantInfo/:tag', (req, res) => {
 	var sqlGetQuery =  `SELECT * FROM restaurant `;
   sqlGetQuery += `WHERE rest_tag_1="${tag}" OR rest_tag_2="${tag}" OR rest_tag_3="${tag}"`;
 
-	dbconn.query(sqlGetQuery, function (error, results, fields){
-		if (error) {
-			res.status(200).json({ api_msg: "MySQL " + error });
+	dbconn.query(sqlGetQuery, function (err, results, fields){
+		if (err) {
+			res.status(200).json({ api_msg: "MySQL " + err });
 		}
 		else {
       // Since the result is an Array, we will need to transform accordingly
@@ -254,9 +254,9 @@ router.get('/allRestaurantItems/:restID', (req, res) => {
   sqlGetQuery += `ON ri_cat_ID=ric_ID AND ri_rest_ID=${restID} `
   sqlGetQuery += `ORDER BY ric_name`;
 
-	dbconn.query(sqlGetQuery, function (error, results, fields){
-		if (error) {
-			res.status(200).json({ api_msg: "MySQL " + error });
+	dbconn.query(sqlGetQuery, function (err, results, fields){
+		if (err) {
+			res.status(200).json({ api_msg: "MySQL " + err });
 		}
 		else {
       // Since the result is an Array, we will need to transform accordingly
@@ -279,9 +279,9 @@ router.get('/alldeliveryorders', (req, res) => {
   var sqlGetIDQuery = `SELECT customer_ID FROM customer_user `;
   sqlGetIDQuery += `WHERE cust_username="${username}"`;
 
-  dbconn.query(sqlGetIDQuery, function(error, results, fields){
-    if (error) {
-      res.status(200).send({ api_msg: "MySQL " + error });
+  dbconn.query(sqlGetIDQuery, function(err, results, fields){
+    if (err) {
+      res.status(200).send({ api_msg: "MySQL " + err });
     }
     else{
       const custID = results[0].customer_ID;
@@ -289,9 +289,9 @@ router.get('/alldeliveryorders', (req, res) => {
       // and we will parse the info at the front
       var sqlGetQuery = `SELECT * FROM delivery_order WHERE o_cust_ID=${custID}`;
 
-      dbconn.query(sqlGetQuery, function(error, results, field) {
-        if (error) {
-          res.status(200).send({ api_msg: "MySQL " + error });
+      dbconn.query(sqlGetQuery, function(err, results, field) {
+        if (err) {
+          res.status(200).send({ api_msg: "MySQL " + err });
         }
         else {
           res.status(200).send(results);
@@ -313,9 +313,9 @@ router.get('/orderitems/:orderID', (req, res) => {
   var sqlGetIDQuery = `SELECT * FROM do_item `;
   sqlGetIDQuery += `WHERE do_order_ID="${orderID}"`;
 
-  dbconn.query(sqlGetIDQuery, function(error, results, fields){
-    if (error) {
-      res.status(200).send({ api_msg: "MySQL " + error });
+  dbconn.query(sqlGetIDQuery, function(err, results, fields){
+    if (err) {
+      res.status(200).send({ api_msg: "MySQL " + err });
     }
     else{
       res.status(200).send(results);
@@ -335,9 +335,9 @@ router.post('/submitreview', (req, res) => {
   var sqlGetNameQuery = `SELECT first_name, last_name FROM customer_user `;
   sqlGetNameQuery += `WHERE cust_username="${username}"`;
 
-  dbconn.query(sqlGetNameQuery, function(error, results, fields){
-    if (error) {
-      res.status(200).send({ api_msg: "MySQL " + error });
+  dbconn.query(sqlGetNameQuery, function(err, results, fields){
+    if (err) {
+      res.status(200).send({ api_msg: "MySQL " + err });
     }
     else {
       // Construct full name
@@ -349,9 +349,9 @@ router.post('/submitreview', (req, res) => {
       sqlInsertQuery += `VALUES (${restID}, "${restName}", "${fullName}", "${restRating}",`
       sqlInsertQuery += `"${reviewTitle}", "${reviewDesc}")`
 
-      dbconn.query(sqlInsertQuery, function(error, results, fields){
-        if (error) {
-          res.status(200).send({ api_msg: "MySQL " + error });
+      dbconn.query(sqlInsertQuery, function(err, results, fields){
+        if (err) {
+          res.status(200).send({ api_msg: "MySQL " + err });
         }
         else {
           res.status(200).send({ api_msg: "Successful review!" });
@@ -404,8 +404,8 @@ router.get('/testapi', (req, res) => {
     res.status(200).json(response.data);
     // res.status(200).json(response.data.routes[0].legs[0].distance.value);
   })
-  .catch(error => {
-    console.log(error);
+  .catch(err => {
+    console.log(err);
   })
 
   // For geocoding
@@ -419,8 +419,8 @@ router.get('/testapi', (req, res) => {
   // .then(response => {
   //   console.log(response.data.results[0]);
   // })
-  // .catch(error => {
-  //   console.log(error)
+  // .catch(err => {
+  //   console.log(err)
   // })
 });
 
@@ -428,24 +428,83 @@ router.get('/testapi', (req, res) => {
  * Testing the map services google api                                      *
  ****************************************************************************/
 router.get('/availableslots/:restID/:date', (req, res) => {
+  // Getting some important variables
   const { username } = res.locals.userData;
   const { restID, date } = req.params;
   
+  // Console logging to see what is going on
   console.log(restID, date);
 
-  // Create the time slots to return
-  var tempSlotsArray = [];
+  // Okay, so what do we need to do here.
+  // 1. Get the settings for the specific restaurant
+  var sqlGetSettingsQuery = "SELECT * FROM rest_reservation_setting ";
+  sqlGetSettingsQuery += `WHERE rrs_rest_ID=${restID}`;
 
-  for (i= 11; i <= 22; i++) {
-    var tempJSON = {
-      timeslot: i + ":" + "00",
-      available: true
+  dbconn.query(sqlGetSettingsQuery, function(err, results, fields){
+    if (err) {
+      res.status(200).send({ api_msg: "MySQL " + err});
     }
-    tempSlotsArray.push(tempJSON);
-  }
+    else {
+      
 
-  res.status(200).send(tempSlotsArray);
-  // res.status(200).json({ info: `${restID} + " "  + ${date}` });
+      // Get some of the info from the results 
+      const interval = results[0].reservation_interval;
+      const starttime = results[0].reservation_starttime;
+      const endtime = results[0].reservation_endtime;
+      const max = 2
+
+      // 2. Generate the slots according to the settings
+      // console.log(starttime_obj);
+      // console.log(endtime_obj);
+      var tempSlotsArray = [];
+
+      const starttime_obj = new Date(datetime_T.parse(starttime, "hh:mm:ss"));
+      const endtime_obj = new Date(datetime_T.parse(endtime, "hh:mm:ss"));
+
+      var timeslot = starttime_obj;
+      
+      // The following creates the timeslots
+      do {
+        //console.log(datetime_T.format(timeslot, 'HH:mm'));
+        var tempJSON = {
+          timeslot: datetime_T.format(timeslot, 'HH:mm'),
+          available: true
+        }
+
+        tempSlotsArray.push(tempJSON);
+
+        timeslot = datetime_T.addHours(timeslot, +interval);
+      } while (timeslot <= endtime_obj);
+
+      // res.status(200).send(tempSlotsArray);
+      // 3. Have another query to check through the reservations and select the ones
+      // that falls on the selected date, and check against the max tables to see if 
+      // the slot should be set as available (true) or not (false)
+      var sqlGetReservations = `SELECT cr_timeslot, COUNT(cr_timeslot) AS reservations_count `;
+      sqlGetReservations += `FROM cust_reservation `;
+      sqlGetReservations += `WHERE cr_date="${datetime_T.format(new Date(date), 'YYYY-MM-DD')}" `;
+      sqlGetReservations += `GROUP BY cr_timeslot`;
+
+      dbconn.query(sqlGetReservations, function(err, results, fields) {
+        if (err) {
+          res.status(200).send({ api_msg: "MySQL " + err});
+        }
+        else {
+          results.forEach((timeslot) => {
+            tempSlotsArray.forEach((slot) => {
+              if (timeslot.cr_timeslot.slice(0, -3) == slot.timeslot && timeslot.reservations_count >= max) {
+                slot.available = false;
+                console.log(slot);
+              }
+            })
+          })
+
+          // 4. Return this to the frontend
+          res.status(200).send(tempSlotsArray);
+        }
+      }); // closing nested query
+    }
+  }); // Closing first query
 });
 
 // Router Export

@@ -424,7 +424,29 @@ router.get('/testapi', (req, res) => {
   // })
 });
 
+/****************************************************************************
+ * Testing the map services google api                                      *
+ ****************************************************************************/
+router.get('/availableslots/:restID/:date', (req, res) => {
+  const { username } = res.locals.userData;
+  const { restID, date } = req.params;
+  
+  console.log(restID, date);
 
+  // Create the time slots to return
+  var tempSlotsArray = [];
+
+  for (i= 11; i <= 22; i++) {
+    var tempJSON = {
+      timeslot: i + ":" + "00",
+      available: true
+    }
+    tempSlotsArray.push(tempJSON);
+  }
+
+  res.status(200).send(tempSlotsArray);
+  // res.status(200).json({ info: `${restID} + " "  + ${date}` });
+});
 
 // Router Export
 module.exports = router;

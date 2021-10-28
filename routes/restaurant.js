@@ -960,7 +960,7 @@ router.get('/pendingdeliveryorders', (req, res) => {
 /****************************************************************************
  * Retrieve all the ongoing delivery orders for that restaurant             *
  ****************************************************************************/
-router.get('/pendingdeliveryorders', (req, res) => {
+router.get('/ongoingdeliveryorders', (req, res) => {
 	// Save the restaurantID first from the URL
 	const { username } = res.locals.userData;
 
@@ -980,6 +980,42 @@ router.get('/pendingdeliveryorders', (req, res) => {
       // and we will parse the info at the front
       var sqlGetQuery = `SELECT * FROM delivery_order `
 			sqlGetQuery += `WHERE o_rest_ID=${restID} AND order_status IN ("Preparing", "Delivering")`;
+
+      dbconn.query(sqlGetQuery, function(error, results, field) {
+        if (error) {
+          res.status(200).send({ api_msg: "MySQL " + error });
+        }
+        else {
+          res.status(200).send(results);
+        }
+      }) // close nested query
+    }
+  }) // close first query
+});
+
+/****************************************************************************
+ * Retrieve all the ongoing delivery orders for that restaurant             *
+ ****************************************************************************/
+router.get('/fulfilledorders', (req, res) => {
+	// Save the restaurantID first from the URL
+	const { username } = res.locals.userData;
+
+  // console.log(username);
+
+  // 1. Get the customer's ID from the customer_users table
+  var sqlGetIDQuery = `SELECT subuser_rest_ID FROM restaurant_subuser `;
+  sqlGetIDQuery += `WHERE subuser_username="${username}"`;
+
+  dbconn.query(sqlGetIDQuery, function(error, results, fields){
+    if (error) {
+      res.status(200).send({ api_msg: "MySQL " + error });
+    }
+    else{
+      const restID = results[0].subuser_rest_ID;
+      // 2. Then simply return all the orders that matches the customer's ID 
+      // and we will parse the info at the front
+      var sqlGetQuery = `SELECT * FROM delivery_order `
+			sqlGetQuery += `WHERE o_rest_ID=${restID} AND order_status="fulfilled"`;
 
       dbconn.query(sqlGetQuery, function(error, results, field) {
         if (error) {

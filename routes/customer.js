@@ -433,7 +433,7 @@ router.get('/availableslots/:restID/:date', (req, res) => {
   const { restID, date } = req.params;
   
   // Console logging to see what is going on
-  console.log(restID, date);
+  // console.log(restID, date);
 
   // Okay, so what do we need to do here.
   // 1. Get the settings for the specific restaurant
@@ -445,8 +445,6 @@ router.get('/availableslots/:restID/:date', (req, res) => {
       res.status(200).send({ api_msg: "MySQL " + err});
     }
     else {
-      
-
       // Get some of the info from the results 
       const interval = results[0].reservation_interval;
       const starttime = results[0].reservation_starttime;
@@ -494,7 +492,7 @@ router.get('/availableslots/:restID/:date', (req, res) => {
             tempSlotsArray.forEach((slot) => {
               if (timeslot.cr_timeslot.slice(0, -3) == slot.timeslot && timeslot.reservations_count >= max) {
                 slot.available = false;
-                console.log(slot);
+                // console.log(slot);
               }
             })
           })

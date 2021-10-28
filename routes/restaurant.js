@@ -994,7 +994,7 @@ router.get('/ongoingdeliveryorders', (req, res) => {
 });
 
 /****************************************************************************
- * Retrieve all the ongoing delivery orders for that restaurant             *
+ * Retrieve all the fufilled delivery orders for that restaurant            *
  ****************************************************************************/
 router.get('/fulfilledorders', (req, res) => {
 	// Save the restaurantID first from the URL
@@ -1047,6 +1047,31 @@ router.get('/doitems/:orderID', (req, res) => {
     }
     else{
       res.status(200).send(results);
+    }
+  }) // close first query
+});
+
+/****************************************************************************
+ * Retrieves all the items of that order			                              *
+ ****************************************************************************/
+router.get('/updateorderstatus/:orderID/:orderStatus', (req, res) => {
+	// Save the restaurantID first from the URL
+	const { username } = res.locals.userData;
+  const orderID = req.params.orderID;
+	const orderStatus = req.params.orderStatus;
+
+	console.log(orderID, orderStatus);
+
+  // 1. Get the customer's ID from the customer_users table
+  var sqlGetIDQuery = `UPDATE delivery_order SET order_status="${orderStatus}" `;
+  sqlGetIDQuery += `WHERE order_ID="${orderID}"`;
+
+  dbconn.query(sqlGetIDQuery, function(error, results, fields){
+    if (error) {
+      res.status(200).send({ api_msg: "MySQL " + error });
+    }
+    else{
+      res.status(200).send({ api_msg: `Successful update for Delivery Order ID ${orderID}` });
     }
   }) // close first query
 });

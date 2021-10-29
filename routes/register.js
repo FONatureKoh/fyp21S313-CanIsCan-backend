@@ -20,7 +20,7 @@ const pw_gen = require('generate-password');
 
 // Email Modules
 const sendMail = require('../models/email_model');
-const { sendSubUserEmail } = require('../models/email_templates');
+const { sendSubUserEmail } = require('../models/credentials_email_template');
 
 // Middle Ware stuffs
 // const authTokenMiddleware = require('../middleware/authTokenMiddleware');

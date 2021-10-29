@@ -33,10 +33,6 @@ async function sendMail(mailOptions) {
       }
     });
 
-
-  
-    console.log(mailOptions);
-
     const result = await transport.sendMail(mailOptions);
     return result;
   }

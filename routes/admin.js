@@ -5,6 +5,7 @@ const router = express.Router();
 const dbconn = require("../models/db_model");
 const pw_gen = require('generate-password');
 const sendMail = require("../models/email_model");
+const { sendRGMEmail } = require("../models/credentials_email_template");
 
 // Body / form parser
 router.use(express.json());
@@ -63,42 +64,22 @@ router.post("/approve/:restaurant_ID", (req, res) => {
           res.status(200).json({ api_msg: "MySQL " + error });
         }
         else {
-          // Create the variables for the email
-          var mailTo = `${results[0].rest_email}`;
-          
-          var mailSubject = `Welcome to Food On Click ${results[0].restaurant_name}`;
-
-          var mailText = `Welcome to Food On Click! \n`
-          mailText += `Your login details as follows: \n\n`
-          mailText += `\t\tUsername: ${results[0].username}\n`
-          mailText += `\t\tPassword: ${results[0].user_password}\n\n`
-          mailText += `You will be prompted to key in your restaurant's details on your first login!`;
-
-          var mailHTML = `<h2>Your login details as follows:</h2>`
-          mailHTML += `<p>\t\tUsername: ${results[0].username}\n`
-          mailHTML += `\t\tPassword: ${results[0].user_password}\n\n`
-          mailHTML += `You will be prompted to key in your restaurant's details on your first login!</p>`;
-
-          const mailOptions = {
-            from: 'Administrator <cancanfoodapp@gmail.com>',
-            to: mailTo,
-            subject: mailSubject,
-            text: mailText
-          };
-
-          sendMail(mailOptions)
-            .then(result => {
-              console.log("sendmail triggered successfully!");
-              
-              // 4. Response back to axios call with api_msg
-              res.status(200).json({ api_msg: "Successful!" });
-              // console.log(result);
-            })
-            .catch((error) => console.log(error.message));
+          sendRGMEmail(results[0].username, results[0].user_password, results[0].rest_email, results[0].restaurant_name)
+            .then((response) => {
+              sendMail(response)
+                .then(result => {
+                  console.log("sendmail triggered successfully!");
+                  
+                  // 4. Response back to axios call with api_msg
+                  res.status(200).json({ api_msg: "Successful!" });
+                  // console.log(result);
+                })
+                .catch((error) => console.log(error.message));
+            });
         }
-      })
+      });  // Nested Query
     }
-  })   
+  });  // First query
 });
 
 /****************************************************************************

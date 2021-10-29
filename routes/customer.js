@@ -393,7 +393,7 @@ router.post('/submitorder', (req, res) => {
       console.log(err);
     }
     else {
-      console.log(results);
+      // console.log(results);
       const custID = results[0].customer_ID
       const fullName = results[0].first_name + " " + results[0].last_name;
 
@@ -411,25 +411,31 @@ router.post('/submitorder', (req, res) => {
         }
         else {
           console.log(results);
-          const itemsArrayLength = orderItems.length;
+          for (var x in orderItems) {
+            const item = JSON.parse(orderItems[x]);
+            console.log(JSON.parse(orderItems[x]));
 
-          for (i = 0; i < itemsArrayLength; i++) {
-            console.log(orderItems[i]);
+            var sqlInsertQuery = "INSERT INTO do_item(`do_order_ID`, `do_rest_item_ID`, ";
+            sqlInsertQuery += "`do_item_name`, `do_item_price`, `do_item_qty`, `special_order`) ";
+            sqlInsertQuery += `VALUES ("${doID}", ${item.itemID}, "${item.itemName}", ${item.itemPrice}, ${item.itemQty}, "NIL")`;
+
+            dbconn.query(sqlInsertQuery, function(err, results, fields) {
+              if (err) {
+                console.log(err);
+              }
+              else {
+                console.log(results);
+              }
+            });
           }
         }
       })
-      // 2. We insert the order items into the items table
-      // 3. Send the email to the customer accordingly
 
+      // 3. Send the email to the customer accordingly
     }
   });
 
-
-
-  
   res.status(200).send("yea something happened");
-  // We will then have to look at triggering a function to update the restaurant's
-  // rating without affecting this route. 
 });
 
 /****************************************************************************

@@ -34,7 +34,7 @@ router.post("/login", (req, res) => {
     dbconn.query(sqlQuery, function (error, results, fields) {
       // console.log(results);
       if (error) {
-        res.status(400).send({ errorMsg: "MySQL error: " + error });
+        res.status(400).send({ api_msg: "MySQL error: " + error });
       }
       else if (results.length > 0) {
         // Retrieve the username and usertype
@@ -57,7 +57,7 @@ router.post("/login", (req, res) => {
         })
       }
       else {
-        res.status(400).send({ errorMsg: "User not found. Please try again" });
+        res.status(200).send({ api_msg: "User not found. Please try again" });
       }
     });
   }

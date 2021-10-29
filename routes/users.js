@@ -150,12 +150,12 @@ router
 							profile_image: results[0].picture_ID ?? "error.png",
 							username: results[0].rgm_username,
 							userType: userType,
-							first_name: results[0].first_name,
-							last_name: results[0].last_name,
-							phone_no: results[0].phone_no,
-							email: results[0].email,
-							address: results[0].home_address,
-							postal_code: results[0].home_postal_code
+							first_name: results[0].first_name ?? "NIL",
+							last_name: results[0].last_name ?? "NIL",
+							phone_no: results[0].phone_no ?? "NIL",
+							email: results[0].email ?? "NIL",
+							address: results[0].home_address ?? "NIL",
+							postal_code: results[0].home_postal_code ?? "NIL"
 						}
 
 						res.status(200).send(dataJson);
@@ -212,12 +212,12 @@ router
 							profile_image: results[0].picture_ID ?? "error.png",
 							username: results[0].username,
 							userType: userType,
-							first_name: results[0].first_name ?? "",
-							last_name: results[0].last_name ?? "",
-							phone_no: results[0].phone_no ?? "",
+							first_name: results[0].first_name ?? "NIL",
+							last_name: results[0].last_name ?? "NIL",
+							phone_no: results[0].phone_no ?? "NIL",
 							email: results[0].email,
-							address: results[0].home_address ?? "",
-							postal_code: results[0].home_postal_code ?? ""
+							address: results[0].home_address ?? "NIL",
+							postal_code: results[0].home_postal_code ?? "NIL"
 						}
 
 						res.status(200).send(dataJson);
@@ -229,7 +229,7 @@ router
 			// Customer User Type ======================================================
 			case "Customer":
 				var sqlGetQuery = "SELECT * FROM customer_user JOIN cust_address ";
-				sqlGetQuery += `ON customer_ID=ca_cust_ID WHERE cust_username="${username}"`;
+				sqlGetQuery += `ON cust_username=ca_username WHERE cust_username="${username}"`;
 
 				// Query the db and return the said fields to the frontend app
 				dbconn.query(sqlGetQuery, function (error, results, fields) {
@@ -238,15 +238,15 @@ router
 					}
 					else {
 						const dataJson = {
-							profile_image: results[0].picture_ID ?? "error.png",
+							profile_image: results[0].cust_picture_ID ?? "error.png",
 							username: results[0].cust_username,
 							userType: userType,
-							first_name: results[0].first_name ?? "",
-							last_name: results[0].last_name ?? "",
-							phone_no: results[0].phone_no ?? "",
+							first_name: results[0].first_name ?? "NIL",
+							last_name: results[0].last_name ?? "NIL",
+							phone_no: results[0].phone_no ?? "NIL",
 							email: results[0].email,
-							address: results[0].address_info ?? "",
-							postal_code: results[0].postal_code ?? ""
+							address: results[0].address_info ?? "NIL",
+							postal_code: results[0].postal_code ?? "NIL"
 						}
 
 						res.status(200).send(dataJson);

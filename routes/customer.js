@@ -24,7 +24,6 @@ const { sendSubUserEmail } = require('../models/email_templates');
 
 // Middle Ware stuffs
 const authTokenMiddleware = require('../middleware/authTokenMiddleware');
-const { response } = require('express');
 
 /**************************************************************************
  * Router Middlewares and parsers																					*

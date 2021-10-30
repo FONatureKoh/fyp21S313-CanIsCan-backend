@@ -507,7 +507,7 @@ router.get('/testapi', (req, res) => {
   // Directions api test
   apiClient.directions({
     params: {
-      origin: "68 Verde Avenue, Singapore 688336",
+      origin: "688336",
       destination: "21 Choa Chu Kang Ave 4, Singapore 689812",
       mode: "driving",
       units: "metric",
@@ -519,7 +519,7 @@ router.get('/testapi', (req, res) => {
     // res.status(200).json(response.data.routes[0].legs[0].distance.value);
   })
   .catch(err => {
-    console.log(err);
+    console.log(err.response.data);
   })
 
   // For geocoding

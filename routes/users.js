@@ -28,21 +28,53 @@ const authTokenMiddleware = require('../middleware/authTokenMiddleware');
 router.use(express.json());
 router.use(authTokenMiddleware);
 
-/* */
-router.get("/list", (req, res) => {
-	console.log(req);
-	dbconn.query('SELECT * FROM app_user', function (error, results, fields) {
-    if (error) {
-      res.send("MySQL error: " + error);
-    }
-    else {
-      res.send(results);
-    }
-  });
+/****************************************************************************
+ * For users to get their account status																		*
+ ****************************************************************************
+ */
+router.get('/accountstatus', (req, res) => {
+  // console.log(path.resolve(`../0-test-pictures/${req.params.imageName}`));
+  // console.log(req.params.imageName);
+  // console.log(pathName);
+	const { username } = res.locals.userData;
+
+	var sqlGetQuery = `SELECT account_status FROM app_user WHERE username="${username}"`;
+
+	dbconn.query(sqlGetQuery, function(err, results, fields){
+		if (err) {
+			console.log(err);
+		}
+		else {
+			res.status(200).send(results[0]);
+		}
+	})
 });
 
 /****************************************************************************
- * Retrieve restaurant's items imaage																				*
+ * DM / RM retrieve restaurant name																					*
+ ****************************************************************************
+ */
+router.get('/restaurantname', (req, res) => {
+  // console.log(path.resolve(`../0-test-pictures/${req.params.imageName}`));
+  // console.log(req.params.imageName);
+  // console.log(pathName);
+	const { username } = res.locals.userData;
+
+	var sqlGetQuery = `SELECT restaurant_name FROM restaurant JOIN restaurant_subuser `
+	sqlGetQuery += `ON restaurant_ID=subuser_rest_ID WHERE subuser_username="${username}"`;
+
+	dbconn.query(sqlGetQuery, function(err, results, fields){
+		if (err) {
+			console.log(err);
+		}
+		else {
+			res.status(200).send(results[0]);
+		}
+	})
+});
+
+/****************************************************************************
+ * Retrieves profile image																									*
  ****************************************************************************
  */
 router.get('/profileImage/:imageName', (req, res) => {
@@ -52,31 +84,7 @@ router.get('/profileImage/:imageName', (req, res) => {
 	if (req.params.imageName != '') {
 		const pathName = process.env.ASSETS_SAVE_LOC + 'profile_pictures/' + req.params.imageName;
 
-		// Check if path exist. If yes, great, otherwise send an error image instead
-		fs.access(pathName, fs.F_OK, (err) => {
-			if (err) {
-				// console.log(err);
-				res.status(200).sendFile(path.resolve('./public/assets/error_img.png'));
-			}
-			else {
-				res.status(200).sendFile(path.resolve(pathName));
-			}
-		})
-	}
-});
-
-/****************************************************************************
- * Retrieve restaurant's items imaage																				*
- ****************************************************************************
- */
-router.get('/profileImage/:imageName', (req, res) => {
-  // console.log(path.resolve(`../0-test-pictures/${req.params.imageName}`));
-  // console.log(req.params.imageName);
-  // console.log(pathName);
-	if (req.params.imageName != '') {
-		const pathName = process.env.ASSETS_SAVE_LOC + 'profile_pictures/' + req.params.imageName;
-
-		// Check if path exist. If yes, great, otherwise send an error image instead
+		// Check if path exist. If yes, great, otherwise send an err image instead
 		fs.access(pathName, fs.F_OK, (err) => {
 			if (err) {
 				// console.log(err);
@@ -141,13 +149,14 @@ router
 				sqlGetQuery += `WHERE rgm_username="${username}"`;
 
 				// Query the db and return the said fields to the frontend app
-				dbconn.query(sqlGetQuery, function (error, results, fields) {
-					if (error) {
-						res.status(200).send({ api_msg: "MySQL error: " + error });
+				dbconn.query(sqlGetQuery, function (err, results, fields) {
+					if (err) {
+						console.log(err);
+						res.status(400).send("MySQL error. If you're the client, contact your developer");
 					}
 					else {
 						const dataJson = {
-							profile_image: results[0].picture_ID ?? "error.png",
+							profile_image: results[0].picture_ID ?? "err.png",
 							username: results[0].rgm_username,
 							userType: userType,
 							first_name: results[0].first_name ?? "NIL",
@@ -171,9 +180,10 @@ router
 				sqlGetQuery += `WHERE subuser_username="${username}"`;
 
 				// Query the db and return the said fields to the frontend app
-				dbconn.query(sqlGetQuery, function (error, results, fields) {
-					if (error) {
-						res.status(200).send({ api_msg: "MySQL error: " + error });
+				dbconn.query(sqlGetQuery, function (err, results, fields) {
+					if (err) {
+						console.log(err);
+						res.status(400).send("MySQL error. If you're the client, contact your developer");
 					}
 					else {
 						// console.log(results);
@@ -203,9 +213,10 @@ router
 				sqlGetQuery += `ON username="${username}" WHERE username=admin_username`;
 
 				// Query the db and return the said fields to the frontend app
-				dbconn.query(sqlGetQuery, function (error, results, fields) {
-					if (error) {
-						res.status(200).send({ api_msg: "MySQL error: " + error });
+				dbconn.query(sqlGetQuery, function (err, results, fields) {
+					if (err) {
+						console.log(err);
+						res.status(400).send("MySQL error. If you're the client, contact your developer");
 					}
 					else {
 						const dataJson = {
@@ -232,9 +243,10 @@ router
 				sqlGetQuery += `ON cust_username=ca_username WHERE cust_username="${username}"`;
 
 				// Query the db and return the said fields to the frontend app
-				dbconn.query(sqlGetQuery, function (error, results, fields) {
-					if (error) {
-						res.status(200).send({ api_msg: "MySQL error: " + error });
+				dbconn.query(sqlGetQuery, function (err, results, fields) {
+					if (err) {
+						console.log(err);
+						res.status(400).send("MySQL error. If you're the client, contact your developer");
 					}
 					else {
 						const dataJson = {
@@ -288,9 +300,10 @@ router
 				sqlUpdateQuery += `email="${email}",home_address="${address}",home_postal_code=${postalCode} `;
 				sqlUpdateQuery += `WHERE rgm_username="${username}"`;
 
-				dbconn.query(sqlUpdateQuery, function(error, results, fields){
-					if (error) {
-						res.status(200).json({ api_msg: "MySQL " + error });
+				dbconn.query(sqlUpdateQuery, function(err, results, fields){
+					if (err) {
+						console.log(err);
+						res.status(400).send("MySQL error. If you're the client, contact your developer");
 					}
 					else {
 						res.status(200).json({ api_msg: "Successful!" });
@@ -310,9 +323,10 @@ router
 					sqlUpdateQuery += `email="${email}",home_address="${address}",home_postal_code=${postalCode} `;
 					sqlUpdateQuery += `WHERE subuser_username="${username}"`;
 
-					dbconn.query(sqlUpdateQuery, function(error, results, fields){
-						if (error) {
-							res.status(200).json({ api_msg: "MySQL " + error });
+					dbconn.query(sqlUpdateQuery, function(err, results, fields){
+						if (err) {
+							console.log(err);
+							res.status(400).json({ api_msg: "MySQL error" });
 						}
 						else {
 							res.status(200).json({ api_msg: "Successful!" });
@@ -325,16 +339,16 @@ router
 					sqlUpdateQuery += `email="${email}",home_address="${address}",home_postal_code=${postalCode} `;
 					sqlUpdateQuery += `WHERE subuser_username="${username}"`;
 
-					dbconn.query(sqlUpdateQuery, function(error, results, fields){
-						if (error) {
-							res.status(200).json({ api_msg: "MySQL " + error });
+					dbconn.query(sqlUpdateQuery, function(err, results, fields){
+						if (err) {
+							console.log(err);
+							res.status(400).json({ api_msg: "MySQL error" });
 						}
 						else {
 							res.status(200).json({ api_msg: "Successful!" });
 						}
 					});
 				}
-				
 
 				break;
 			// =========================================================================
@@ -385,9 +399,10 @@ router
 				sqlUpdateQuery += `phone_no=${phoneNo},email="${email}",home_address="${address}",home_postal_code=${postalCode} `;
 				sqlUpdateQuery += `WHERE rgm_username="${username}"`;
 
-				dbconn.query(sqlUpdateQuery, function(error, results, fields){
-					if (error) {
-						res.status(200).json({ api_msg: "MySQL " + error });
+				dbconn.query(sqlUpdateQuery, function(err, results, fields){
+					if (err) {
+						console.log(err);
+						res.status(400).json({ api_msg: "MySQL error" });
 					}
 					else {
 						res.status(200).json({ api_msg: "Successful!" });
@@ -397,15 +412,56 @@ router
 				break;
 			// =========================================================================
 			// Restaurant Deliveries Manager User Type =================================
-			case "Restaurant Deliveries Manager":
-				res.status(200).json({ username: username, userType: userType });
-
-				break;
-			// =========================================================================		
 			// Restaurant Reservations Manager User Type ================================
+			case "Restaurant Deliveries Manager":
 			case "Restaurant Reservations Manager":
-				res.status(200).json({ username: username, userType: userType });
+				// Steps to edit profile for all users, generally the same less the customer
+				if (file) {
+					var sqlUpdateQuery = `UPDATE restaurant_subuser SET subuser_picture_ID="${file.filename}",`
+					sqlUpdateQuery += `first_name="${fname}",last_name="${lname}",phone_no=${phoneNo},`
+					sqlUpdateQuery += `email="${email}",home_address="${address}",home_postal_code=${postalCode} `;
+					sqlUpdateQuery += `WHERE subuser_username="${username}"`;
 
+					dbconn.query(sqlUpdateQuery, function(err, results, fields){
+						if (err) {
+							cconsole.log(err);
+							res.status(400).send("MySQL error. If you're the client, contact your developer");
+						}
+						else {
+							res.status(200).json({ api_msg: "Successful!" });
+						}
+					});
+				}
+				else {
+					var sqlUpdateQuery = `UPDATE restaurant_subuser SET `
+					sqlUpdateQuery += `first_name="${fname}",last_name="${lname}",phone_no=${phoneNo},`
+					sqlUpdateQuery += `email="${email}",home_address="${address}",home_postal_code=${postalCode} `;
+					sqlUpdateQuery += `WHERE subuser_username="${username}"`;
+
+					dbconn.query(sqlUpdateQuery, function(err, results, fields){
+						if (err) {
+							console.log(err);
+							res.status(400).json({ api_msg: "MySQL " + err });
+						}
+						else {
+							// Also update the account status
+							var updateAccountStatus = `UPDATE app_user SET account_status="active" `;
+							updateAccountStatus += `WHERE username="${username}"`
+
+							dbconn.query(updateAccountStatus, function(err, results, fields){
+								if (err) {
+									console.log(err);
+									res.status(400).send("MySQL error. If you're the client, contact your developer");
+								}
+								else {
+									res.status(200).json({ api_msg: "Successful!" });
+								}
+							}); // Close nested SQL Query
+						}
+					}); // Close first SQL Query
+				}
+				
+				
 				break;
 			// =========================================================================
 			// System Administrator User Type ==========================================
@@ -453,9 +509,10 @@ router
 		sqlQuery += `WHERE username="${username}" AND BINARY user_password="${oldPassword}"`
 		
 		// 3. Do the query and return the success message
-		dbconn.query(sqlQuery, function(error, results, fields) {
-			if (error) {
-				res.status(200).json({ api_msg: "MySQL error occurred: " + error });
+		dbconn.query(sqlQuery, function(err, results, fields) {
+			if (err) {
+				console.log(err);
+				res.status(400).send("MySQL error. If you're the client, contact your developer");
 			}
 			else {
 				if (results.length) {
@@ -486,9 +543,10 @@ router
 		sqlQuery += `WHERE username='${username}' AND user_password='${oldPassword}'`;
 
 		// 3. res should send status 200 and a successMsg
-		dbconn.query(sqlQuery, function(error, results, fields) {
-			if (error) {
-				res.status(200).json({ api_msg: "MySQL Query error: " + error });
+		dbconn.query(sqlQuery, function(err, results, fields) {
+			if (err) {
+				console.log(err);
+				res.status(400).send("MySQL error. If you're the client, contact your developer");
 			}
 			else {
 				// console.log(results);
@@ -499,7 +557,7 @@ router
 					 });
 				}
 				else {
-					res.status(200).json({ api_msg: "Old password mismatch or Username Error!" });
+					res.status(200).json({ api_msg: "Old password mismatch or Username err!" });
 				}
 			}
 		});

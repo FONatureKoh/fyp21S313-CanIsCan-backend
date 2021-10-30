@@ -918,7 +918,8 @@ module.exports = router;
  * */
 
 /****************************************************************************
- * Retrieve all the pending delivery orders for that restaurant             *
+ * Reservations Manager (RM): Retrieve all the pending delivery 
+ * orders for that restaurant             
  ****************************************************************************/
 router.get('/pendingdeliveryorders', (req, res) => {
 	// Save the restaurantID first from the URL
@@ -954,7 +955,8 @@ router.get('/pendingdeliveryorders', (req, res) => {
 });
 
 /****************************************************************************
- * Retrieve all the ongoing delivery orders for that restaurant             *
+ * Reservations Manager (RM):  Retrieve all the ongoing delivery 
+ * orders for that restaurant           
  ****************************************************************************/
 router.get('/ongoingdeliveryorders', (req, res) => {
 	// Save the restaurantID first from the URL
@@ -990,7 +992,8 @@ router.get('/ongoingdeliveryorders', (req, res) => {
 });
 
 /****************************************************************************
- * Retrieve all the fufilled delivery orders for that restaurant            *
+ * Reservations Manager (RM): Retrieve all the fufilled delivery 
+ * orders for that restaurant            *
  ****************************************************************************/
 router.get('/fulfilledorders', (req, res) => {
 	// Save the restaurantID first from the URL
@@ -1026,7 +1029,7 @@ router.get('/fulfilledorders', (req, res) => {
 });
 
 /****************************************************************************
- * Retrieves all the items of that order			                              *
+ * Reservations Manager (RM): Retrieves all the items of that order		
  ****************************************************************************/
 router.get('/doitems/:orderID', (req, res) => {
 	// Save the restaurantID first from the URL
@@ -1048,7 +1051,7 @@ router.get('/doitems/:orderID', (req, res) => {
 });
 
 /****************************************************************************
- * Retrieves all the items of that order			                              *
+ * Reservations Manager (RM): Updates order status for order
  ****************************************************************************/
 router.get('/updateorderstatus/:orderID/:orderStatus', (req, res) => {
 	// Save the restaurantID first from the URL

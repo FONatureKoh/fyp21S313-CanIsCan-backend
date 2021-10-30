@@ -428,7 +428,19 @@ router
 							res.status(400).send("MySQL error. If you're the client, contact your developer");
 						}
 						else {
-							res.status(200).json({ api_msg: "Successful!" });
+							// Also update the account status
+							var updateAccountStatus = `UPDATE app_user SET account_status="active" `;
+							updateAccountStatus += `WHERE username="${username}"`
+
+							dbconn.query(updateAccountStatus, function(err, results, fields){
+								if (err) {
+									console.log(err);
+									res.status(400).send("MySQL error. If you're the client, contact your developer");
+								}
+								else {
+									res.status(200).json({ api_msg: "Successful!" });
+								}
+							}); // Close nested SQL Query
 						}
 					});
 				}

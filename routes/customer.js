@@ -25,6 +25,9 @@ const { sendSubUserEmail } = require('../models/credentials_email_template');
 // Middle Ware stuffs
 const authTokenMiddleware = require('../middleware/authTokenMiddleware');
 
+// Stripe stuffs
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+
 /**************************************************************************
  * Router Middlewares and parsers																					*
  **************************************************************************/
@@ -429,12 +432,66 @@ router.post('/submitorder', (req, res) => {
           }
         }
       })
-
       // 3. Send the email to the customer accordingly
     }
   });
 
   res.status(200).send("yea something happened");
+});
+
+/****************************************************************************
+ * Testing the map services google api                                      *
+ ****************************************************************************/
+router.post('/checkout', async(req, res) => {
+  // console.log("Request:", req.body);
+  try {
+    // Getting some essentials
+    let paymentStatus;
+
+    const { doID, token, totalCost } = req.body;
+
+    // Convert the total cost to integer
+    const totalCostCents = (totalCost * 100).toFixed(0);
+
+    const customer = await stripe.customers.create({
+      email: token.email,
+      source: token.id
+    });
+
+    const idempotencyKey = uuidv4();
+    const charge = await stripe.charges.create(
+      {
+        amount: totalCostCents,
+        currency: "sgd",
+        customer: customer.id,
+        receipt_email: token.email,
+        description: `Payment confirmed for ${doID}`,
+        shipping: {
+          name: token.card.name,
+          address: {
+            line1: token.card.address_line1,
+            line2: token.card.address_line2,
+            city: token.card.address_city,
+            country: token.card.address_country,
+            postal_code: token.card.address_zip
+          }
+        }
+      },
+      {
+        idempotencyKey
+      }
+    );
+    // console.log("Charge:", { charge });
+    paymentStatus = "success";
+
+    res.json({ errorMsg: "No Error", paymentStatus });
+  } 
+  catch (error) {
+    // console.error("Error:", error);
+    paymentStatus = "failure";
+
+    res.json({ errorMsg: error, paymentStatus });
+  }
 });
 
 /****************************************************************************

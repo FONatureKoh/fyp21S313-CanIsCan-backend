@@ -1,3 +1,6 @@
+// Key modules
+const datetime_T = require('date-and-time');
+
 /*******************************************************************************************************************************
  * Email Template to send order confirmation to the customer 
  * *****************************************************************************************************************************
@@ -6,6 +9,9 @@
 async function sendCustomerOrder(custEmail, restName, custName, deliveryAddress, deliveryPostal, datetime, doID, etd, orderItems, total) {
   // Put a try catch to create the template and then return the template
   try {
+    // Some conversion first
+    const convertedTime = "about " + datetime_T.transform(etd, 'HH:mm:ss', 'm') + " mins";
+
     // Sets the email address to receive email
     var mailTo = `${custEmail}`;
           
@@ -19,7 +25,7 @@ async function sendCustomerOrder(custEmail, restName, custName, deliveryAddress,
     Singapore ${deliveryPostal}\n\n
     Order Received Date/Time: ${datetime}\n
     Delivery Order Number: ${doID}\n
-    Estimated Delivery Time*: ${etd}\n\n    
+    Estimated Delivery Time*: ${convertedTime}\n\n    
     Delivery Order items:\n\n`;
 
     if (Array.isArray(orderItems) == true){
@@ -188,7 +194,7 @@ async function sendCustomerOrder(custEmail, restName, custName, deliveryAddress,
                     <br></br><b>Order Received Date/Time: </b>
                     <br> ${datetime}
                     <br></br><b>Estimated Delivery Time*: </b>
-                    <br> ${etd}
+                    <br> ${convertedTime}
                     <br>
                   </p>
                   <p style="font-size: 14px;">

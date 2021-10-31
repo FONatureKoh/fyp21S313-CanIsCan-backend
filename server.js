@@ -76,13 +76,20 @@ const customerRouter = require("./routes/customer");
 
 app.use("/customer", customerRouter);
 
-app.get('/testemail', (req, res) => {
+/*******************************************************************************************
+ * API SERVER TEST FUNCTIONS TO BE PLACED BELOW THIS DIVIDER
+ *******************************************************************************************
+ * functions to test email, test database connection and others should come here
+ */
+app.get('/testemail/:emailaddress', (req, res) => {
+  const emailAdd = req.params.emailaddress;
+
   const mailOptions = {
     from: 'Administrator <cancanfoodapp@gmail.com>',
-    to: 'fonaturekoh@outlook.sg',
+    to: emailAdd,
     subject: 'This is a test for the gmail API',
-    text: 'Hello world',
-    html: '<h1>Hello world</h1>' + '<h2>This is a cow I guess</h2>'
+    text: 'Hello world, plain text test for cancanfoodapp Gmail',
+    html: '<h1>Hello world</h1>' + '<h2>This is a test for cancanfoodapp Gmail API</h2>'
   };
   
   // console.log(mailOptions);
@@ -91,17 +98,56 @@ app.get('/testemail', (req, res) => {
     .then(result => {
       console.log("sendmail triggered")
       console.log(result);
-      res.status(200).json({ api_msg: result });
+      res.status(200).json(result);
     })
     .catch((error) => console.log(error.message));
 })
 
-/*****************************************************************************
- * Always end with what is right below this, listen                          *
- *****************************************************************************
- */ 
+/*******************************************************************************************
+ * NO ROUTES FUNCTIONS OR DECLARATIONS BELOW THIS DIVIDER 
+ *******************************************************************************************
+ * Everything below here is only for starting up
+ */
 app.listen(5000, () => {
-  console.log("Listening on port 5000!")
+  // States port listening
+  console.log("API SERVER STARTING...");
+  console.log("DATE TIME CHECK: " + new Date());
+
+  console.log("cancanfoodapp API server listening on port 5000!");
+
+  // Respond based on app_status
+  if (process.env.APP_STATUS == "test") {
+    console.log("APP_STATUS is test. No checks will be ran!")
+  }
+  else {
+    console.log("APP_STATUS is deployed. Running checks...");
+
+    // Challenge MySQL Database connection
+    dbconn.query('SELECT 1', function (err, results, fields) {
+      if (err) {
+        console.log("MySQL error on start: " + err);
+      }
+      else {
+        console.log("MySQL Database Connected successfully");// connected!
+      }
+    });
+
+    // Challenge gmail API - Sends email to fonaturekoh@outlook.sg on restart
+    const mailOptions = {
+      from: 'Administrator <cancanfoodapp@gmail.com>',
+      to: 'fonaturekoh@outlook.sg',
+      subject: 'API server restarted!',
+      text: `NOTE: API server restarted @ ${new Date()}`,
+      html: `<h1>API server restarted @ ${new Date()}</h1><h2>This is a test for cancanfoodapp Gmail API</h2>`
+    };
+
+    sendMail(mailOptions)
+      .then(result => {
+        console.log("Gmail API check triggered! Attempting to send an email...")
+        console.log(result);
+      })
+      .catch((err) => console.log(err));
+  }
 });
 
 /****************************************************************************

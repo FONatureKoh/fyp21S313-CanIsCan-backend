@@ -483,7 +483,6 @@ router.post('/submitorder', asyncHandler(async (req, res, next) => {
               if (Array.isArray(orderItems) == true) {
                 for (let x in orderItems) {
                   const item = JSON.parse(orderItems[x]);
-                  console.log(JSON.parse(orderItems[x]));
 
                   var sqlInsertItemsQuery = "INSERT INTO do_item(`do_order_ID`, `do_rest_item_ID`, ";
                   sqlInsertItemsQuery += "`do_item_name`, `do_item_price`, `do_item_qty`, `special_order`) ";
@@ -497,7 +496,6 @@ router.post('/submitorder', asyncHandler(async (req, res, next) => {
                       // console.log(results);
                       // Check if its the last item 
                       if (Number(x) == (orderItems.length - 1)) {
-                        console.log("OrderItems Finished!");
 
                         // Release the connection
                         conn.release();
@@ -652,31 +650,16 @@ router.get('/testapi', asyncHandler(async (req, res, next) => {
   }, defaultAxiosInstance);
 
   const durationTaken = response.data.routes[0].legs[0].duration;
-  const timeString = Math.floor(durationTaken.value / 60) + ":" + durationTaken.value % 60;
+  const timeString = "00:" + Math.floor(durationTaken.value / 60) + ":" + durationTaken.value % 60;
 
   console.log(timeString);
-  const convertedTime = datetime_T.transform(timeString, 'mm:ss', 'HH:mm:ss');
+  const convertedTime = datetime_T.transform(timeString, 'HH:mm:ss', 'm');
 
   res.status(200).send(convertedTime);
 }));
-  // For geocoding
-  // apiClient.geocode({
-  //   params: {
-  //     address: "68 Verde Avenue",
-  //     key: apikey
-  //   },
-  //   timeout: 10000
-  // }, defaultAxiosInstance)
-  // .then(response => {
-  //   console.log(response.data.results[0]);
-  // })
-  // .catch(err => {
-  //   console.log(err)
-  // })
-
 
 /****************************************************************************
- * Testing the map services google api                                      *
+ * Getting available Reservation slots                                      *
  ****************************************************************************/
 router.get('/availableslots/:restID/:date', (req, res) => {
   // Getting some important variables

@@ -405,9 +405,10 @@ async function sendingOrderEmail(restEmail, custEmail, custName, restName,
 
 router.post('/submitorder', asyncHandler(async (req, res, next) => {
 	// Save some important variables
+  const googleAPIClient = new Client({}); // Google maps services API
 	const { username } = res.locals.userData;
   const { doID, restID, restName, restEmail, orderDateTime, address, floorunit, postalCode,
-    companyName, deliveryNote, totalCost, orderItems} = req.body;
+    companyName, deliveryNote, totalCost, orderItems, restAddress} = req.body;
 
   // Transform date to sql formate
   const sqlOrderDateTime = datetime_T.format(new Date(orderDateTime), 'YYYY-MM-DD HH:mm:ss');
@@ -416,7 +417,27 @@ router.post('/submitorder', asyncHandler(async (req, res, next) => {
   // Transform date for customer and restaurant email
   const readableDate = datetime_T.format(new Date(orderDateTime), 'DD MMM YYYY, hh:mm A');
 
-  // console.log(req.body);
+  // Construct data 
+  const custAddress = address + ", Singapore " + postalCode;
+
+  // Directions api to get duration
+  const directionsResponse = await googleAPIClient.directions({
+    params: {
+      origin: restAddress,
+      destination: custAddress,
+      mode: "driving",
+      units: "metric",
+      key: process.env.GOOGLE_MAPS_API_KEY
+    }
+  }, defaultAxiosInstance);
+
+  // Estimated Delivery Time
+  const durationTaken = directionsResponse.data.routes[0].legs[0].duration;
+  const timeString = Math.floor(durationTaken.value / 60) + ":" + durationTaken.value % 60;
+
+  const etd = datetime_T.transform(timeString, 'mm:ss', 'HH:mm:ss');
+
+  console.log(etd);
 
   // We're trying to submit an order here. This has 3 parts. One is to create the 
   // order first in the table. Then to put the items into the items table, and end off
@@ -448,7 +469,8 @@ router.post('/submitorder', asyncHandler(async (req, res, next) => {
           sqlInsertQuery += "`delivery_floorunit`, `delivery_postal_code`, `delivery_note`, ";
           sqlInsertQuery += "`total_cost`, `order_delivery_time`, `order_status`, `payment_status`)";
           sqlInsertQuery += `VALUES ("${doID}", ${custID}, ${restID}, "${fullName}", "${restName}", "${sqlOrderDateTime}", `;
-          sqlInsertQuery += `"${address}", "${floorunit}", ${postalCode},"${deliveryNote}", ${sqlTotalCost}, "0:30:00", "Pending", 1)`;
+          sqlInsertQuery += `"${address}", "${floorunit}", ${postalCode},"${deliveryNote === '' ? 'NIL': deliveryNote}", `;
+          sqlInsertQuery += `${sqlTotalCost}, "${etd}", "Pending", 1)`;
 
           conn.query(sqlInsertQuery, function (err, results, fields){
             if (err){
@@ -481,7 +503,7 @@ router.post('/submitorder', asyncHandler(async (req, res, next) => {
                         conn.release();
 
                         sendingOrderEmail(restEmail, custEmail, fullName, restName, address,
-                          postalCode, readableDate, doID, "20 mins", orderItems, sqlTotalCost)
+                          postalCode, readableDate, doID, etd, orderItems, sqlTotalCost)
                           .then((response) => {
                             if (response == "success") {
                               res.status(200).send({api_msg: "Your order has been made successfully. Please check your email for confirmation!"});
@@ -513,7 +535,7 @@ router.post('/submitorder', asyncHandler(async (req, res, next) => {
                     conn.release();
 
                     sendingOrderEmail(restEmail, custEmail, fullName, restName, address,
-                      postalCode, readableDate, doID, "20 mins", orderItems, sqlTotalCost)
+                      postalCode, readableDate, doID, etd, orderItems, sqlTotalCost)
                       .then((response) => {
                         if (response == "success") {
                           res.status(200).send({api_msg: "Your order has been made successfully. Please check your email for confirmation!"});
@@ -589,33 +611,54 @@ router.post('/checkout', async(req, res) => {
 });
 
 /****************************************************************************
- * Testing the map services google api                                      *
+ * Geocoding to verify the address of the customer                          *
  ****************************************************************************/
-router.get('/testapi', (req, res) => {
-  // Get the api key
-  const apikey = process.env.GOOGLE_MAPS_API_KEY;
+router.get('/verifyCustAddress/:address', asyncHandler(async (req, res, next) => {
+  // Get url params
+  const address = req.params.address;
 
   // api declaration
-  const apiClient = new Client({});
+  const googleAPIClient = new Client({});
 
   // Directions api test
-  apiClient.directions({
+  const response = await googleAPIClient.geocode({
     params: {
-      origin: "688336",
-      destination: "21 Choa Chu Kang Ave 4, Singapore 689812",
+      address: address,
+      key: process.env.GOOGLE_MAPS_API_KEY
+    }
+  }, defaultAxiosInstance);
+
+  console.log(response);
+
+  res.status(200).json(response.data);
+}));
+
+/****************************************************************************
+ * Testing the map services google api                                      *
+ ****************************************************************************/
+router.get('/testapi', asyncHandler(async (req, res, next) => {
+  // api declaration
+  const googleAPIClient = new Client({});
+
+  // Directions api test
+  const response = await googleAPIClient.directions({
+    params: {
+      origin: "Singapore 688336",
+      destination: "East Coast Park",
       mode: "driving",
       units: "metric",
-      key: apikey
+      key: process.env.GOOGLE_MAPS_API_KEY
     }
-  }, defaultAxiosInstance)
-  .then(response => {
-    res.status(200).json(response.data);
-    // res.status(200).json(response.data.routes[0].legs[0].distance.value);
-  })
-  .catch(err => {
-    console.log(err.response.data);
-  })
+  }, defaultAxiosInstance);
 
+  const durationTaken = response.data.routes[0].legs[0].duration;
+  const timeString = Math.floor(durationTaken.value / 60) + ":" + durationTaken.value % 60;
+
+  console.log(timeString);
+  const convertedTime = datetime_T.transform(timeString, 'mm:ss', 'HH:mm:ss');
+
+  res.status(200).send(convertedTime);
+}));
   // For geocoding
   // apiClient.geocode({
   //   params: {
@@ -630,7 +673,7 @@ router.get('/testapi', (req, res) => {
   // .catch(err => {
   //   console.log(err)
   // })
-});
+
 
 /****************************************************************************
  * Testing the map services google api                                      *

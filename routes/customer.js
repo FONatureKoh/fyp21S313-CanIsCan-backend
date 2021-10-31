@@ -385,7 +385,6 @@ router.post('/submitorder', (req, res) => {
   // when sending an email to the customer, with the items and order details, and 
   // delivery time.
 
-
   // First things for this, first we need to get the Customer's name
   var sqlGetInfoQuery = `SELECT customer_ID, first_name, last_name FROM customer_user `;
   sqlGetInfoQuery += `WHERE cust_username="${username}"`;

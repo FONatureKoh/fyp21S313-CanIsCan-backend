@@ -21,9 +21,11 @@ const { Client, defaultAxiosInstance } = require('@googlemaps/google-maps-servic
 // Email Modules
 const sendMail = require('../models/email_model');
 const { sendSubUserEmail } = require('../models/credentials_email_template');
+const { sendCustomerOrder, sendToRestaurant } = require('../models/order_email_template');
 
 // Middle Ware stuffs
 const authTokenMiddleware = require('../middleware/authTokenMiddleware');
+const asyncHandler = require('express-async-handler');
 
 // Stripe stuffs
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
@@ -54,50 +56,47 @@ router.get('/singleRestaurantInfo/:restID', (req, res) => {
 		else {
       // Since the result is an Array, we will need to transform accordingly
       // using the for each array element method
-      let restaurantsArray = [];
+      // 2. We need to transform 2 things:
+      //		- Time	
+      var rest_op_hours = datetime_T.transform(results[0].rest_opening_time, 'HH:mm:ss', 'hh:mm A');
+      rest_op_hours += ' to ' + datetime_T.transform(results[0].rest_closing_time, 'HH:mm:ss', 'hh:mm A');
 
-      results.forEach(restaurant => {
-        // 2. We need to transform 2 things:
-        //		- Time	
-        var rest_op_hours = datetime_T.transform(restaurant.rest_opening_time, 'HH:mm:ss', 'hh:mm A');
-        rest_op_hours += ' to ' + datetime_T.transform(restaurant.rest_closing_time, 'HH:mm:ss', 'hh:mm A');
+      //		- Tags
+      var rest_tags = [];
 
-        //		- Tags
-        var rest_tags = [];
+      if (results[0].rest_tag_1) 
+        rest_tags.push(results[0].rest_tag_1);
 
-        if (restaurant.rest_tag_1) 
-          rest_tags.push(restaurant.rest_tag_1);
+      if (results[0].rest_tag_2) 
+        rest_tags.push(results[0].rest_tag_2);
 
-        if (restaurant.rest_tag_2) 
-          rest_tags.push(restaurant.rest_tag_2);
+      if (results[0].rest_tag_3) 
+        rest_tags.push(results[0].rest_tag_3);
 
-        if (restaurant.rest_tag_3) 
-          rest_tags.push(restaurant.rest_tag_3);
-
-        // 3. Then we send the other necessary information together with it back to the frontend
-        // in json format
-        const restaurantProfileData = {
-          restaurant_ID: restaurant.restaurant_ID,
-          restaurant_name: restaurant.restaurant_name,
-          rest_rgm_username: restaurant.rest_rgm_username,
-          rest_banner_ID: restaurant.rest_banner_ID,
-          rest_op_hours: rest_op_hours,
-          rest_phone_no: restaurant.rest_phone_no,
-          rest_address_info: restaurant.rest_address_info,
-          rest_postal_code: restaurant.rest_postal_code,
-          rest_tags: rest_tags,
-          rest_rating: restaurant.rest_rating,
-          rest_status: restaurant.rest_status,
-          rest_opening_time: restaurant.rest_opening_time,
-          rest_closing_time: restaurant.rest_closing_time,
-          rest_tag_1: restaurant.rest_tag_1, 
-          rest_tag_2: restaurant.rest_tag_2,
-          rest_tag_3: restaurant.rest_tag_3
-        }
-        
-        // Send back to the frontend
-        res.status(200).send(restaurantProfileData);
-      });
+      // 3. Then we send the other necessary information together with it back to the frontend
+      // in json format
+      const restaurantProfileData = {
+        restaurant_ID: results[0].restaurant_ID,
+        restaurant_name: results[0].restaurant_name,
+        rest_rgm_username: results[0].rest_rgm_username,
+        rest_banner_ID: results[0].rest_banner_ID,
+        rest_op_hours: rest_op_hours,
+        rest_phone_no: results[0].rest_phone_no,
+        rest_email: results[0].rest_email,
+        rest_address_info: results[0].rest_address_info,
+        rest_postal_code: results[0].rest_postal_code,
+        rest_tags: rest_tags,
+        rest_rating: results[0].rest_rating,
+        rest_status: results[0].rest_status,
+        rest_opening_time: results[0].rest_opening_time,
+        rest_closing_time: results[0].rest_closing_time,
+        rest_tag_1: results[0].rest_tag_1, 
+        rest_tag_2: results[0].rest_tag_2,
+        rest_tag_3: results[0].rest_tag_3
+      }
+      
+      // Send back to the frontend
+      res.status(200).send(restaurantProfileData);;
 		}
 	})
 });
@@ -368,17 +367,56 @@ router.post('/submitreview', (req, res) => {
 /****************************************************************************
  * Submit an order to the system                                            *
  ****************************************************************************/
-router.post('/submitorder', (req, res) => {
+// Async function to send email to both customer and restaurant
+async function sendingOrderEmail(restEmail, custEmail, custName, restName, 
+  deliveryAddress, deliveryPostal, datetime, doID, etd, orderItems, total) {
+    try {
+      // Construct the email for customer
+      const custMailOptions = await sendCustomerOrder(custEmail, restName, custName,
+        deliveryAddress, deliveryPostal, datetime, doID, etd, orderItems, total);
+
+      const restMailOptions = await sendToRestaurant(restEmail, restName, custName,
+        deliveryAddress, deliveryPostal, datetime, doID, orderItems, total);
+      
+      // Send the email to the customer
+      const custResponse = await sendMail(custMailOptions);
+      
+      console.log("An attempt was made to send an email to a customer with the following result:");
+      console.log(custResponse);
+
+      // Send the email to the restaurant administrator
+      const restResponse = await sendMail(restMailOptions);
+      
+      console.log("An attempt was made to send an email to a restaurant with the following result:");
+      console.log(restResponse);
+
+      // API response
+      if (custResponse.response.include("OK") && restResponse.response.include("OK")) {
+        return "success";
+      }
+      else {
+        return "fail";
+      }
+    }
+    catch (err) {
+      return err;
+    }
+};
+
+router.post('/submitorder', asyncHandler(async (req, res, next) => {
 	// Save some important variables
 	const { username } = res.locals.userData;
-  const { doID, restID, restName, orderDateTime, address, floorunit, postalCode,
+  const { doID, restID, restName, restEmail, orderDateTime, address, floorunit, postalCode,
     companyName, deliveryNote, totalCost, orderItems} = req.body;
 
   // Transform date to sql formate
-  const sqlOrderDateTime = datetime_T.format(new Date(orderDateTime), "YYYY-MM-DD HH:mm:ss");
+  const sqlOrderDateTime = datetime_T.format(new Date(orderDateTime), 'YYYY-MM-DD HH:mm:ss');
   const sqlTotalCost = parseFloat(totalCost).toFixed(2);
 
-  console.log(req.body);
+  // Transform date for customer and restaurant email
+  const readableDate = datetime_T.format(new Date(orderDateTime), 'DD MMM YYYY, hh:mm A');
+
+  // console.log(req.body);
 
   // We're trying to submit an order here. This has 3 parts. One is to create the 
   // order first in the table. Then to put the items into the items table, and end off
@@ -386,57 +424,114 @@ router.post('/submitorder', (req, res) => {
   // delivery time.
 
   // First things for this, first we need to get the Customer's name
-  var sqlGetInfoQuery = `SELECT customer_ID, first_name, last_name FROM customer_user `;
-  sqlGetInfoQuery += `WHERE cust_username="${username}"`;
+  var sqlGetInfoQuery = `SELECT customer_ID, first_name, last_name, email `;
+  sqlGetInfoQuery += `FROM customer_user WHERE cust_username="${username}"`;
   
-  dbconn.query(sqlGetInfoQuery, function(err, results, fields){
+  dbconn.getConnection(function(err, conn) {
     if (err) {
       console.log(err);
     }
     else {
-      // console.log(results);
-      const custID = results[0].customer_ID
-      const fullName = results[0].first_name + " " + results[0].last_name;
-
-      // 1. We create the query for insert into order table, and query
-      var sqlInsertQuery = "INSERT INTO delivery_order(`order_ID`, `o_cust_ID`, `o_rest_ID`, ";
-      sqlInsertQuery += "`o_cust_name`, `o_rest_name`, `o_datetime`, `delivery_address`, ";
-      sqlInsertQuery += "`delivery_floorunit`, `delivery_postal_code`, `delivery_note`, ";
-      sqlInsertQuery += "`total_cost`, `order_delivery_time`, `order_status`, `payment_status`)";
-      sqlInsertQuery += `VALUES ("${doID}", ${custID}, ${restID}, "${fullName}", "${restName}", "${sqlOrderDateTime}", `;
-      sqlInsertQuery += `"${address}", "${floorunit}", ${postalCode},"${deliveryNote}", ${sqlTotalCost}, "0:30:00", "Pending", 1)`;
-
-      dbconn.query(sqlInsertQuery, function(err, results, fields){
+      conn.query(sqlGetInfoQuery, function(err, results, fields){
         if (err) {
           console.log(err);
         }
         else {
-          console.log(results);
-          for (var x in orderItems) {
-            const item = JSON.parse(orderItems[x]);
-            console.log(JSON.parse(orderItems[x]));
+          // console.log(results);
+          const custID = results[0].customer_ID
+          const fullName = results[0].first_name + " " + results[0].last_name;
+          const custEmail = results[0].email;
 
-            var sqlInsertQuery = "INSERT INTO do_item(`do_order_ID`, `do_rest_item_ID`, ";
-            sqlInsertQuery += "`do_item_name`, `do_item_price`, `do_item_qty`, `special_order`) ";
-            sqlInsertQuery += `VALUES ("${doID}", ${item.itemID}, "${item.itemName}", ${item.itemPrice}, ${item.itemQty}, "NIL")`;
+          // 1. We create the query for insert into order table, and query
+          var sqlInsertQuery = "INSERT INTO delivery_order(`order_ID`, `o_cust_ID`, `o_rest_ID`, ";
+          sqlInsertQuery += "`o_cust_name`, `o_rest_name`, `o_datetime`, `delivery_address`, ";
+          sqlInsertQuery += "`delivery_floorunit`, `delivery_postal_code`, `delivery_note`, ";
+          sqlInsertQuery += "`total_cost`, `order_delivery_time`, `order_status`, `payment_status`)";
+          sqlInsertQuery += `VALUES ("${doID}", ${custID}, ${restID}, "${fullName}", "${restName}", "${sqlOrderDateTime}", `;
+          sqlInsertQuery += `"${address}", "${floorunit}", ${postalCode},"${deliveryNote}", ${sqlTotalCost}, "0:30:00", "Pending", 1)`;
 
-            dbconn.query(sqlInsertQuery, function(err, results, fields) {
-              if (err) {
-                console.log(err);
+          conn.query(sqlInsertQuery, function (err, results, fields){
+            if (err){
+              console.log(err);
+            }
+            else {
+              // If the Order is successfully created, then we can insert all the Order Items into the database.
+              // We first check if the OrderItems have multiple items, or if the user is just ordering 1 item
+              // If multiple items, proceed
+              if (Array.isArray(orderItems) == true) {
+                for (let x in orderItems) {
+                  const item = JSON.parse(orderItems[x]);
+                  console.log(JSON.parse(orderItems[x]));
+
+                  var sqlInsertItemsQuery = "INSERT INTO do_item(`do_order_ID`, `do_rest_item_ID`, ";
+                  sqlInsertItemsQuery += "`do_item_name`, `do_item_price`, `do_item_qty`, `special_order`) ";
+                  sqlInsertItemsQuery += `VALUES ("${doID}", ${item.itemID}, "${item.itemName}", ${item.itemPrice}, ${item.itemQty}, "NIL")`;
+
+                  conn.query(sqlInsertItemsQuery, function(err, results, fields) {
+                    if (err) {
+                      console.log(err);
+                    }
+                    else {
+                      // console.log(results);
+                      // Check if its the last item 
+                      if (Number(x) == (orderItems.length - 1)) {
+                        console.log("OrderItems Finished!");
+
+                        // Release the connection
+                        conn.release();
+
+                        sendingOrderEmail(restEmail, custEmail, fullName, restName, address,
+                          postalCode, readableDate, doID, "20 mins", orderItems, sqlTotalCost)
+                          .then((response) => {
+                            if (response == "success") {
+                              res.status(200).send({api_msg: "Your order has been made successfully. Please check your email for confirmation!"});
+                            }
+                            else {
+                              res.status(200).send({api_msg: "Something went wrong, please contact an administrator."});
+                            }  
+                          });
+                      };
+                    };
+                  });
+                };
               }
+              // Else we treat it as a single item
               else {
-                console.log(results);
-              }
-            });
-          }
-        }
-      })
-      // 3. Send the email to the customer accordingly
-    }
-  });
+                const item = JSON.parse(orderItems);
+                console.log(JSON.parse(orderItems));
 
-  res.status(200).send("yea something happened");
-});
+                var sqlInsertItemsQuery = "INSERT INTO do_item(`do_order_ID`, `do_rest_item_ID`, ";
+                sqlInsertItemsQuery += "`do_item_name`, `do_item_price`, `do_item_qty`, `special_order`) ";
+                sqlInsertItemsQuery += `VALUES ("${doID}", ${item.itemID}, "${item.itemName}", ${item.itemPrice}, ${item.itemQty}, "NIL")`;
+
+                conn.query(sqlInsertItemsQuery, function(err, results, fields) {
+                  if (err) {
+                    console.log(err);
+                  }
+                  else {
+                    // Release the connection
+                    conn.release();
+
+                    sendingOrderEmail(restEmail, custEmail, fullName, restName, address,
+                      postalCode, readableDate, doID, "20 mins", orderItems, sqlTotalCost)
+                      .then((response) => {
+                        if (response == "success") {
+                          res.status(200).send({api_msg: "Your order has been made successfully. Please check your email for confirmation!"});
+                        }
+                        else {
+                          res.status(200).send({api_msg: "Something went wrong, please contact an administrator."});
+                        }                        
+                      });
+                  };
+                });// Closing nested query
+              };
+            };
+          }); // Closing 2nd query to same connection
+        };
+      }); // Closing first query
+    };
+  }); // this closes the connection pool
+}));
 
 /****************************************************************************
  * Testing the map services google api                                      *

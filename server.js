@@ -1,6 +1,6 @@
 require('dotenv').config();
 const dbconn = require('./models/db_model.js');
-const sendMail = require('./models/credentials_email_template');
+const sendMail = require('./models/email_model.js');
 const express = require('express');
 const app = express();
 const cors = require('cors');

@@ -420,6 +420,8 @@ router.post('/submitorder', asyncHandler(async (req, res, next) => {
   // Construct data 
   const custAddress = address + ", Singapore " + postalCode;
 
+  console.log(restAddress);
+  console.log(custAddress);
   // Directions api to get duration
   const directionsResponse = await googleAPIClient.directions({
     params: {
@@ -433,9 +435,9 @@ router.post('/submitorder', asyncHandler(async (req, res, next) => {
 
   // Estimated Delivery Time
   const durationTaken = directionsResponse.data.routes[0].legs[0].duration;
-  const timeString = Math.floor(durationTaken.value / 60) + ":" + durationTaken.value % 60;
+  const timeString = new Date(durationTaken.value * 1000).toISOString().substr(11, 8);
 
-  const etd = datetime_T.transform(timeString, 'mm:ss', 'HH:mm:ss');
+  const etd = timeString;
 
   console.log(etd);
 
@@ -554,7 +556,7 @@ router.post('/submitorder', asyncHandler(async (req, res, next) => {
 }));
 
 /****************************************************************************
- * Testing the map services google api                                      *
+ * STRIPE CHECKOUT
  ****************************************************************************/
 router.post('/checkout', async(req, res) => {
   // console.log("Request:", req.body);
@@ -626,7 +628,7 @@ router.get('/verifyCustAddress/:address', asyncHandler(async (req, res, next) =>
     }
   }, defaultAxiosInstance);
 
-  console.log(response);
+  console.log(response.data);
 
   res.status(200).json(response.data);
 }));
@@ -641,8 +643,8 @@ router.get('/testapi', asyncHandler(async (req, res, next) => {
   // Directions api test
   const response = await googleAPIClient.directions({
     params: {
-      origin: "Singapore 688336",
-      destination: "East Coast Park",
+      origin: "Blk 111 Ang Mo Kio #01-01, Singapore 560111",
+      destination: "1 King Albert Park, Singapore 598389",
       mode: "driving",
       units: "metric",
       key: process.env.GOOGLE_MAPS_API_KEY
@@ -650,12 +652,9 @@ router.get('/testapi', asyncHandler(async (req, res, next) => {
   }, defaultAxiosInstance);
 
   const durationTaken = response.data.routes[0].legs[0].duration;
-  const timeString = "00:" + Math.floor(durationTaken.value / 60) + ":" + durationTaken.value % 60;
+  const convertedTimeStamp = new Date(durationTaken.value * 1000).toISOString().substr(11, 8);
 
-  console.log(timeString);
-  const convertedTime = datetime_T.transform(timeString, 'HH:mm:ss', 'm');
-
-  res.status(200).send(convertedTime);
+  res.status(200).send(convertedTimeStamp);
 }));
 
 /****************************************************************************

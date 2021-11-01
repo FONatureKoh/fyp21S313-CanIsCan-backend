@@ -7,7 +7,7 @@ const dbconn = require('../models/db_model');
 
 // General Imports
 const { v4: uuidv4 } = require('uuid');
-const date = require('date-and-time');
+const datetime_T = require('date-and-time');
 const pw_gen = require('generate-password');
 const fs = require('fs');
 const path = require('path');
@@ -21,6 +21,8 @@ const { sendSubUserEmail } = require('../models/credentials_email_template');
 
 // Middle Ware stuffs
 const authTokenMiddleware = require('../middleware/authTokenMiddleware');
+const asyncHandler = require('express-async-handler');
+const { resolve } = require('path');
 
 /**************************************************************************
  * Router Middlewares and parsers																					*
@@ -909,7 +911,7 @@ router
 	});
 
 
-module.exports = router;
+
 
 /****************************************************************************
  * Everything below is for the subuser 																			*
@@ -918,7 +920,7 @@ module.exports = router;
  * */
 
 /****************************************************************************
- * Reservations Manager (RM): Retrieve all the pending delivery 
+ * Deliveries Manager (DM): Retrieve all the pending delivery 
  * orders for that restaurant             
  ****************************************************************************/
 router.get('/pendingdeliveryorders', (req, res) => {
@@ -955,7 +957,7 @@ router.get('/pendingdeliveryorders', (req, res) => {
 });
 
 /****************************************************************************
- * Reservations Manager (RM):  Retrieve all the ongoing delivery 
+ * Deliveries Manager (DM):  Retrieve all the ongoing delivery 
  * orders for that restaurant           
  ****************************************************************************/
 router.get('/ongoingdeliveryorders', (req, res) => {
@@ -992,8 +994,8 @@ router.get('/ongoingdeliveryorders', (req, res) => {
 });
 
 /****************************************************************************
- * Reservations Manager (RM): Retrieve all the fufilled delivery 
- * orders for that restaurant            *
+ * Deliveries Manager (DM): Retrieve all the fufilled delivery 
+ * orders for that restaurant            
  ****************************************************************************/
 router.get('/fulfilledorders', (req, res) => {
 	// Save the restaurantID first from the URL
@@ -1029,7 +1031,7 @@ router.get('/fulfilledorders', (req, res) => {
 });
 
 /****************************************************************************
- * Reservations Manager (RM): Retrieves all the items of that order		
+ * Deliveries Manager (DM): Retrieves all the items of that order		
  ****************************************************************************/
 router.get('/doitems/:orderID', (req, res) => {
 	// Save the restaurantID first from the URL
@@ -1051,7 +1053,7 @@ router.get('/doitems/:orderID', (req, res) => {
 });
 
 /****************************************************************************
- * Reservations Manager (RM): Updates order status for order
+ * Deliveries Manager (DM): Updates order status for order
  ****************************************************************************/
 router.get('/updateorderstatus/:orderID/:orderStatus', (req, res) => {
 	// Save the restaurantID first from the URL
@@ -1075,6 +1077,348 @@ router.get('/updateorderstatus/:orderID/:orderStatus', (req, res) => {
   }) // close first query
 });
 
+/****************************************************************************
+ * Reservations Manager (RM): Retrieve all pending reservations
+ ****************************************************************************/
+router.get('/pendingreservations', asyncHandler(async (req, res, next) => {
+	// Get the username first from the token
+	const { username } = res.locals.userData;
+
+	// Other important variables
+	var reservationsArray = [];
+
+	// We're trying a new way of retrieving all the data, so that the server send the data back
+	// already transformed and we treat it as a result OK status response
+	// 1. First we need to get the restaurant's ID 
+	var sqlGetIDQuery = `SELECT subuser_rest_ID FROM restaurant_subuser `;
+  sqlGetIDQuery += `WHERE subuser_username="${username}"`;
+
+	const subuser_query_results = await new Promise((resolve, reject) => {
+		dbconn.query(sqlGetIDQuery, function(err, results, fields) {
+			if (err) {
+				console.log(err);
+				reject(err);
+			}
+			else {
+				resolve(results[0]);
+			}
+		});
+	});
+
+	const restID = subuser_query_results.subuser_rest_ID;
+	
+	// 2. With the restaurant ID, we can then select all the details from the reservation's table
+	// and construct a temp JSON, and also save the reservation ID
+	// First check for the date today
+	var sqlGetReservations = `SELECT * FROM cust_reservation WHERE cr_rest_ID=${restID} `;
+	sqlGetReservations += `AND DATE(cr_date) >= DATE(NOW()) `
+	sqlGetReservations += `AND cr_status="Pending"`;
+
+	const reservations = await new Promise((resolve, reject) => {
+		dbconn.query(sqlGetReservations, function(err, results, fields) {
+			if (err) {
+				console.log(err);
+				reject(err);
+			}
+			else {
+				resolve(results);
+			}
+		})
+	});
+
+	// 3. With the reservation ID, we can then get the IDs by looking for the pre-order ID (if any)
+	// and then construct an items array to send back in an array.
+	for (let reservation of reservations) {
+		// console.log(reservation);
+		const reservation_ID = reservation.cust_reservation_ID;
+
+		// Gets all the PO items
+		var sqlGetPOItems = `SELECT * FROM pre_order JOIN pre_order_item `;
+		sqlGetPOItems += `ON po_ID=po_order_ID `;
+		sqlGetPOItems += `WHERE po_crID="${reservation_ID}"`;
+
+		// Await query for the items
+		const po_items = await new Promise((resolve, reject) => {
+			dbconn.query(sqlGetPOItems, function(err, results, fields) {
+				if (err) { 
+					console.log(err);
+					reject(err);
+				}
+				else {
+					resolve(results);
+				}
+			});
+		});
+
+		// Some conversions
+		// NOTE: Got to convert date to localstring
+		const reservationDate = new Date(reservation.cr_date);
+		const pattern = datetime_T.compile('ddd, DD MMM YYYY');
+		const convertedDate = datetime_T.format(reservationDate, pattern);
+
+		// NOTE: Convert the timeslot to AM PM
+		const convertedTime = datetime_T.transform(reservation.cr_timeslot, 'HH:mm:ss', 'h:mm A');
+
+		// Some important Variables
+		var tempItemsArray = [];
+
+		if (po_items.length != 0) {
+			for (let item of po_items) {
+				var tempJSON = {
+					itemID: item.po_rest_item_ID,
+					itemName: item.po_item_name,
+					itemPrice: item.po_item_price,
+					itemQty: item.po_item_qty,
+					itemSO: item.special_order
+				}
+				tempItemsArray.push(tempJSON);
+			}
+		}
+
+		if (tempItemsArray.length != 0) {
+			// NOTE: since the selected pre-order items will belong to the same PO, it is okay to
+			// take just the first result's order details
+			var tempJSON = {
+				cust_RID: reservation.cust_reservation_ID,
+				cust_name: reservation.cr_custname,
+				pax: reservation.cr_pax,
+				date: convertedDate,
+				timeslot: convertedTime,
+				po_ID: po_items[0].po_ID,
+				po_status: po_items[0].po_status,
+				po_total_cost: po_items[0].total_cost,
+				po_items: tempItemsArray,
+				reservation_status: reservation.cr_status,
+				reservation_madeon: reservation.cr_datetime_made
+			};
+			
+			reservationsArray.push(tempJSON);
+		}
+		else {
+			var tempJSON = {
+				cust_RID: reservation.cust_reservation_ID,
+				cust_name: reservation.cust_name,
+				pax: reservation.cr_pax,
+				date: convertedDate,
+				timeslot: convertedTime,
+				po_items: "none",
+				reservation_madeon: reservation.cr_datetime_made
+			};
+			
+			reservationsArray.push(tempJSON);
+		}
+	}
+	res.status(200).send(reservationsArray);
+}));
+
+/****************************************************************************
+ * Reservations Manager (RM): Retrieve all pending reservations
+ ****************************************************************************/
+router.get('/ongoingreservations', asyncHandler(async (req, res, next) => {
+	// Get the username first from the token
+	const { username } = res.locals.userData;
+
+	// Other important variables
+	var reservationsArray = [];
+
+	// We're trying a new way of retrieving all the data, so that the server send the data back
+	// already transformed and we treat it as a result OK status response
+	// 1. First we need to get the restaurant's ID 
+	var sqlGetIDQuery = `SELECT subuser_rest_ID FROM restaurant_subuser `;
+  sqlGetIDQuery += `WHERE subuser_username="${username}"`;
+
+	const subuser_query_results = await new Promise((resolve, reject) => {
+		dbconn.query(sqlGetIDQuery, function(err, results, fields) {
+			if (err) {
+				console.log(err);
+				reject(err);
+			}
+			else {
+				resolve(results[0]);
+			}
+		});
+	});
+
+	const restID = subuser_query_results.subuser_rest_ID;
+	
+	// 2. With the restaurant ID, we can then select all the details from the reservation's table
+	// and construct a temp JSON, and also save the reservation ID
+	// First check for the date today
+	var sqlGetReservations = `SELECT * FROM cust_reservation WHERE cr_rest_ID=${restID} `;
+	sqlGetReservations += `AND cr_status="Arrived"`;
+
+	const reservations = await new Promise((resolve, reject) => {
+		dbconn.query(sqlGetReservations, function(err, results, fields) {
+			if (err) {
+				console.log(err);
+				reject(err);
+			}
+			else {
+				resolve(results);
+			}
+		})
+	});
+
+	// 3. With the reservation ID, we can then get the IDs by looking for the pre-order ID (if any)
+	// and then construct an items array to send back in an array.
+	for (let reservation of reservations) {
+		// console.log(reservation);
+		const reservation_ID = reservation.cust_reservation_ID;
+
+		// Gets all the PO items
+		var sqlGetPOItems = `SELECT * FROM pre_order JOIN pre_order_item `;
+		sqlGetPOItems += `ON po_ID=po_order_ID `;
+		sqlGetPOItems += `WHERE po_crID="${reservation_ID}"`;
+
+		// Await query for the items
+		const po_items = await new Promise((resolve, reject) => {
+			dbconn.query(sqlGetPOItems, function(err, results, fields) {
+				if (err) { 
+					console.log(err);
+					reject(err);
+				}
+				else {
+					resolve(results);
+				}
+			});
+		});
+
+		// Some conversions
+		// NOTE: Got to convert date to localstring
+		const reservationDate = new Date(reservation.cr_date);
+		const pattern = datetime_T.compile('ddd, DD MMM YYYY');
+		const convertedDate = datetime_T.format(reservationDate, pattern);
+
+		// NOTE: Convert the timeslot to AM PM
+		const convertedTime = datetime_T.transform(reservation.cr_timeslot, 'HH:mm:ss', 'h:mm A');
+
+		// Some important Variables
+		var tempItemsArray = [];
+
+		if (po_items.length != 0) {
+			for (let item of po_items) {
+				var tempJSON = {
+					itemID: item.po_rest_item_ID,
+					itemName: item.po_item_name,
+					itemPrice: item.po_item_price,
+					itemQty: item.po_item_qty,
+					itemSO: item.special_order
+				}
+				tempItemsArray.push(tempJSON);
+			}
+		}
+
+		if (tempItemsArray.length != 0) {
+			// NOTE: since the selected pre-order items will belong to the same PO, it is okay to
+			// take just the first result's order details
+			var tempJSON = {
+				cust_RID: reservation.cust_reservation_ID,
+				cust_name: reservation.cr_custname,
+				pax: reservation.cr_pax,
+				date: convertedDate,
+				timeslot: convertedTime,
+				po_ID: po_items[0].po_ID,
+				po_status: po_items[0].po_status,
+				po_total_cost: po_items[0].total_cost,
+				po_items: tempItemsArray,
+				reservation_status: reservation.cr_status,
+				reservation_madeon: reservation.cr_datetime_made
+			};
+			
+			reservationsArray.push(tempJSON);
+		}
+		else {
+			var tempJSON = {
+				cust_RID: reservation.cust_reservation_ID,
+				cust_name: reservation.cust_name,
+				pax: reservation.cr_pax,
+				date: convertedDate,
+				timeslot: convertedTime,
+				po_items: "none",
+				reservation_madeon: reservation.cr_datetime_made
+			};
+			
+			reservationsArray.push(tempJSON);
+		}
+	}
+	res.status(200).send(reservationsArray);
+}));
+
+/****************************************************************************
+ * Deliveries Manager (DM): Updates order status for order
+ ****************************************************************************/
+router.get('/updatereservationstatus/:reservationID/:reservationStatus', (req, res) => {
+	// Save the restaurantID first from the URL
+	const { username } = res.locals.userData;
+  const reservationID = req.params.reservationID;
+	const reservationStatus = req.params.reservationStatus;
+
+	console.log(reservationID, reservationStatus);
+
+  // 1. Get the customer's ID from the customer_users table
+  var sqlGetIDQuery = `UPDATE cust_reservation SET cr_status="${reservationStatus}" `;
+  sqlGetIDQuery += `WHERE cust_reservation_ID="${reservationID}"`;
+
+  dbconn.query(sqlGetIDQuery, function(error, results, fields){
+    if (error) {
+      res.status(200).send({ api_msg: "MySQL " + error });
+    }
+    else{
+      res.status(200).send({ api_msg: `Successful update for Reservation ${reservationID}` });
+    }
+  }) // close first query
+});
+
+/****************************************************************************
+ * Deliveries Manager (DM): Updates order status for order
+ ****************************************************************************/
+router.get('/updatepostatus/:poid/:postatus', asyncHandler (async (req, res) => {
+	// Save the restaurantID first from the URL
+	const { username } = res.locals.userData;
+  const poid = req.params.poid;
+	const postatus = req.params.postatus;
+
+	console.log(poid, postatus);
+
+	// Get the pre-order's customer reservation ID
+	var sqlGetCRID = `SELECT po_crID FROM pre_order WHERE po_ID=${poid}`;
+
+	const getResponse = await new Promise((resolve, reject) => {
+		dbconn.query(sqlGetCRID, function(err, results, fields){
+			if (err) reject(err);
+			resolve(results);
+		});
+	});
+
+	const po_crID = getResponse[0].po_crID;
+
+  // 1. Get the customer's ID from the customer_users table
+  var sqlGetIDQuery = `UPDATE pre_order SET po_status="${postatus}" `;
+  sqlGetIDQuery += `WHERE po_ID=${poid}`;
+
+  dbconn.query(sqlGetIDQuery, function(error, results, fields){
+    if (error) {
+      res.status(200).send({ 
+				api_msg: "MySQL " + error,
+				updateStatus: "fail"
+			 });
+    }
+    else{
+      res.status(200).send({ 
+				api_msg: `Successful update for reservation ${po_crID} with PO_ID ${poid}`,
+				updateStatus: `success`
+			 });
+    }
+  }) // close first query
+}));
+
+/*******************************************************************************************
+ * NO ROUTES FUNCTIONS OR DECLARATIONS BELOW THIS DIVIDER 
+ *******************************************************************************************
+ * You only export and do nothing else here
+ */
+
+module.exports = router;
 /*  */
 // router.param('subuser_ID', (req, res, next, subuser_ID) => {
 // 	// console.log(subuser_ID);

@@ -309,8 +309,8 @@ router
 				// 1. First, understand that the results form both tables together.
 				// 2. We need to transform 2 things:
 				//		- Time
-				var rest_op_hours = date.transform(results[0].rest_opening_time, 'HH:mm:ss', 'hh:mm A');
-				rest_op_hours += ' to ' + date.transform(results[0].rest_closing_time, 'HH:mm:ss', 'hh:mm A');
+				var rest_op_hours = datetime_T.transform(results[0].rest_opening_time, 'HH:mm:ss', 'hh:mm A');
+				rest_op_hours += ' to ' + datetime_T.transform(results[0].rest_closing_time, 'HH:mm:ss', 'hh:mm A');
 
 				//		- Tags
 				var rest_tags = [];
@@ -1345,7 +1345,7 @@ router.get('/ongoingreservations', asyncHandler(async (req, res, next) => {
 }));
 
 /****************************************************************************
- * Deliveries Manager (DM): Updates order status for order
+ * Reservations Manager (RM): Updates reservation status 
  ****************************************************************************/
 router.get('/updatereservationstatus/:reservationID/:reservationStatus', (req, res) => {
 	// Save the restaurantID first from the URL
@@ -1356,10 +1356,10 @@ router.get('/updatereservationstatus/:reservationID/:reservationStatus', (req, r
 	console.log(reservationID, reservationStatus);
 
   // 1. Get the customer's ID from the customer_users table
-  var sqlGetIDQuery = `UPDATE cust_reservation SET cr_status="${reservationStatus}" `;
-  sqlGetIDQuery += `WHERE cust_reservation_ID="${reservationID}"`;
+  var sqlUpdateQuery = `UPDATE cust_reservation SET cr_status="${reservationStatus}" `;
+  sqlUpdateQuery += `WHERE cust_reservation_ID="${reservationID}"`;
 
-  dbconn.query(sqlGetIDQuery, function(error, results, fields){
+  dbconn.query(sqlUpdateQuery, function(error, results, fields){
     if (error) {
       res.status(200).send({ api_msg: "MySQL " + error });
     }
@@ -1370,7 +1370,7 @@ router.get('/updatereservationstatus/:reservationID/:reservationStatus', (req, r
 });
 
 /****************************************************************************
- * Deliveries Manager (DM): Updates order status for order
+ * Reservations Manager (RM): Updates pre-order status
  ****************************************************************************/
 router.get('/updatepostatus/:poid/:postatus', asyncHandler (async (req, res) => {
 	// Save the restaurantID first from the URL
@@ -1393,10 +1393,10 @@ router.get('/updatepostatus/:poid/:postatus', asyncHandler (async (req, res) => 
 	const po_crID = getResponse[0].po_crID;
 
   // 1. Get the customer's ID from the customer_users table
-  var sqlGetIDQuery = `UPDATE pre_order SET po_status="${postatus}" `;
-  sqlGetIDQuery += `WHERE po_ID=${poid}`;
+  var sqlUpdateQuery = `UPDATE pre_order SET po_status="${postatus}" `;
+  sqlUpdateQuery += `WHERE po_ID=${poid}`;
 
-  dbconn.query(sqlGetIDQuery, function(error, results, fields){
+  dbconn.query(sqlUpdateQuery, function(error, results, fields){
     if (error) {
       res.status(200).send({ 
 				api_msg: "MySQL " + error,
@@ -1411,6 +1411,89 @@ router.get('/updatepostatus/:poid/:postatus', asyncHandler (async (req, res) => 
     }
   }) // close first query
 }));
+
+/****************************************************************************
+ * Deliveries Manager (DM): Updates order status for order
+ ****************************************************************************/
+router.route('/reservationSettings')
+	.get((req, res) => {
+		// Save the restaurantID first from the URL
+		const { username } = res.locals.userData;
+
+		// 1. Get the restaurant's ID from the subuser type
+		var sqlGetQuery = `SELECT subuser_rest_ID FROM restaurant_subuser `;
+		sqlGetQuery += `WHERE subuser_username="${username}"`;
+
+		dbconn.getConnection(function(err, conn){
+			if (err) {
+				console.log(err); 
+				res.status(200).send("MySQL " + err);
+			}
+
+			conn.query(sqlGetQuery, function(err, results, fields) {
+				if (err) {
+					console.log(err);
+					res.status(400).send("MySQL " + err);
+				}
+				else {
+					const restID = results[0].subuser_rest_ID;
+
+					// 2. Use this ID to retrieve the reservation settings from MySQL
+					var sqlGetSettings = `SELECT * FROM rest_reservation_setting JOIN restaurant `;
+					sqlGetSettings += `ON rrs_rest_ID=restaurant_ID WHERE rrs_rest_ID=${restID}`;
+
+					conn.query(sqlGetSettings, function(err, results, fields) {
+						if (err) {
+							console.log(err);
+							res.status(400).send({ 
+								api_msg: "Unable to retrieve settings.",
+								mysql_err: err
+							});
+						}
+						else {
+							var tempJSON = {
+								rest_opening_time: results[0].rest_opening_time, 
+								rest_closing_time: results[0].rest_closing_time, 
+								rrs_ID: results[0].rrs_ID, 
+								rrs_rest_ID: results[0].rrs_rest_ID, 
+								rrs_rest_name: results[0].rrs_rest_name, 
+								reservation_interval: results[0].reservation_interval, 
+								reservation_starttime: results[0].reservation_starttime, 
+								reservation_endtime: results[0].reservation_endtime, 
+								max_tables: results[0].max_tables
+							}
+							res.status(200).send(tempJSON);
+							conn.release();
+						}
+					}); // Close nested Query
+				}
+			}); // Close first query
+		}); // Get an open connection	
+	})
+	.put((req,res) => {
+		// Get some constants from the req parameters
+		const {
+			settingsID, restID, startTime, endTime, reservationIntervals, noOfTables
+		} = req.body
+
+		console.log(req.body);
+
+		// First we verify that the restaurant's opening and closing time has not been exceeded and also
+		// make sure that the selected starttime and end time is okay
+
+		var sqlUpdateQuery = `UPDATE rest_reservation_setting SET `;
+		sqlUpdateQuery += `reservation_starttime="${startTime}", reservation_endtime="${endTime}", `;
+		sqlUpdateQuery += `reservation_interval=${reservationIntervals}, max_tables=${noOfTables} `;
+		sqlUpdateQuery += `WHERE rrs_ID=${settingsID}`;
+
+		dbconn.query(sqlUpdateQuery, function(err, results, fields) {
+			if (err) console.log(err);
+
+			// Check results
+			console.log(results);
+			res.status(200).send({ api_msg: "success" });
+		})
+	})
 
 /*******************************************************************************************
  * NO ROUTES FUNCTIONS OR DECLARATIONS BELOW THIS DIVIDER 

@@ -70,4 +70,9 @@ router.get("/username", authenticateToken, (req, res) => {
   });
 });
 
+/*******************************************************************************************
+ * NO ROUTES FUNCTIONS OR DECLARATIONS BELOW THIS DIVIDER 
+ *******************************************************************************************
+ * You only export and do nothing else here
+ */
 module.exports = router;

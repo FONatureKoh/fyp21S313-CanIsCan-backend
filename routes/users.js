@@ -602,4 +602,9 @@ router.param("username", (req, res, next, username) => {
 	next();
 });
 
+/*******************************************************************************************
+ * NO ROUTES FUNCTIONS OR DECLARATIONS BELOW THIS DIVIDER 
+ *******************************************************************************************
+ * You only export and do nothing else here
+ */
 module.exports = router;

@@ -739,5 +739,9 @@ router.get('/availableslots/:restID/:date', (req, res) => {
   }); // Closing first query
 });
 
-// Router Export
+/*******************************************************************************************
+ * NO ROUTES FUNCTIONS OR DECLARATIONS BELOW THIS DIVIDER 
+ *******************************************************************************************
+ * You only export and do nothing else here
+ */
 module.exports = router;

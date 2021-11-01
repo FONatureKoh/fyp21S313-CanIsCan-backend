@@ -82,10 +82,9 @@ router.post("/approve/:restaurant_ID", (req, res) => {
   });  // First query
 });
 
-/****************************************************************************
- * Route Template                     																			*
- ****************************************************************************
+/*******************************************************************************************
+ * NO ROUTES FUNCTIONS OR DECLARATIONS BELOW THIS DIVIDER 
+ *******************************************************************************************
+ * You only export and do nothing else here
  */
-// router.get("/pending", (req, res) => {});
-
 module.exports = router;

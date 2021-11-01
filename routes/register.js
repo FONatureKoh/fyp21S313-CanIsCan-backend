@@ -150,4 +150,9 @@ router.post('/customer', (req, res) => {
   }); // Create app user query
 }); // Customer Register Route close
 
+/*******************************************************************************************
+ * NO ROUTES FUNCTIONS OR DECLARATIONS BELOW THIS DIVIDER 
+ *******************************************************************************************
+ * You only export and do nothing else here
+ */
 module.exports = router;

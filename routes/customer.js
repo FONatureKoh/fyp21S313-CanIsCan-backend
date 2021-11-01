@@ -420,8 +420,8 @@ router.post('/submitorder', asyncHandler(async (req, res, next) => {
   // Construct data 
   const custAddress = address + ", Singapore " + postalCode;
 
-  console.log(restAddress);
-  console.log(custAddress);
+  // console.log(restAddress);
+  // console.log(custAddress);
   // Directions api to get duration
   const directionsResponse = await googleAPIClient.directions({
     params: {
@@ -439,7 +439,7 @@ router.post('/submitorder', asyncHandler(async (req, res, next) => {
 
   const etd = timeString;
 
-  console.log(etd);
+  // console.log(etd);
 
   // We're trying to submit an order here. This has 3 parts. One is to create the 
   // order first in the table. Then to put the items into the items table, and end off
@@ -520,7 +520,7 @@ router.post('/submitorder', asyncHandler(async (req, res, next) => {
               // Else we treat it as a single item
               else {
                 const item = JSON.parse(orderItems);
-                console.log(JSON.parse(orderItems));
+                // console.log(JSON.parse(orderItems));
 
                 var sqlInsertItemsQuery = "INSERT INTO do_item(`do_order_ID`, `do_rest_item_ID`, ";
                 sqlInsertItemsQuery += "`do_item_name`, `do_item_price`, `do_item_qty`, `special_order`) ";

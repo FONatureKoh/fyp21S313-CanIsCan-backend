@@ -258,6 +258,13 @@ router.get('/restaurantBanner/:imageName', (req, res) => {
 });
 
 /****************************************************************************
+ * Restaurant Status retrieval																*
+ ****************************************************************************
+ * GET route will get the information based on the rgm's username
+ */
+
+
+/****************************************************************************
  * Restaurant Profile Information and things																*
  ****************************************************************************
  * GET route will get the information based on the rgm's username
@@ -743,27 +750,50 @@ router
  * Retrieve restaurant's status																							*
  ****************************************************************************
  */
-router.get('/restaurantStatus', (req, res) => {
-	// To get the restaurant's status we just need to get to the restaurant table 
-	// and match it to the restaurant's status
-	// 1. First step is to get username from the middleware
-	const { username } = res.locals.userData;
+router.route('/restaurantStatus')
+	.get((req, res) => {
+		// To get the restaurant's status we just need to get to the restaurant table 
+		// and match it to the restaurant's status
+		// 1. First step is to get username from the middleware
+		const { username } = res.locals.userData;
 
-	// 2. Then we construct the query
-	var sqlGetQuery = `SELECT rest_status FROM restaurant `;
-	sqlGetQuery += `WHERE rest_rgm_username="${username}"`;
-	
-	// 3. Then after that we make the dbconn
-	dbconn.query(sqlGetQuery, function(error, results, fields){
-		if (error) {
-			res.status(200).json({ api_msg: "MySQL " + error });
-		}
-		else {
-			// 4. Return the restaurant's status
-			res.status(200).send(results[0].rest_status);
-		}
+		// 2. Then we construct the query
+		var sqlGetQuery = `SELECT rest_status FROM restaurant `;
+		sqlGetQuery += `WHERE rest_rgm_username="${username}"`;
+		
+		// 3. Then after that we make the dbconn
+		dbconn.query(sqlGetQuery, function(error, results, fields){
+			if (error) {
+				res.status(200).json({ api_msg: "MySQL " + error });
+			}
+			else {
+				// 4. Return the restaurant's status
+				res.status(200).send(results[0].rest_status);
+			}
+		})
 	})
-});
+	.put((req, res) => {
+		// To get the restaurant's status we just need to get to the restaurant table 
+		// and match it to the restaurant's status
+		// 1. First step is to get username from the middleware
+		const { username } = res.locals.userData;
+		const { restStatus } = req.body;
+
+		// 2. Then we construct the query
+		var sqlGetQuery = `UPDATE restaurant SET rest_status=${restStatus} `;
+		sqlGetQuery += `WHERE rest_rgm_username="${username}"`;
+		
+		// 3. Then after that we make the dbconn
+		dbconn.query(sqlGetQuery, function(error, results, fields){
+			if (error) {
+				res.status(200).json({ api_msg: "MySQL " + error });
+			}
+			else {
+				// 4. Return the restaurant's status
+				res.status(200).send(results[0].rest_status);
+			}
+		})
+	})
 
 /****************************************************************************
  * Get all restaurant subusers																							*

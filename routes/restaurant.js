@@ -780,17 +780,18 @@ router.route('/restaurantStatus')
 		const { restStatus } = req.body;
 
 		// 2. Then we construct the query
-		var sqlGetQuery = `UPDATE restaurant SET rest_status=${restStatus} `;
+		var sqlGetQuery = `UPDATE restaurant SET rest_status="${restStatus}" `;
 		sqlGetQuery += `WHERE rest_rgm_username="${username}"`;
 		
 		// 3. Then after that we make the dbconn
 		dbconn.query(sqlGetQuery, function(error, results, fields){
 			if (error) {
+				console.log(error);
 				res.status(200).json({ api_msg: "MySQL " + error });
 			}
 			else {
 				// 4. Return the restaurant's status
-				res.status(200).send(results[0].rest_status);
+				res.status(200).send({ api_msg: "success" });
 			}
 		})
 	})

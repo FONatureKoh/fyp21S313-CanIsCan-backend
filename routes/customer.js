@@ -365,6 +365,59 @@ router.post('/submitreview', (req, res) => {
 });
 
 /****************************************************************************
+ * Get Restaurant Reviews
+ ****************************************************************************/
+router.get('/restaurantreivew/:restID', (req, res) => {
+	// Save the restaurantID first from the URL
+	const { username } = res.locals.userData;
+  const { restID } = req.params;
+  
+  // First things for this, first we need to get the Customer's name
+  var sqlGetNameQuery = `SELECT first_name, last_name FROM customer_user `;
+  sqlGetNameQuery += `WHERE cust_username="${username}"`;
+
+  dbconn.query(sqlGetNameQuery, function(err, results, fields){
+    if (err) {
+      res.status(200).send({ api_msg: "MySQL " + err });
+    }
+    else {
+      // Construct full name
+      const fullName = results[0].first_name + " " + results[0].last_name;
+
+      // Then we construct an insert query within that query to push the review
+      var sqlInsertQuery = "SELECT rr_cust_name, review_rating, review_title, review_desc FROM rest_review "
+      sqlInsertQuery += `WHERE rr_rest_ID=${restID}`
+
+      dbconn.query(sqlInsertQuery, function(err, results, fields){
+        if (err) {
+          console.log(err)
+          res.status(200).send({ api_msg: "fail" });
+        }
+        else {
+          // Declare an array
+          let reviewArray = [];
+
+          // Construct the review into JSON
+          for (let review of results) {
+            const tempJSON = {
+              custName: review.rr_cust_name,
+              title: review.review_title,
+              rating: review.review_rating,
+              desc: review.review_desc
+            };
+
+            reviewArray.push(tempJSON);
+          }
+          res.status(200).send(reviewArray);
+        }
+      }); // Close for nested query
+    }
+  })  // Close for first query
+  // We will then have to look at triggering a function to update the restaurant's
+  // rating without affecting this route. 
+});
+
+/****************************************************************************
  * Submit an order to the system                                            *
  ****************************************************************************/
 // Async function to send email to both customer and restaurant

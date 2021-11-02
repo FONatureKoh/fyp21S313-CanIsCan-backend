@@ -7,6 +7,7 @@ const cors = require('cors');
 const path = require('path');
 const { google } = require('googleapis');
 const nodemailer = require('nodemailer');
+const ical = require('ical-generator');
 
 app.use(express.static("public"));
 
@@ -73,6 +74,7 @@ app.use("/admin", adminRouter);
 
 /* === All /admin routes matters === */
 const customerRouter = require("./routes/customer");
+const { calendar } = require('googleapis/build/src/apis/calendar');
 
 app.use("/customer", customerRouter);
 
@@ -101,7 +103,62 @@ app.get('/testemail/:emailaddress', (req, res) => {
       res.status(200).json(result);
     })
     .catch((error) => console.log(error.message));
-})
+});
+
+/*******************************************************************************************
+ * API SERVER TEST FUNCTIONS TO BE PLACED BELOW THIS DIVIDER
+ *******************************************************************************************
+ * functions to test email, test database connection and others should come here
+ */
+app.get('/icalgen', (req, res) => {
+  // First we have to create the Calendar object like this
+  const cal = new ical.ICalCalendar({ domain: "github.com", name: "my first iCal" });
+  // cal.domain("example.net");
+
+  // Then we create the said event
+  cal.createEvent({
+    start: new Date(),
+    end: new Date(new Date().getTime() + 3600000),
+    summary: 'Example Event',
+    description: 'It works ;)',
+    location: 'my room',
+    url: 'http://sebbo.net/'
+  });
+
+  console.log(cal.toString());
+  const calString = cal.toString();
+
+  console.log(Buffer.from(calString).toString('base64'));
+  const cal64 = Buffer.from(calString).toString('base64');
+  
+  // res.status(200).json({ calString, cal64 });
+
+  const mailOptions = {
+    from: 'Administrator <cancanfoodapp@gmail.com>',
+    to: 'fonaturekoh@gmail.com',
+    subject: 'This is a test for the gmail API',
+    icalEvent: {
+      filename: 'invite.ics',
+      method: 'request',
+      content: cal64,
+      encoding: 'base64'
+    },
+    text: 'Hello world, plain text test for cancanfoodapp Gmail',
+    html: '<h1>Hello world</h1>' + '<h2>This is a test for cancanfoodapp Gmail API</h2>'
+    // alternatives: [{
+    //     contentType: 'text/calendar; charset="utf-8"; method=REQUEST',
+    //     content: createdCalObj
+    // }]
+  };
+
+  sendMail(mailOptions)
+    .then(result => {
+      console.log("sendmail triggered")
+      console.log(result);
+      res.status(200).json(result);
+    })
+    .catch((error) => console.log(error.message));
+});
 
 /*******************************************************************************************
  * NO ROUTES FUNCTIONS OR DECLARATIONS BELOW THIS DIVIDER 

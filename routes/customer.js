@@ -18,6 +18,9 @@ const path = require('path');
 // Google maps api stuff
 const { Client, defaultAxiosInstance } = require('@googlemaps/google-maps-services-js');
 
+// iCal stuff
+const iCal = require('ical-generator');
+
 // Email Modules
 const sendMail = require('../models/email_model');
 const { sendSubUserEmail } = require('../models/credentials_email_template');
@@ -687,30 +690,6 @@ router.get('/verifyCustAddress/:address', asyncHandler(async (req, res, next) =>
 }));
 
 /****************************************************************************
- * Testing the map services google api                                      *
- ****************************************************************************/
-router.get('/testapi', asyncHandler(async (req, res, next) => {
-  // api declaration
-  const googleAPIClient = new Client({});
-
-  // Directions api test
-  const response = await googleAPIClient.directions({
-    params: {
-      origin: "Blk 111 Ang Mo Kio #01-01, Singapore 560111",
-      destination: "1 King Albert Park, Singapore 598389",
-      mode: "driving",
-      units: "metric",
-      key: process.env.GOOGLE_MAPS_API_KEY
-    }
-  }, defaultAxiosInstance);
-
-  const durationTaken = response.data.routes[0].legs[0].duration;
-  const convertedTimeStamp = new Date(durationTaken.value * 1000).toISOString().substr(11, 8);
-
-  res.status(200).send(convertedTimeStamp);
-}));
-
-/****************************************************************************
  * Getting available Reservation slots                                      *
  ****************************************************************************/
 router.get('/availableslots/:restID/:date', (req, res) => {
@@ -790,6 +769,102 @@ router.get('/availableslots/:restID/:date', (req, res) => {
     }
   }); // Closing first query
 });
+
+/****************************************************************************
+ * Making a reservation 
+ ****************************************************************************/
+router.route('/customerReservation')
+  .post((req, res) => {
+    // Getting some important variables
+    const { username } = res.locals.userData;
+    const { 
+      reservationID, restID, custName, restName, restAdd, restPostal, pax, date, timeslot, 
+    } = req.body;
+
+    //
+    // The following portion creates and send an email to the customer reminding the customer
+    // that he / she has made a reservation and will also attach a calendar invite
+    // 1. Convert the received reservation Date
+    const convertedDate =  datetime_T.format(new Date(date), 'DD-MM-YYYY');
+    // console.log(convertedDate);
+
+    // 2. Make the date into a datetime string with the proper GMT+8 Timezone indicated
+    const datetimeString = convertedDate + " " + timeslot + " GMT+0800";
+    // console.log(datetimeString);
+
+    // 3. Construct a datetime object so that we can make the iCal object with it
+    const reservationDateTime = datetime_T.parse(datetimeString, 'DD-MM-YYYY HH:mm [GMT]Z');
+    // console.log(reservationDateTime);
+
+    // 4. Create the address of the restaurant
+    const restAddressPostal = restAdd + ", Singapore " + restPostal
+
+    // 5. Creating the calendar object
+    // First we have to create the Calendar object like this
+    const cal = new iCal.ICalCalendar({ domain: "google.com", name: "Your reservation Calendar Event" });
+
+    // Then we create the said event into the calendar object. We assume that the customer will have a 1hour meal
+    cal.createEvent({
+      start: reservationDateTime,
+      end: new Date(reservationDateTime.getTime() + 3600000),
+      summary: 'Example Event',
+      description: ``,
+      location: restAddressPostal,
+      url: 'https://cancanfoodapp.xyz'
+    });
+
+    // We then convert this calendar object to string
+    const calString = cal.toString();
+    // console.log(Buffer.from(calString).toString('base64'));
+    // const cal64 = Buffer.from(calString).toString('base64');
+    // res.status(200).json({ calString, cal64 });
+
+    const mailOptions = {
+      from: 'Administrator <cancanfoodapp@gmail.com>',
+      to: 'fonaturekoh@gmail.com',
+      subject: 'This is a test for the gmail API',
+      icalEvent: {
+        filename: 'invite.ics',
+        content: calString
+      },
+      text: 'Hello world, plain text test for cancanfoodapp Gmail',
+      html: '<h1>Hello world</h1>' + '<h2>This is a test for cancanfoodapp Gmail API</h2>'
+    };
+
+    // sendMail(mailOptions)
+    //   .then(result => {
+    //     console.log("sendmail triggered")
+    //     console.log(result);
+    //     // res.status(200).json(result);
+    //   })
+    //   .catch((error) => console.log(error.message));
+
+    res.status(200).send({ api_msg: "This works!" });
+  });
+
+/****************************************************************************
+ * Testing the map services google api                                      *
+ ****************************************************************************/
+router.get('/testapi', asyncHandler(async (req, res, next) => {
+  // api declaration
+  const googleAPIClient = new Client({});
+
+  // Directions api test
+  const response = await googleAPIClient.directions({
+    params: {
+      origin: "Blk 111 Ang Mo Kio #01-01, Singapore 560111",
+      destination: "1 King Albert Park, Singapore 598389",
+      mode: "driving",
+      units: "metric",
+      key: process.env.GOOGLE_MAPS_API_KEY
+    }
+  }, defaultAxiosInstance);
+
+  const durationTaken = response.data.routes[0].legs[0].duration;
+  const convertedTimeStamp = new Date(durationTaken.value * 1000).toISOString().substr(11, 8);
+
+  res.status(200).send(convertedTimeStamp);
+}));
 
 /*******************************************************************************************
  * NO ROUTES FUNCTIONS OR DECLARATIONS BELOW THIS DIVIDER 

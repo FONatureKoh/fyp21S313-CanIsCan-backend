@@ -120,7 +120,11 @@ app.get('/icalgen', (req, res) => {
     start: new Date(),
     end: new Date(new Date().getTime() + 3600000),
     summary: 'Example Event',
-    description: 'It works ;)',
+    description: `You have a made a pre-order with your reservation! This will be sent to the kitchen upon your arrive!\n\n
+    Preorder items:\n
+    1. Chicken Chop - Qty: 1 - $9.90\n
+    2. Chicken Nuggets - Qty: 1 - $15\n\n
+    See you soon!`,
     location: 'Singapore 688336',
     url: 'https://cancanfoodapp.xyz'
   });

@@ -112,7 +112,7 @@ app.get('/testemail/:emailaddress', (req, res) => {
  */
 app.get('/icalgen', (req, res) => {
   // First we have to create the Calendar object like this
-  const cal = new ical.ICalCalendar({ domain: "github.com", name: "my first iCal" });
+  const cal = new ical.ICalCalendar({ domain: "google.com", name: "my first iCal" });
   // cal.domain("example.net");
 
   // Then we create the said event
@@ -121,16 +121,14 @@ app.get('/icalgen', (req, res) => {
     end: new Date(new Date().getTime() + 3600000),
     summary: 'Example Event',
     description: 'It works ;)',
-    location: 'my room',
-    url: 'http://sebbo.net/'
+    location: 'Singapore 688336',
+    url: 'https://cancanfoodapp.xyz'
   });
 
-  console.log(cal.toString());
+  // console.log(cal.toString());
   const calString = cal.toString();
-
-  console.log(Buffer.from(calString).toString('base64'));
-  const cal64 = Buffer.from(calString).toString('base64');
-  
+  // console.log(Buffer.from(calString).toString('base64'));
+  // const cal64 = Buffer.from(calString).toString('base64');
   // res.status(200).json({ calString, cal64 });
 
   const mailOptions = {
@@ -139,16 +137,10 @@ app.get('/icalgen', (req, res) => {
     subject: 'This is a test for the gmail API',
     icalEvent: {
       filename: 'invite.ics',
-      method: 'request',
-      content: cal64,
-      encoding: 'base64'
+      content: calString
     },
     text: 'Hello world, plain text test for cancanfoodapp Gmail',
     html: '<h1>Hello world</h1>' + '<h2>This is a test for cancanfoodapp Gmail API</h2>'
-    // alternatives: [{
-    //     contentType: 'text/calendar; charset="utf-8"; method=REQUEST',
-    //     content: createdCalObj
-    // }]
   };
 
   sendMail(mailOptions)

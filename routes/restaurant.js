@@ -1198,9 +1198,9 @@ router.get('/pendingreservations', asyncHandler(async (req, res, next) => {
 				var tempJSON = {
 					itemID: item.poi_rest_item_ID,
 					itemName: item.poi_item_name,
-					itemPrice: item.poi_item_price,
+					itemPrice: parseFloat(item.poi_item_price).toFixed(2),
 					itemQty: item.poi_item_qty,
-					itemSO: item.special_order
+					itemSO: item.poi_special_order
 				}
 				tempItemsArray.push(tempJSON);
 			}
@@ -1217,7 +1217,7 @@ router.get('/pendingreservations', asyncHandler(async (req, res, next) => {
 				timeslot: convertedTime,
 				po_ID: po_items[0].po_ID,
 				po_status: po_items[0].po_status,
-				po_total_cost: po_items[0].total_cost,
+				po_total_cost: `$ ${parseFloat(po_items[0].total_cost).toFixed(2)}`,
 				po_items: tempItemsArray,
 				reservation_status: reservation.cr_status,
 				reservation_madeon: reservation.cr_datetime_made
@@ -1228,11 +1228,13 @@ router.get('/pendingreservations', asyncHandler(async (req, res, next) => {
 		else {
 			var tempJSON = {
 				cust_RID: reservation.cust_reservation_ID,
-				cust_name: reservation.cust_name,
+				cust_name: reservation.cr_custname,
 				pax: reservation.cr_pax,
 				date: convertedDate,
 				timeslot: convertedTime,
+				po_total_cost: "NIL",
 				po_items: "none",
+				reservation_status: reservation.cr_status,
 				reservation_madeon: reservation.cr_datetime_made
 			};
 			
@@ -1298,7 +1300,7 @@ router.get('/ongoingreservations', asyncHandler(async (req, res, next) => {
 
 		// Gets all the PO items
 		var sqlGetPOItems = `SELECT * FROM pre_order JOIN pre_order_item `;
-		sqlGetPOItems += `ON po_ID=po_order_ID `;
+		sqlGetPOItems += `ON po_crID=poi_crID `;
 		sqlGetPOItems += `WHERE po_crID="${reservation_ID}"`;
 
 		// Await query for the items
@@ -1329,11 +1331,11 @@ router.get('/ongoingreservations', asyncHandler(async (req, res, next) => {
 		if (po_items.length != 0) {
 			for (let item of po_items) {
 				var tempJSON = {
-					itemID: item.po_rest_item_ID,
-					itemName: item.po_item_name,
-					itemPrice: item.po_item_price,
-					itemQty: item.po_item_qty,
-					itemSO: item.special_order
+					itemID: item.poi_rest_item_ID,
+					itemName: item.poi_item_name,
+					itemPrice: item.poi_item_price,
+					itemQty: item.poi_item_qty,
+					itemSO: item.poi_special_order
 				}
 				tempItemsArray.push(tempJSON);
 			}
@@ -1350,7 +1352,7 @@ router.get('/ongoingreservations', asyncHandler(async (req, res, next) => {
 				timeslot: convertedTime,
 				po_ID: po_items[0].po_ID,
 				po_status: po_items[0].po_status,
-				po_total_cost: po_items[0].total_cost,
+				po_total_cost: `$ ${parseFloat(po_items[0].total_cost).toFixed(2)}`,
 				po_items: tempItemsArray,
 				reservation_status: reservation.cr_status,
 				reservation_madeon: reservation.cr_datetime_made
@@ -1361,11 +1363,13 @@ router.get('/ongoingreservations', asyncHandler(async (req, res, next) => {
 		else {
 			var tempJSON = {
 				cust_RID: reservation.cust_reservation_ID,
-				cust_name: reservation.cust_name,
+				cust_name: reservation.cr_custname,
 				pax: reservation.cr_pax,
 				date: convertedDate,
 				timeslot: convertedTime,
+				po_total_cost: "NIL",
 				po_items: "none",
+				reservation_status: reservation.cr_status,
 				reservation_madeon: reservation.cr_datetime_made
 			};
 			

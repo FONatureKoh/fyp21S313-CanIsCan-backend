@@ -24,11 +24,13 @@ const iCal = require('ical-generator');
 // Email Modules
 const sendMail = require('../models/email_model');
 const { sendSubUserEmail } = require('../models/credentials_email_template');
-const { sendCustomerOrder, sendToRestaurant } = require('../models/order_email_template');
+const { sendCustomerOrder, sendOrderToRestaurant } = require('../models/order_email_template');
 
 // Middle Ware stuffs
 const authTokenMiddleware = require('../middleware/authTokenMiddleware');
 const asyncHandler = require('express-async-handler');
+const { sendCustomerReservation, sendResToRestaurant } = require('../models/reservation_email_template');
+const { resolve } = require('path');
 
 // Stripe stuffs
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
@@ -328,6 +330,40 @@ router.get('/orderitems/:orderID', (req, res) => {
 });
 
 /****************************************************************************
+ * Retrieve all of the customer's personal orders                           *
+ ****************************************************************************/
+router.get('/allreservations', asyncHandler(async(req, res, next) => {
+	// Get customer's username
+	const { username } = res.locals.userData;
+
+  // 1. Get the customer's ID from the customer_users table
+  var sqlGetIDQuery = `SELECT customer_ID FROM customer_user `;
+  sqlGetIDQuery += `WHERE cust_username="${username}"`;
+
+  const custInfo = await new Promise((resolve, reject) => {
+    dbconn.query(sqlGetIDQuery, function(err, results, fields){
+      if (err) {
+        reject(err);
+        console.log(err);
+      }
+      else {
+        resolve(results[0]);
+      }
+    });
+  });
+
+  // 2. Once we get the custID, we can now get all the reservations from the reservation table
+  const custID = custInfo.customer_ID;
+
+  var sqlGetReservations = `SELECT * FROM cust_reservation `;
+  sqlGetReservations += `WHERE cr_cust_ID=${custID}`;
+
+  const custReservations = await new Promise((resolve, reject) => {
+    dbconn.query
+  })
+}));
+
+/****************************************************************************
  * Submit Restaurant Review                                                 *
  ****************************************************************************/
 router.post('/submitreview', (req, res) => {
@@ -431,7 +467,7 @@ async function sendingOrderEmail(restEmail, custEmail, custName, restName,
       const custMailOptions = await sendCustomerOrder(custEmail, restName, custName,
         deliveryAddress, deliveryPostal, datetime, doID, etd, orderItems, total);
 
-      const restMailOptions = await sendToRestaurant(restEmail, restName, custName,
+      const restMailOptions = await sendOrderToRestaurant(restEmail, restName, custName,
         deliveryAddress, deliveryPostal, datetime, doID, orderItems, total);
       
       // Send the email to the customer
@@ -525,7 +561,7 @@ router.post('/submitorder', asyncHandler(async (req, res, next) => {
           var sqlInsertQuery = "INSERT INTO delivery_order(`order_ID`, `o_cust_ID`, `o_rest_ID`, ";
           sqlInsertQuery += "`o_cust_name`, `o_rest_name`, `o_datetime`, `delivery_address`, ";
           sqlInsertQuery += "`delivery_floorunit`, `delivery_postal_code`, `delivery_note`, ";
-          sqlInsertQuery += "`total_cost`, `order_delivery_time`, `order_status`, `payment_status`)";
+          sqlInsertQuery += "`total_cost`, `order_delivery_time`, `order_status`, `payment_status`) ";
           sqlInsertQuery += `VALUES ("${doID}", ${custID}, ${restID}, "${fullName}", "${restName}", "${sqlOrderDateTime}", `;
           sqlInsertQuery += `"${address}", "${floorunit}", ${postalCode},"${deliveryNote === '' ? 'NIL': deliveryNote}", `;
           sqlInsertQuery += `${sqlTotalCost}, "${etd}", "Pending", 1)`;
@@ -684,6 +720,7 @@ router.get('/verifyCustAddress/:address', asyncHandler(async (req, res, next) =>
     }
   }, defaultAxiosInstance);
 
+  console.log("Address Verification Done, results below:")
   console.log(response.data);
 
   res.status(200).json(response.data);
@@ -773,74 +810,223 @@ router.get('/availableslots/:restID/:date', (req, res) => {
 /****************************************************************************
  * Making a reservation 
  ****************************************************************************/
+// Async function to send email to both customer and restaurant
+async function sendingReservationEmail(iCalString, crID, restEmail, custEmail, custName, restName, restAddressPostal,
+  reservationDateTime, pax, preOrderStatus, preOrderItems, preOrderTotal) {
+    try {
+      // Construct the email for customer
+      const custMailOptions = await sendCustomerReservation(iCalString, crID, custEmail, restName, custName,
+        restAddressPostal, reservationDateTime, pax, preOrderStatus, preOrderItems, preOrderTotal);
+
+      const restMailOptions = await sendResToRestaurant(crID, restEmail, custName, reservationDateTime, pax, 
+        preOrderStatus, preOrderItems, preOrderTotal);
+      
+      // Send the email to the customer
+      const custResponse = await sendMail(custMailOptions);
+      
+      console.log("An attempt was made to send an email to a customer with the following result:");
+      console.log(custResponse);
+
+      // Send the email to the restaurant administrator
+      const restResponse = await sendMail(restMailOptions);
+      
+      console.log("An attempt was made to send an email to a restaurant with the following result:");
+      console.log(restResponse);
+
+      // API response
+      if (custResponse.response.include("OK") && restResponse.response.include("OK")) {
+        return "success";
+      }
+      else {
+        return "fail";
+      }
+    }
+    catch (err) {
+      return err;
+    }
+};
+
 router.route('/customerReservation')
-  .post((req, res) => {
+  .post(asyncHandler(async (req, res) => {
     // Getting some important variables
     const { username } = res.locals.userData;
     const { 
-      reservationID, restID, custName, restName, restAdd, restPostal, pax, date, timeslot, 
+      reservationID, restID, restName, restEmail, restAddressPostal, pax, reservationDate, reservationTime,
+      preOrderStatus, preOrderItems, preOrderTotal
     } = req.body;
 
-    //
-    // The following portion creates and send an email to the customer reminding the customer
-    // that he / she has made a reservation and will also attach a calendar invite
-    // 1. Convert the received reservation Date
-    const convertedDate =  datetime_T.format(new Date(date), 'DD-MM-YYYY');
-    // console.log(convertedDate);
+    console.log(req.body);
+    // We will need to construct a query to insert stuff into the db. Since we are on a pool now, we best use
+    // this same connection for this whole creation and then release that connect once the thing has been created
+    // so that we can control the whole route to wait for the result from the MySQL db
+    // 1. Get some useful information from the customer table
+    var sqlGetCustQuery = "SELECT `customer_ID`, `cust_picture_ID`, `first_name`, `last_name`, `email` "
+    sqlGetCustQuery += `FROM customer_user WHERE cust_username="${username}"`;
 
-    // 2. Make the date into a datetime string with the proper GMT+8 Timezone indicated
-    const datetimeString = convertedDate + " " + timeslot + " GMT+0800";
-    // console.log(datetimeString);
+    // 2. Creating the reservation after finding some customer details
+    const queryResponse = await new Promise((resolve, reject) => {
+      dbconn.getConnection(function(err, conn){
+        if (err) {
+          console.log(err);
+        }
+        else {
+          conn.query(sqlGetCustQuery, function(err, results, fields){
+            if (err) {
+              console.log(err);
+              reject(err);
+            }
+            else {
+              // 3. Construct the full name from the query results and also get customer's email
+              const custID = results[0].customer_ID;
+              const custFullName = results[0].first_name + " " + results[0].last_name;
+              const custEmail = results[0].email;
 
-    // 3. Construct a datetime object so that we can make the iCal object with it
-    const reservationDateTime = datetime_T.parse(datetimeString, 'DD-MM-YYYY HH:mm [GMT]Z');
-    // console.log(reservationDateTime);
+              // Also convert some stuff into proper sql formats
+              const sqlReservationDate = datetime_T.format(new Date(reservationDate), 'YYYY-MM-DD');
+              const sqlReservationTime = datetime_T.transform(reservationTime, 'HH:mm', 'HH:mm:ss');
+              const sqlReservationMadeStamp = datetime_T.format(new Date(), 'YYYY-MM-DD HH:mm:ss');
 
-    // 4. Create the address of the restaurant
-    const restAddressPostal = restAdd + ", Singapore " + restPostal
+              // 4. Now we construct the reservation query
+              // Construct the query to insert into the reservations table
+              var sqlCreateReservation = "INSERT INTO cust_reservation(`cust_reservation_ID`, `cr_cust_ID`, ";
+              sqlCreateReservation +="`cr_rest_ID`, `cr_custname`, `cr_rest_name`, `cr_pax`, `cr_date`, `cr_timeslot`, `cr_status`, `cr_datetime_made`) "
+              sqlCreateReservation += `VALUES ("${reservationID}", ${custID}, ${restID}, "${custFullName}", "${restName}", `
+              sqlCreateReservation += `${pax}, "${sqlReservationDate}", "${sqlReservationTime}", "Pending", "${sqlReservationMadeStamp}")`;
 
-    // 5. Creating the calendar object
-    // First we have to create the Calendar object like this
-    const cal = new iCal.ICalCalendar({ domain: "google.com", name: "Your reservation Calendar Event" });
+              // 5. Now we query the table and resolve the promise
+              conn.query(sqlCreateReservation, function(err, results, fields){
+                if (err){
+                  console.log(err);
+                  reject(err);
+                }
+                else {
+                  conn.release();
+                  resolve({custID, custFullName, custEmail, insertStatus: "OK"});
+                }
+              }); // Releasing connection here and also resolving the promise, nested query closes here
+            }
+          }); // Closing first query here
+        }
+      }); // Get connection closes here
+    }); // Promise closes here
 
-    // Then we create the said event into the calendar object. We assume that the customer will have a 1hour meal
-    cal.createEvent({
-      start: reservationDateTime,
-      end: new Date(reservationDateTime.getTime() + 3600000),
-      summary: 'Example Event',
-      description: ``,
-      location: restAddressPostal,
-      url: 'https://cancanfoodapp.xyz'
+    console.log(queryResponse);
+
+    // 3. We now create the pre-order into the system
+    const preOrderResponse = await new Promise((resolve, reject) => {
+      dbconn.getConnection(function(err, conn){
+        if (err) {
+          console.log(err);
+          reject(err);
+        }
+        else {
+          // Construct reservation insert query
+          var sqlInsertQuery = "INSERT INTO `pre_order`(`po_crID`, `po_status`, `total_cost`) ";
+          sqlInsertQuery += `VALUES ("${reservationID}","Pending",${parseFloat(preOrderTotal).toFixed(2)})`;
+
+          conn.query(sqlInsertQuery, function (err, results, fields){
+            if (err){
+              console.log(err);
+            }
+            else {
+              // If the Order is successfully created, then we can insert all the Order Items into the database.
+              // We first check if the OrderItems have multiple items, or if the user is just ordering 1 item
+              // If multiple items, proceed
+              if (Array.isArray(preOrderItems) == true) {
+                for (let x in preOrderItems) {
+                  const item = JSON.parse(preOrderItems[x]);
+
+                  var sqlInsertItemsQuery = "INSERT INTO `pre_order_item`(`poi_crID`, `poi_rest_item_ID`, ";
+                  sqlInsertItemsQuery += "`poi_item_name`, `poi_item_price`, `poi_item_qty`, `poi_special_order`) ";
+                  sqlInsertItemsQuery += `VALUES ("${reservationID}", ${item.itemID}, "${item.itemName}", ${item.itemPrice}, ${item.itemQty}, "NIL")`;
+
+                  conn.query(sqlInsertItemsQuery, function(err, results, fields) {
+                    if (err) {
+                      console.log(err);
+                    }
+                    else {
+                      if (Number(x) == (preOrderItems.length - 1)){
+                        conn.release();
+                        resolve({ insertStatus: 'OK' });
+                      }
+                       
+                    };
+                  });
+                };
+              }
+              // Else we treat it as a single item
+              else {
+                const item = JSON.parse(preOrderItems);
+                // console.log(JSON.parse(orderItems));
+
+                  var sqlInsertItemsQuery = "INSERT INTO `pre_order_item`(`poi_crID`, `poi_rest_item_ID`, ";
+                  sqlInsertItemsQuery += "`poi_item_name`, `poi_item_price`, `poi_item_qty`, `poi_special_order`) ";
+                  sqlInsertItemsQuery += `VALUES ("${reservationID}", ${item.itemID}, "${item.itemName}", ${item.itemPrice}, ${item.itemQty}, "NIL")`;
+
+                conn.query(sqlInsertItemsQuery, function(err, results, fields) {
+                  if (err) {
+                    console.log(err);
+                  }
+                  else {
+                    conn.release();
+                    resolve({ insertStatus: 'OK' });                    
+                  };
+                });// Closing nested query
+              };
+            };
+          }); // Closing 2nd query to same connection
+        }
+      });
     });
 
-    // We then convert this calendar object to string
-    const calString = cal.toString();
-    // console.log(Buffer.from(calString).toString('base64'));
-    // const cal64 = Buffer.from(calString).toString('base64');
-    // res.status(200).json({ calString, cal64 });
+    if (queryResponse.insertStatus == "OK" && preOrderResponse.insertStatus == "OK" ) {
+      // The following portion creates and send an email to the customer reminding the customer
+      // that he / she has made a reservation and will also attach a calendar invite
+      // 1. Convert the received reservation Date
+      const convertedDate =  datetime_T.format(new Date(reservationDate), 'DD-MM-YYYY');
+      // console.log(convertedDate);
 
-    const mailOptions = {
-      from: 'Administrator <cancanfoodapp@gmail.com>',
-      to: 'fonaturekoh@gmail.com',
-      subject: 'This is a test for the gmail API',
-      icalEvent: {
-        filename: 'invite.ics',
-        content: calString
-      },
-      text: 'Hello world, plain text test for cancanfoodapp Gmail',
-      html: '<h1>Hello world</h1>' + '<h2>This is a test for cancanfoodapp Gmail API</h2>'
-    };
+      // 2. Make the date into a datetime string with the proper GMT+8 Timezone indicated
+      const datetimeString = convertedDate + " " + reservationTime + " GMT+0800";
+      // console.log(datetimeString);
 
-    // sendMail(mailOptions)
-    //   .then(result => {
-    //     console.log("sendmail triggered")
-    //     console.log(result);
-    //     // res.status(200).json(result);
-    //   })
-    //   .catch((error) => console.log(error.message));
+      // 3. Construct a datetime object so that we can make the iCal object with it
+      const reservationDateTime = datetime_T.parse(datetimeString, 'DD-MM-YYYY HH:mm [GMT]Z');
+      console.log(reservationDateTime);
 
-    res.status(200).send({ api_msg: "This works!" });
-  });
+      // 4. Create the address of the restaurant
+      // const restAddressPostal = restAdd + ", Singapore " + restPostal
+
+      // 5. Creating the calendar object
+      // First we have to create the Calendar object like this
+      const cal = new iCal.ICalCalendar({ domain: "google.com", name: "Your reservation Calendar Event" });
+
+      // Then we create the said event into the calendar object. We assume that the customer will have a 1hour meal
+      cal.createEvent({
+        start: reservationDateTime,
+        end: new Date(reservationDateTime.getTime() + 3600000),
+        summary: `Table reservation on ${convertedDate} @ ${restName}`,
+        description: `You have a table reservation at ${restName} for ${pax} persons 
+        on ${datetime_T.format(reservationDateTime, 'dddd, D MMM YYYY, h:mm A')}!`,
+        location: restAddressPostal,
+        url: 'https://cancanfoodapp.xyz'
+      });
+
+      // We then convert this calendar object to string
+      const calString = cal.toString();
+
+      // Now we prep to send the emails with all the information that we got.
+      const emailAttempt = await sendingReservationEmail(calString, reservationID, restEmail, queryResponse.custEmail, 
+        queryResponse.custFullName, restName, restAddressPostal, reservationDateTime, pax, preOrderStatus, preOrderItems, preOrderTotal);
+
+      if (emailAttempt == "success") {
+        res.status(200).send({api_msg: "Your order has been made successfully. Please check your email for confirmation!"});
+      }
+      else {
+        res.status(200).send({api_msg: "Something went wrong, please contact an administrator."});
+      }
+    }
+  }));
 
 /****************************************************************************
  * Testing the map services google api                                      *

@@ -322,7 +322,7 @@ async function sendCustomerOrder(custEmail, restName, custName, deliveryAddress,
  * THIS HERE SHOULD TAKE IN USERNAME PASSWORD EMAIL RESTAURANT NAME AND CREATE EMAIL BASED ON WHEN THE ADMIN APPROVES
  * THE ACCOUNT
  */
-async function sendToRestaurant(restEmail, restName, custName, deliveryAddress, deliveryPostal, datetime, doID, orderItems, total) {
+async function sendOrderToRestaurant(restEmail, restName, custName, deliveryAddress, deliveryPostal, datetime, doID, orderItems, total) {
   // Put a try catch to create the template and then return the template
   try {
     // Sets the email address to receive email
@@ -634,5 +634,5 @@ async function sendToRestaurant(restEmail, restName, custName, deliveryAddress, 
 
 module.exports = {
   sendCustomerOrder: sendCustomerOrder,
-  sendToRestaurant: sendToRestaurant
+  sendOrderToRestaurant: sendOrderToRestaurant
 }

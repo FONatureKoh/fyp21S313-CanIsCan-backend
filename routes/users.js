@@ -317,20 +317,39 @@ router
 			// RGM User Type ==========================================================
 			case "Restaurant General Manager":
 				// Steps to edit profile for all users, generally the same less the customer
-				var sqlUpdateQuery = `UPDATE restaurant_gm SET picture_ID="${file.filename}",`
-				sqlUpdateQuery += `first_name="${fname}",last_name="${lname}",phone_no=${phoneNo},`
-				sqlUpdateQuery += `email="${email}",home_address="${address}",home_postal_code=${postalCode} `;
-				sqlUpdateQuery += `WHERE rgm_username="${username}"`;
+				if (file) {
+					var sqlUpdateQuery = `UPDATE restaurant_gm SET picture_ID="${file.filename}",`
+					sqlUpdateQuery += `first_name="${fname}",last_name="${lname}",phone_no=${phoneNo},`
+					sqlUpdateQuery += `email="${email}",home_address="${address}",home_postal_code=${postalCode} `;
+					sqlUpdateQuery += `WHERE rgm_username="${username}"`;
 
-				dbconn.query(sqlUpdateQuery, function(err, results, fields){
-					if (err) {
-						console.log(err);
-						res.status(400).send("MySQL error. If you're the client, contact your developer");
-					}
-					else {
-						res.status(200).json({ api_msg: "Successful!" });
-					}
-				})
+					dbconn.query(sqlUpdateQuery, function(err, results, fields){
+						if (err) {
+							console.log(err);
+							res.status(400).send("MySQL error. If you're the client, contact your developer");
+						}
+						else {
+							res.status(200).json({ api_msg: "Successful!" });
+						}
+					});
+				}
+				else {
+					var sqlUpdateQuery = `UPDATE restaurant_gm SET `
+					sqlUpdateQuery += `first_name="${fname}",last_name="${lname}",phone_no=${phoneNo},`
+					sqlUpdateQuery += `email="${email}",home_address="${address}",home_postal_code=${postalCode} `;
+					sqlUpdateQuery += `WHERE rgm_username="${username}"`;
+
+					dbconn.query(sqlUpdateQuery, function(err, results, fields){
+						if (err) {
+							console.log(err);
+							res.status(400).json({ api_msg: "Successful!" });
+						}
+						else {
+							res.status(200).json({ api_msg: "Successful!" });
+						}
+					});
+				}
+
 
 				break;
 			// =========================================================================

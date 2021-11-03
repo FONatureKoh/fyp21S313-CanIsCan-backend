@@ -330,15 +330,15 @@ router.get('/orderitems/:orderID', (req, res) => {
 });
 
 /****************************************************************************
- * Retrieve all of the customer's personal orders                           *
+ * Retrieve all of the customer's past reservations
  ****************************************************************************/
-router.get('/allreservations', asyncHandler(async(req, res, next) => {
+router.get('/pastreservation', asyncHandler(async(req, res, next) => {
 	// Get customer's username
 	const { username } = res.locals.userData;
 
   // 1. Get the customer's ID from the customer_users table
   var sqlGetIDQuery = `SELECT customer_ID FROM customer_user `;
-  sqlGetIDQuery += `WHERE cust_username="${username}"`;
+  sqlGetIDQuery += `WHERE cust_username="${username}" `;
 
   const custInfo = await new Promise((resolve, reject) => {
     dbconn.query(sqlGetIDQuery, function(err, results, fields){
@@ -356,11 +356,189 @@ router.get('/allreservations', asyncHandler(async(req, res, next) => {
   const custID = custInfo.customer_ID;
 
   var sqlGetReservations = `SELECT * FROM cust_reservation `;
-  sqlGetReservations += `WHERE cr_cust_ID=${custID}`;
+  sqlGetReservations += `WHERE cr_cust_ID=${custID} AND (DATE(cr_date) < DATE(NOW()) OR cr_status="Fulfilled")`;
+  sqlGetReservations += `ORDER BY cr_date`;
 
   const custReservations = await new Promise((resolve, reject) => {
-    dbconn.query
-  })
+    dbconn.query(sqlGetReservations, function(err, results, fields) {
+      if (err) {
+        console.log(err);
+        reject(err);
+      }
+      else {
+        resolve(results);
+      }
+    })
+  });
+
+  // 3. With all the reservations, we can now do a for loop to loop through all the reservations,
+  // to see if there is any pre-order items for this reservation. We'll also wanna take this chance to
+  // construct this into a tempJSON and push it into a temp array to send back to the frontend
+  var tempReservationArray = [];
+
+  for (let reservation of custReservations) {
+    // Set Customer Reservation ID
+    const crID = reservation.cust_reservation_ID;
+
+    const reservationDate = new Date(reservation.cr_date);
+		const pattern = datetime_T.compile('ddd, DD MMM YYYY');
+		const convertedDate = datetime_T.format(reservationDate, pattern);
+    
+    var tempJSON = {
+      cr_resID: reservation.cr_rest_ID,
+      cr_restName: reservation.cr_rest_name,
+      crID: reservation.cust_reservation_ID,
+      pax: reservation.cr_pax,
+      date: convertedDate,
+      timeslot: datetime_T.transform(reservation.cr_timeslot, 'HH:mm:ss', 'h:mm A'),
+      status: reservation.cr_status
+    }
+
+    const preOrderItems = await new Promise((resolve, reject) => {
+      var sqlGetPOItemsQuery = "SELECT * FROM pre_order_item ";
+      sqlGetPOItemsQuery += `WHERE poi_crID="${crID}"`;
+
+      dbconn.query(sqlGetPOItemsQuery, function(err, results, fields){
+        if (err) {
+          console.log(err);
+          reject(err);
+        }
+        else {
+          resolve(results);
+        }
+      });
+    });
+
+    // If there's more than 1 preorderitems then we have to make it into an array
+    if (preOrderItems.length > 0) {
+      var tempItemsArray = [];
+
+      for(let selectedItem of preOrderItems) {
+        var itemJSON = {
+          itemID: selectedItem.poi_item_ID,
+          itemName: selectedItem.poi_item_name,
+          itemPrice: selectedItem.poi_item_price,
+          itemQty: selectedItem.poi_item_qty,
+          itemSO: selectedItem.poi_special_order,
+          item_restItemID: selectedItem.poi_rest_item_ID
+        }
+        tempItemsArray.push(itemJSON);
+      } 
+      tempJSON["preOrderItems"] = tempItemsArray;
+    }
+    else {
+      tempJSON["preOrderItems"] = "None";
+    }
+    // Push
+    tempReservationArray.push(tempJSON);
+  }
+  res.status(200).send(tempReservationArray);
+}));
+
+/****************************************************************************
+ * Retrieve all of the customer's upcoming reservations
+ ****************************************************************************/
+router.get('/ongoingreservations', asyncHandler(async(req, res, next) => {
+	// Get customer's username
+	const { username } = res.locals.userData;
+
+  // 1. Get the customer's ID from the customer_users table
+  var sqlGetIDQuery = `SELECT customer_ID FROM customer_user `;
+  sqlGetIDQuery += `WHERE cust_username="${username}" `;
+
+  const custInfo = await new Promise((resolve, reject) => {
+    dbconn.query(sqlGetIDQuery, function(err, results, fields){
+      if (err) {
+        reject(err);
+        console.log(err);
+      }
+      else {
+        resolve(results[0]);
+      }
+    });
+  });
+
+  // 2. Once we get the custID, we can now get all the reservations from the reservation table
+  const custID = custInfo.customer_ID;
+
+  var sqlGetReservations = `SELECT * FROM cust_reservation `;
+  sqlGetReservations += `WHERE cr_cust_ID=${custID} AND (DATE(cr_date) >= DATE(NOW()) AND NOT cr_status="Fulfilled") `;
+  sqlGetReservations += `ORDER BY cr_date`;
+
+  const custReservations = await new Promise((resolve, reject) => {
+    dbconn.query(sqlGetReservations, function(err, results, fields) {
+      if (err) {
+        console.log(err);
+        reject(err);
+      }
+      else {
+        resolve(results);
+      }
+    })
+  });
+
+  // 3. With all the reservations, we can now do a for loop to loop through all the reservations,
+  // to see if there is any pre-order items for this reservation. We'll also wanna take this chance to
+  // construct this into a tempJSON and push it into a temp array to send back to the frontend
+  var tempReservationArray = [];
+
+  for (let reservation of custReservations) {
+    // Set Customer Reservation ID
+    const crID = reservation.cust_reservation_ID;
+
+    const reservationDate = new Date(reservation.cr_date);
+		const pattern = datetime_T.compile('ddd, DD MMM YYYY');
+		const convertedDate = datetime_T.format(reservationDate, pattern);
+    
+    var tempJSON = {
+      cr_resID: reservation.cr_rest_ID,
+      cr_restName: reservation.cr_rest_name,
+      crID: reservation.cust_reservation_ID,
+      pax: reservation.cr_pax,
+      date: convertedDate,
+      timeslot: datetime_T.transform(reservation.cr_timeslot, 'HH:mm:ss', 'h:mm A'),
+      status: reservation.cr_status
+    }
+
+    const preOrderItems = await new Promise((resolve, reject) => {
+      var sqlGetPOItemsQuery = "SELECT * FROM pre_order_item ";
+      sqlGetPOItemsQuery += `WHERE poi_crID="${crID}"`;
+
+      dbconn.query(sqlGetPOItemsQuery, function(err, results, fields){
+        if (err) {
+          console.log(err);
+          reject(err);
+        }
+        else {
+          resolve(results);
+        }
+      });
+    });
+
+    // If there's more than 1 preorderitems then we have to make it into an array
+    if (preOrderItems.length > 0) {
+      var tempItemsArray = [];
+
+      for(let selectedItem of preOrderItems) {
+        var itemJSON = {
+          itemID: selectedItem.poi_item_ID,
+          itemName: selectedItem.poi_item_name,
+          itemPrice: selectedItem.poi_item_price,
+          itemQty: selectedItem.poi_item_qty,
+          itemSO: selectedItem.poi_special_order,
+          item_restItemID: selectedItem.poi_rest_item_ID
+        }
+        tempItemsArray.push(itemJSON);
+      } 
+      tempJSON["preOrderItems"] = tempItemsArray;
+    }
+    else {
+      tempJSON["preOrderItems"] = "None";
+    }
+    // Push
+    tempReservationArray.push(tempJSON);
+  }
+  res.status(200).send(tempReservationArray);
 }));
 
 /****************************************************************************

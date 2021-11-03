@@ -51,6 +51,28 @@ router.get('/accountstatus', (req, res) => {
 });
 
 /****************************************************************************
+ * For users to get their account status																		*
+ ****************************************************************************
+ */
+router.get('/usertype', (req, res) => {
+  // console.log(path.resolve(`../0-test-pictures/${req.params.imageName}`));
+  // console.log(req.params.imageName);
+  // console.log(pathName);
+	const { username } = res.locals.userData;
+
+	var sqlGetQuery = `SELECT user_type FROM app_user WHERE username="${username}"`;
+
+	dbconn.query(sqlGetQuery, function(err, results, fields){
+		if (err) {
+			console.log(err);
+		}
+		else {
+			res.status(200).send(results[0]);
+		}
+	})
+});
+
+/****************************************************************************
  * DM / RM retrieve restaurant name																					*
  ****************************************************************************
  */

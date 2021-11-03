@@ -1107,8 +1107,8 @@ router.route('/customerReservation')
               console.log(err);
             }
             else {
-              // If the Order is successfully created, then we can insert all the Order Items into the database.
-              // We first check if the OrderItems have multiple items, or if the user is just ordering 1 item
+              // If the pre order is successfully created, then we can insert all the pre order Items into the database.
+              // We first check if the preOrderItems have multiple items, or if the user is just ordering 1 item
               // If multiple items, proceed
               if (Array.isArray(preOrderItems) == true) {
                 for (let x in preOrderItems) {
@@ -1133,13 +1133,11 @@ router.route('/customerReservation')
                 };
               }
               // Else we treat it as a single item
-              else {
-                const item = JSON.parse(preOrderItems);
+              else if (preOrderItems != {}){
                 // console.log(JSON.parse(orderItems));
-
-                  var sqlInsertItemsQuery = "INSERT INTO `pre_order_item`(`poi_crID`, `poi_rest_item_ID`, ";
-                  sqlInsertItemsQuery += "`poi_item_name`, `poi_item_price`, `poi_item_qty`, `poi_special_order`) ";
-                  sqlInsertItemsQuery += `VALUES ("${reservationID}", ${item.itemID}, "${item.itemName}", ${item.itemPrice}, ${item.itemQty}, "NIL")`;
+                var sqlInsertItemsQuery = "INSERT INTO `pre_order_item`(`poi_crID`, `poi_rest_item_ID`, ";
+                sqlInsertItemsQuery += "`poi_item_name`, `poi_item_price`, `poi_item_qty`, `poi_special_order`) ";
+                sqlInsertItemsQuery += `VALUES ("${reservationID}", ${preOrderItems.itemID}, "${preOrderItems.itemName}", ${preOrderItems.itemPrice}, ${preOrderItems.itemQty}, "NIL")`;
 
                 conn.query(sqlInsertItemsQuery, function(err, results, fields) {
                   if (err) {

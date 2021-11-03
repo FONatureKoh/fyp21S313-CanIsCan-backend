@@ -10,7 +10,7 @@ async function sendCustomerReservation(iCalString, crID, custEmail, restName, cu
   restAddressPostal, reservationDateTime, pax, preOrderStatus, preOrderItems, preOrderTotal) {
   // Put a try catch to create the template and then return the template
   try {
-    console.log(custEmail);
+    // console.log(custEmail);
     // Some conversion first
     // const convertedTime = "about " + datetime_T.transform(etd, 'HH:mm:ss', 'm') + " mins";
 

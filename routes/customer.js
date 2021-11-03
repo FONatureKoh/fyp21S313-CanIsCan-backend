@@ -1033,7 +1033,7 @@ router.route('/customerReservation')
       preOrderStatus, preOrderItems, preOrderTotal
     } = req.body;
 
-    console.log(req.body);
+    // console.log(req.body);
     // We will need to construct a query to insert stuff into the db. Since we are on a pool now, we best use
     // this same connection for this whole creation and then release that connect once the thing has been created
     // so that we can control the whole route to wait for the result from the MySQL db
@@ -1088,7 +1088,7 @@ router.route('/customerReservation')
       }); // Get connection closes here
     }); // Promise closes here
 
-    console.log(queryResponse);
+    // console.log(queryResponse);
 
     // 3. We now create the pre-order into the system
     const preOrderResponse = await new Promise((resolve, reject) => {
@@ -1133,18 +1133,18 @@ router.route('/customerReservation')
                       if (Number(x) == (preOrderItems.length - 1)){
                         conn.release();
                         resolve({ insertStatus: 'OK' });
-                      }
-                       
+                      } 
                     };
                   });
                 };
               }
               else {
                 // Else we treat it as a single item
-                // console.log(JSON.parse(orderItems));
+                const item = JSON.parse(preOrderItems);
+
                 var sqlInsertItemsQuery = "INSERT INTO `pre_order_item`(`poi_crID`, `poi_rest_item_ID`, ";
                 sqlInsertItemsQuery += "`poi_item_name`, `poi_item_price`, `poi_item_qty`, `poi_special_order`) ";
-                sqlInsertItemsQuery += `VALUES ("${reservationID}", ${preOrderItems.itemID}, "${preOrderItems.itemName}", ${preOrderItems.itemPrice}, ${preOrderItems.itemQty}, "NIL")`;
+                sqlInsertItemsQuery += `VALUES ("${reservationID}", ${item.itemID}, "${item.itemName}", ${item.itemPrice}, ${item.itemQty}, "NIL")`;
 
                 conn.query(sqlInsertItemsQuery, function(err, results, fields) {
                   if (err) {
@@ -1175,7 +1175,7 @@ router.route('/customerReservation')
 
       // 3. Construct a datetime object so that we can make the iCal object with it
       const reservationDateTime = datetime_T.parse(datetimeString, 'DD-MM-YYYY HH:mm [GMT]Z');
-      console.log(reservationDateTime);
+      // console.log(reservationDateTime);
 
       // 4. Create the address of the restaurant
       // const restAddressPostal = restAdd + ", Singapore " + restPostal

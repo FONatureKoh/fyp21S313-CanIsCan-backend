@@ -1165,7 +1165,7 @@ router.get('/pendingreservations', asyncHandler(async (req, res, next) => {
 
 		// Gets all the PO items
 		var sqlGetPOItems = `SELECT * FROM pre_order JOIN pre_order_item `;
-		sqlGetPOItems += `ON po_ID=po_order_ID `;
+		sqlGetPOItems += `ON po_crID=poi_crID `;
 		sqlGetPOItems += `WHERE po_crID="${reservation_ID}"`;
 
 		// Await query for the items
@@ -1196,10 +1196,10 @@ router.get('/pendingreservations', asyncHandler(async (req, res, next) => {
 		if (po_items.length != 0) {
 			for (let item of po_items) {
 				var tempJSON = {
-					itemID: item.po_rest_item_ID,
-					itemName: item.po_item_name,
-					itemPrice: item.po_item_price,
-					itemQty: item.po_item_qty,
+					itemID: item.poi_rest_item_ID,
+					itemName: item.poi_item_name,
+					itemPrice: item.poi_item_price,
+					itemQty: item.poi_item_qty,
 					itemSO: item.special_order
 				}
 				tempItemsArray.push(tempJSON);

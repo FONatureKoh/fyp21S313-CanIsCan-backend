@@ -1092,12 +1092,19 @@ router.route('/customerReservation')
 
     // 3. We now create the pre-order into the system
     const preOrderResponse = await new Promise((resolve, reject) => {
+      // If there's no preorder
+      if (preOrderStatus == 'false') {
+        // No need to put anything in, just send an OK 
+        resolve({ insertStatus: 'OK' });  
+      };
+
       dbconn.getConnection(function(err, conn){
         if (err) {
           console.log(err);
           reject(err);
-        }
-        else {
+        };
+        
+        if (preOrderStatus == 'true') {
           // Construct reservation insert query
           var sqlInsertQuery = "INSERT INTO `pre_order`(`po_crID`, `po_status`, `total_cost`) ";
           sqlInsertQuery += `VALUES ("${reservationID}","Pending",${parseFloat(preOrderTotal).toFixed(2)})`;
@@ -1132,8 +1139,8 @@ router.route('/customerReservation')
                   });
                 };
               }
-              // Else we treat it as a single item
-              else if (preOrderItems != {}){
+              else {
+                // Else we treat it as a single item
                 // console.log(JSON.parse(orderItems));
                 var sqlInsertItemsQuery = "INSERT INTO `pre_order_item`(`poi_crID`, `poi_rest_item_ID`, ";
                 sqlInsertItemsQuery += "`poi_item_name`, `poi_item_price`, `poi_item_qty`, `poi_special_order`) ";
@@ -1148,14 +1155,14 @@ router.route('/customerReservation')
                     resolve({ insertStatus: 'OK' });                    
                   };
                 });// Closing nested query
-              };
+              }
             };
           }); // Closing 2nd query to same connection
-        }
+        };
       });
     });
 
-    if (queryResponse.insertStatus == "OK" && preOrderResponse.insertStatus == "OK" ) {
+    if (queryResponse.insertStatus == "OK" && preOrderResponse.insertStatus == "OK") {
       // The following portion creates and send an email to the customer reminding the customer
       // that he / she has made a reservation and will also attach a calendar invite
       // 1. Convert the received reservation Date

@@ -189,9 +189,33 @@ router.post("/approve", (req, res) => {
       // 3. Send email to the restaurant's registered email address with the first
       // login password
 
-      console.log(results);
       // First the get info query
-      // Nested Query
+      var sqlGetQuery = `SELECT username, user_password, restaurant_name, rest_email `;
+      sqlGetQuery += `FROM app_user JOIN restaurant `;
+      sqlGetQuery += `ON username=rest_rgm_username AND restaurant_ID=${restID}`;
+
+      dbconn.query(sqlGetQuery, function(error, results, fields){
+        if (error) {
+          res.status(200).json({ api_msg: "MySQL " + error });
+        }
+        else {
+          sendRGMEmail(results[0].username, results[0].user_password, results[0].rest_email, results[0].restaurant_name)
+            .then((response) => {
+              console.log(response);
+              sendMail(response)
+                .then(result => {
+                  console.log("sendmail triggered successfully!");
+                  console.log(result);
+                  // 4. Response back to axios call with api_msg
+                  res.status(200).json({ api_msg: "Successful!" });
+                })
+                .catch((error) => console.log(error.message));
+            })
+            .catch((err) => {
+              console.log(err);
+            });
+        }
+      });  // Nested Query
     }
   });  // First query
 });

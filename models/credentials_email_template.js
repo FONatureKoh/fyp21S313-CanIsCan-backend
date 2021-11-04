@@ -5,8 +5,10 @@
  * THE ACCOUNT
  */
 async function sendRGMEmail(username, password, email, restaurant) {
+  console.log("creating email")
   // Put a try catch to create the template and then return the template
   try {
+    console.log(username, password, email, restaurant);
     // Sets the email address to receive email
     var mailTo = `${email}`;
           
@@ -241,6 +243,8 @@ async function sendRGMEmail(username, password, email, restaurant) {
       text: mailText,
       html: mailHTML
     };
+
+    console.log(mailOptions);
 
     return mailOptions;
   }

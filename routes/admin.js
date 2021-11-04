@@ -173,16 +173,17 @@ router.post("/newtag", (req, res) => {
 router.post("/approve", (req, res) => {
   console.log("Approving a restaurant!");
   // 1. Get the restaurant's ID
-  const restID = req.body;
+  const { restID } = req.body;
 
   // 2. Update status of restaurant
   var sqlUpdateQuery = `UPDATE restaurant SET rest_status="first" `;
   sqlUpdateQuery += `WHERE restaurant_ID=${restID}`;
 
   // send query to sql server
-  dbconn.query(sqlUpdateQuery, function(error, results, fields){
-    if (error) {
-      res.status(200).json({ api_msg: "MySQL " + error });
+  dbconn.query(sqlUpdateQuery, function(err, results, fields){
+    if (err) {
+      console.log(err)
+      res.status(200).json({ api_msg: "MySQL " + err });
     }
     else {
       // 3. Send email to the restaurant's registered email address with the first

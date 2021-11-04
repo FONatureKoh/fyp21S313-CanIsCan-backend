@@ -156,7 +156,7 @@ router.post('/restaurant', asyncHandler(async(req, res) => {
  * Restaurant Register for an account 																			*
  ****************************************************************************
  */
-router.post('/customer', (req, res) => {
+router.post('/customer', asyncHandler(async(req, res, next) => {
   // Assuming that we pass the form data into the route
   // 1. We will need to decode the form and draw out the data
   // console.log(req.body);
@@ -164,45 +164,58 @@ router.post('/customer', (req, res) => {
     email, username, password
   } = req.body;
 
-  var sqlQuery = "INSERT INTO app_user(`username`, `user_password`, `user_type`, `account_status`) ";
-  sqlQuery += `VALUES ("${username}", "${password}", "Customer", "first")`;
+  // 2. We verify if the username already exist
+  var verifyUsername = `SELECT EXISTS(SELECT username FROM app_user WHERE username="${username}") AS EXISTCHECK`;
 
-  // First query creates the app_user entry
-  dbconn.query(sqlQuery, function(error, results, fields){
-    if (error) {
-      console.log("MySQL " + error);
-      res.status(200).json({ api_msg: "username exist" });
-    }
-    else {
-      // Console log to see MySQL
-      // console.log(results);
+  const usernameCheck = await new Promise((resolve, reject) => {
+    dbconn.query(verifyUsername, function(err, results, fields) {
+      if (err) {
+        console.log(err);
+        reject(err);
+      }
+      else {
+        resolve(results[0].EXISTCHECK);
+      }
+    });
+  });
 
-      // Once the app user is created, we can now create the customer profile
-      var sqlInsertCustProfile = "INSERT INTO customer_user(`cust_username`, `email`) ";
-      sqlInsertCustProfile += `VALUES ("${username}", "${email}")`;
+  if (usernameCheck == 1) {
+    res.status(200).send({ api_msg: "This username already exist! Is it you?" });
+    return;
+  }
 
-      dbconn.query(sqlInsertCustProfile, function(error, results, fields){
-        if (error) {
-          console.log("MySQL " + error);
-        }
-        else {
-          // For the customer, we also need to put in the first default address for the customer
-          var sqlInsertCustAddress = "INSERT INTO `cust_address`(`ca_username`, `is_default`) ";
-          sqlInsertCustAddress += `VALUES ("${username}",1)`;
+  // 3. Once that is verified, we proceed for the creation
+  var sqlCreate = "INSERT INTO app_user(`username`, `user_password`, `user_type`, `account_status`) ";
+  sqlCreate += `VALUES ("${username}", "${password}", "Customer", "first")`;
 
-          dbconn.query(sqlInsertCustAddress, function(err, results, fields){
-            if (err) {
-              console.log("MySQL" + err);
-            }
-            else {
-              res.status(200).json({ api_msg: "Successful" });
-            }
-          }); // Closing Address creation query
-        };
-      }); // Create customer profile query
-    };
-  }); // Create app user query
-}); // Customer Register Route close
+  dbconn.getConnection((err, conn) => {
+    if (err) console.log(err)
+
+    // Establish the connection and go for it
+    conn.query(sqlCreate, function(err, results, fields){
+      if (err) {
+        console.log(err);
+        res.status(400).send(err.message);
+      }
+      else {
+        // Once the app user is created, we can now create the customer profile
+        var sqlInsertCustProfile = "INSERT INTO customer_user(`cust_username`, `email`) ";
+        sqlInsertCustProfile += `VALUES ("${username}", "${email}")`;
+
+        conn.query(sqlInsertCustProfile, function(err, results, fields){
+          if (err) {
+            console.log(err);
+            res.status(400).send(err.message);
+          }
+          else {
+            conn.release();
+            res.status(200).send({ api_msg: "success" });
+          }
+        }) // Close and release nested connection
+      }
+    }); // Closed first connection
+  }); // Get connection from the pool
+})); // Customer Register Route close
 
 /*******************************************************************************************
  * NO ROUTES FUNCTIONS OR DECLARATIONS BELOW THIS DIVIDER 

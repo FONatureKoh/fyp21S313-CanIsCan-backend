@@ -200,6 +200,7 @@ router.post("/approve", (req, res) => {
         else {
           sendRGMEmail(results[0].username, results[0].user_password, results[0].rest_email, results[0].restaurant_name)
             .then((response) => {
+              console.log(response);
               sendMail(response)
                 .then(result => {
                   console.log("sendmail triggered successfully!");
@@ -208,6 +209,9 @@ router.post("/approve", (req, res) => {
                   res.status(200).json({ api_msg: "Successful!" });
                 })
                 .catch((error) => console.log(error.message));
+            })
+            .catch((err) => {
+              console.log(err);
             });
         }
       });  // Nested Query

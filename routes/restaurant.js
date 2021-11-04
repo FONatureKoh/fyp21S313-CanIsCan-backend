@@ -471,29 +471,34 @@ router
 			file, body: {
 				address,
 				postalCode,
-				tags
+				tags,
+				openingTime,
+				closingTime
 			}
 		} = req;
+
+		console.log(req.body);
 
 		const tagsArray = tags.split(",");
 
 		// 3. Update the table with all the data gotten.
 		var sqlUpdateQuery = `UPDATE restaurant SET rest_banner_ID="${file.filename}",`
-		sqlUpdateQuery += `rest_address_info="${address}",rest_postal_code=${postalCode},rest_status="active"`
+		sqlUpdateQuery += `rest_address_info="${address}",rest_postal_code=${postalCode},rest_status="closed",`
 
 		if (tagsArray[0]) {
-			sqlUpdateQuery += `,rest_tag_1="${tagsArray[0]}"`;
+			sqlUpdateQuery += `rest_tag_1="${tagsArray[0]}",`;
 		}
 
 		if (tagsArray[1]) {
-			sqlUpdateQuery += `,rest_tag_2="${tagsArray[1]}"`;
+			sqlUpdateQuery += `rest_tag_2="${tagsArray[1]}",`;
 		}
 
 		if (tagsArray[2]) {
-			sqlUpdateQuery += `,rest_tag_3="${tagsArray[2]}"`;
+			sqlUpdateQuery += `rest_tag_3="${tagsArray[2]}",`;
 		}
 
-		sqlUpdateQuery += ` WHERE rest_rgm_username="${username}"`;
+		sqlUpdateQuery += `rest_opening_time="${openingTime}",rest_closing_time="${closingTime}" `
+		sqlUpdateQuery += `WHERE rest_rgm_username="${username}"`;
 
 		dbconn.query(sqlUpdateQuery, function(error, results, fields){
 			if (error) {
@@ -503,6 +508,11 @@ router
 				res.status(200).json({ api_msg: "Successful!" });
 			}
 		})
+
+		// var sqlUpdateQuery = `UPDATE rest_reservation_setting SET `;
+		// sqlUpdateQuery += `reservation_starttime="${startTime}", reservation_endtime="${endTime}", `;
+		// sqlUpdateQuery += `reservation_interval=${reservationIntervals}, max_tables=${noOfTables} `;
+		// sqlUpdateQuery += `WHERE rrs_ID=${settingsID}`;
 
 		console.log(req.file, req.body);
 	});

@@ -170,9 +170,10 @@ router.post("/newtag", (req, res) => {
  * Route Template                     																			*
  ****************************************************************************
  */
-router.post("/approve/:restaurant_ID", (req, res) => {
+router.post("/approve", (req, res) => {
+  console.log("Approving a restaurant!");
   // 1. Get the restaurant's ID
-  const restID = req.params.restaurant_ID;
+  const restID = req.body;
 
   // 2. Update status of restaurant
   var sqlUpdateQuery = `UPDATE restaurant SET rest_status="first" `;
@@ -201,11 +202,10 @@ router.post("/approve/:restaurant_ID", (req, res) => {
             .then((response) => {
               sendMail(response)
                 .then(result => {
-                  console.log("sendmail triggered successfully!");
-                  
+                  // console.log("sendmail triggered successfully!");
+                  // console.log(result);
                   // 4. Response back to axios call with api_msg
                   res.status(200).json({ api_msg: "Successful!" });
-                  // console.log(result);
                 })
                 .catch((error) => console.log(error.message));
             });

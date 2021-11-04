@@ -1,17 +1,40 @@
-// username, email, phone, rest name
-const express = require("express");
-const authTokenMiddleware = require("../middleware/authTokenMiddleware");
+// Express Server imports
+const express = require('express');
 const router = express.Router();
-const dbconn = require("../models/db_model");
+
+// Database matters
+const dbconn = require('../models/db_model');
+
+// General Imports
+const { v4: uuidv4 } = require('uuid');
+const datetime_T = require('date-and-time');
 const pw_gen = require('generate-password');
-const sendMail = require("../models/email_model");
-const { sendRGMEmail } = require("../models/credentials_email_template");
+const fs = require('fs');
+const path = require('path');
 
-// Body / form parser
+// For image uploads
+// const multer = require('multer');
+
+// Google maps api stuff
+// const { Client, defaultAxiosInstance } = require('@googlemaps/google-maps-services-js');
+
+// iCal stuff
+const iCal = require('ical-generator');
+
+// Email Modules
+const sendMail = require('../models/email_model');
+const { sendRGMEmail } = require('../models/credentials_email_template');
+
+// Middle Ware stuffs
+const authTokenMiddleware = require('../middleware/authTokenMiddleware');
+const asyncHandler = require('express-async-handler');
+
+/**************************************************************************
+ * Router Middlewares and parsers																					*
+ **************************************************************************/
 router.use(express.json());
-
-// Universal Middleware
-// All middleware for this route comes here
+// router.use(express.urlencoded({ extended: true }));
+router.use(authTokenMiddleware);
 
 /****************************************************************************
  * Getting all the pending restaurants																			*
@@ -29,6 +52,74 @@ router.get("/pending", (req, res) => {
     }
     else {
       res.status(200).send(results);
+    }
+  });
+});
+
+/****************************************************************************
+ * Getting all restaurant Tags																			*
+ ****************************************************************************
+ */
+router.get("/retrievetags", asyncHandler(async(req, res, next) => {
+  // This route retrieves all the existing tags
+  // TEMP ARRAY TO RETURN TO FRONTEND
+  var tempTagsArray = [];
+  var tempID = 0;
+
+  // 1. Select all the existing tags and then construct a readable DataGRID
+  // for react to read
+  var sqlGetQuery = `SELECT * FROM rest_tags`
+
+  const queryResults = await new Promise((resolve, reject) => {
+    dbconn.query(sqlGetQuery, function(error, results, fields){
+      if (error) {
+        console.log("MySQL " + error);
+        reject(err)
+      }
+      else {
+        resolve(results);
+      }
+    });
+  });
+
+  for (let tag of queryResults) {
+    var tempJSON = {
+      id: ++tempID,
+      tag: tag.restaurant_tag,
+      tag_desc: tag.rest_tag_desc
+    }
+
+    tempTagsArray.push(tempJSON);
+  }
+
+  res.status(200).send(tempTagsArray);
+}));
+
+/****************************************************************************
+ * Add new Tag
+ ****************************************************************************
+ */
+router.post("/newtag", (req, res) => {
+  // This route retrieves all the existing tags
+  // TEMP ARRAY TO RETURN TO FRONTEND
+  const { newTag } = req.body;
+
+  console.log(newTag);
+
+  var sqlInsertNew = "INSERT INTO `rest_tags`(`restaurant_tag`) "
+  sqlInsertNew += `VALUES ("${newTag}")`;
+
+  dbconn.query(sqlInsertNew, function(err, results, fields){
+    if (err) {
+      if (err.errno == 1062) {
+        res.status(200).send({ api_msg: `Duplicate entry! Tag ${newTag} already exist!`});
+      }
+      else {
+        res.status(200).send({ api_msg: "fail"});
+      }
+    }
+    else {
+      res.status(200).send({ api_msg: "success" });
     }
   });
 });

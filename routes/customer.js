@@ -23,14 +23,12 @@ const iCal = require('ical-generator');
 
 // Email Modules
 const sendMail = require('../models/email_model');
-const { sendSubUserEmail } = require('../models/credentials_email_template');
 const { sendCustomerOrder, sendOrderToRestaurant } = require('../models/order_email_template');
+const { sendCustomerReservation, sendResToRestaurant } = require('../models/reservation_email_template');
 
 // Middle Ware stuffs
 const authTokenMiddleware = require('../middleware/authTokenMiddleware');
 const asyncHandler = require('express-async-handler');
-const { sendCustomerReservation, sendResToRestaurant } = require('../models/reservation_email_template');
-const { resolve } = require('path');
 
 // Stripe stuffs
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);

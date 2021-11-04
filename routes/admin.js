@@ -201,11 +201,10 @@ router.post("/approve", (req, res) => {
         else {
           sendRGMEmail(results[0].username, results[0].user_password, results[0].rest_email, results[0].restaurant_name)
             .then((response) => {
-              console.log(response);
               sendMail(response)
                 .then(result => {
-                  console.log("sendmail triggered successfully!");
-                  console.log(result);
+                  // console.log("sendmail triggered successfully!");
+                  // console.log(result);
                   // 4. Response back to axios call with api_msg
                   res.status(200).json({ api_msg: "Successful!" });
                 })

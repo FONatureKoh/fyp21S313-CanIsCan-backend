@@ -410,9 +410,7 @@ router
 		}
 	})
 	.post(profileUpload.single("profileImage"), (req, res) => {
-		// Okay, so the uniqueness of this route is that we need to dynamically choose
-		// the usertype so that the route knows which user to post to. Lets say its an
-		// RGM, then we need to put to the rgm table so on and forth
+		// We use POST route here for first login
 		// 1. Get the username and usertype from the accesstoken
 		const { username, userType } = res.locals.userData;
 		
@@ -435,20 +433,38 @@ router
 			// RGM User Type ==========================================================
 			case "Restaurant General Manager":
 				// User update stuff
-				var sqlUpdateQuery = `UPDATE restaurant_gm SET rgm_username="${username}",`
-				sqlUpdateQuery += `picture_ID="${file.filename}",first_name="${fname}",last_name="${lname}",`
-				sqlUpdateQuery += `phone_no=${phoneNo},email="${email}",home_address="${address}",home_postal_code=${postalCode} `;
-				sqlUpdateQuery += `WHERE rgm_username="${username}"`;
+				if (file) {
+					var sqlUpdateQuery = `UPDATE restaurant_gm SET rgm_username="${username}",`
+					sqlUpdateQuery += `picture_ID="${file.filename}",first_name="${fname}",last_name="${lname}",`
+					sqlUpdateQuery += `phone_no=${phoneNo},email="${email}",home_address="${address}",home_postal_code=${postalCode} `;
+					sqlUpdateQuery += `WHERE rgm_username="${username}"`;
 
-				dbconn.query(sqlUpdateQuery, function(err, results, fields){
-					if (err) {
-						console.log(err);
-						res.status(400).json({ api_msg: "MySQL error" });
-					}
-					else {
-						res.status(200).json({ api_msg: "Successful!" });
-					}
-				})
+					dbconn.query(sqlUpdateQuery, function(err, results, fields){
+						if (err) {
+							console.log(err);
+							res.status(400).json({ api_msg: "MySQL error" });
+						}
+						else {
+							res.status(200).json({ api_msg: "Successful!" });
+						}
+					});
+				}
+				else {
+					var sqlUpdateQuery = `UPDATE restaurant_gm SET rgm_username="${username}",`
+					sqlUpdateQuery += `first_name="${fname}",last_name="${lname}",`
+					sqlUpdateQuery += `phone_no=${phoneNo},email="${email}",home_address="${address}",home_postal_code=${postalCode} `;
+					sqlUpdateQuery += `WHERE rgm_username="${username}"`;
+
+					dbconn.query(sqlUpdateQuery, function(err, results, fields){
+						if (err) {
+							console.log(err);
+							res.status(400).json({ api_msg: "MySQL error" });
+						}
+						else {
+							res.status(200).json({ api_msg: "Successful!" });
+						}
+					});
+				}
 
 				break;
 			// =========================================================================
@@ -465,7 +481,7 @@ router
 
 					dbconn.query(sqlUpdateQuery, function(err, results, fields){
 						if (err) {
-							cconsole.log(err);
+							console.log(err);
 							res.status(400).send("MySQL error. If you're the client, contact your developer");
 						}
 						else {
@@ -512,21 +528,99 @@ router
 							}); // Close nested SQL Query
 						}
 					}); // Close first SQL Query
-				}
-				
+				}				
 				
 				break;
 			// =========================================================================
 			// System Administrator User Type ==========================================
 			case "System Administrator":
+				// This route should not be necessary as all system administrators are created
+				// by the application owner
 				res.status(200).json({ username: username, userType: userType });
 
 				break;
 			// =========================================================================
 			// Customer User Type ======================================================
 			case "Customer":
-				res.status(200).json({ username: username, userType: userType });
+				if (file) {
+					var sqlUpdateQuery = `UPDATE customer_user SET cust_picture_ID="${file.filename}",`
+					sqlUpdateQuery += `first_name="${fname}",last_name="${lname}",phone_no=${phoneNo},`
+					sqlUpdateQuery += `email="${email}" WHERE cust_username="${username}"`;
 
+					dbconn.query(sqlUpdateQuery, function(err, results, fields){
+						if (err) {
+							cconsole.log(err);
+							res.status(400).send("MySQL error. If you're the client, contact your developer");
+						}
+						else {
+							// Also update the account status
+							var updateAddress = `UPDATE cust_address SET address_info="${address}", `;
+							updateAddress += `postal_code=${postalCode} WHERE ca_username="${username}"`
+
+							dbconn.query(updateAddress, function(err, results, fields){
+								if (err) {
+									console.log(err);
+									res.status(400).send("MySQL error. If you're the client, contact your developer");
+								}
+								else {
+									// Also update the account status
+									var updateAccountStatus = `UPDATE app_user SET account_status="active" `;
+									updateAccountStatus += `WHERE username="${username}"`
+
+									dbconn.query(updateAccountStatus, function(err, results, fields){
+										if (err) {
+											console.log(err);
+											res.status(400).send("MySQL error. If you're the client, contact your developer");
+										}
+										else {
+											res.status(200).json({ api_msg: "Successful!" });
+										}
+									}); // Close nested nested SQL Query
+								}
+							}); // Close nested SQL Query
+						}
+					});
+				}
+				else {
+					var sqlUpdateQuery = `UPDATE customer_user SET `
+					sqlUpdateQuery += `first_name="${fname}",last_name="${lname}",phone_no=${phoneNo},`
+					sqlUpdateQuery += `email="${email}",home_address="${address}",home_postal_code=${postalCode} `;
+					sqlUpdateQuery += `WHERE cust_username="${username}"`;
+
+					dbconn.query(sqlUpdateQuery, function(err, results, fields){
+						if (err) {
+							console.log(err);
+							res.status(400).json({ api_msg: "MySQL " + err });
+						}
+						else {
+							// Also update the account status
+							var updateAddress = `UPDATE cust_address SET address_info="${address}", `;
+							updateAddress += `postal_code=${postalCode} WHERE ca_username="${username}"`
+
+							dbconn.query(updateAddress, function(err, results, fields){
+								if (err) {
+									console.log(err);
+									res.status(400).send("MySQL error. If you're the client, contact your developer");
+								}
+								else {
+									// Also update the account status
+									var updateAccountStatus = `UPDATE app_user SET account_status="active" `;
+									updateAccountStatus += `WHERE username="${username}"`
+
+									dbconn.query(updateAccountStatus, function(err, results, fields){
+										if (err) {
+											console.log(err);
+											res.status(400).send("MySQL error. If you're the client, contact your developer");
+										}
+										else {
+											res.status(200).json({ api_msg: "Successful!" });
+										}
+									}); // Close nested nested SQL Query
+								}
+							}); // Close nested SQL Query
+						}
+					}); // Close first SQL Query
+				}
 				break;
 			// =========================================================================	
 			default:

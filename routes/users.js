@@ -583,8 +583,7 @@ router
 				}
 				else {
 					var sqlUpdateQuery = `UPDATE customer_user SET `
-					sqlUpdateQuery += `first_name="${fname}",last_name="${lname}",phone_no=${phoneNo},`
-					sqlUpdateQuery += `email="${email}",home_address="${address}",home_postal_code=${postalCode} `;
+					sqlUpdateQuery += `first_name="${fname}",last_name="${lname}",phone_no=${phoneNo},email="${email}" `;
 					sqlUpdateQuery += `WHERE cust_username="${username}"`;
 
 					dbconn.query(sqlUpdateQuery, function(err, results, fields){

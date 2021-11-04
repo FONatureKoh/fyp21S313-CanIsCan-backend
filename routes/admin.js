@@ -57,6 +57,48 @@ router.get("/pending", (req, res) => {
 });
 
 /****************************************************************************
+ * Getting all the pending restaurants																			*
+ ****************************************************************************
+ */
+router.get("/activerestaurants", (req, res) => {
+  // This route retrieves all the restaurants that are registered as a pending
+  // account.
+  // 1. Select all the restaurants that have the pending status and return it
+  var sqlGetQuery = `SELECT * FROM restaurant WHERE rest_status!="pending"`
+
+  dbconn.query(sqlGetQuery, function(error, results, fields){
+    if (error) {
+      console.log("MySQL " + error);
+    }
+    else {
+      res.status(200).send(results);
+    }
+  });
+});
+
+/****************************************************************************
+ * Getting all the pending restaurants																			*
+ ****************************************************************************
+ */
+router.get("/activecustomers", (req, res) => {
+  // This route retrieves all the restaurants that are registered as a pending
+  // account.
+  // 1. Select all the restaurants that have the pending status and return it
+  var sqlGetQuery = `SELECT customer_ID, cust_username, first_name, last_name, phone_no, email `;
+  sqlGetQuery += `FROM customer_user JOIN app_user ON username=cust_username `;
+  sqlGetQuery += `WHERE account_status="active"`
+
+  dbconn.query(sqlGetQuery, function(error, results, fields){
+    if (error) {
+      console.log("MySQL " + error);
+    }
+    else {
+      res.status(200).send(results);
+    }
+  });
+});
+
+/****************************************************************************
  * Getting all restaurant Tags																			*
  ****************************************************************************
  */

@@ -53,8 +53,9 @@ router.get('/retrieveAllItems', (req, res) => {
 	var sqlGetQuery =  `SELECT restaurant_ID FROM restaurant `;
 	sqlGetQuery += `WHERE rest_rgm_username='${username}'`;
 
-	dbconn.query(sqlGetQuery, function (error, results, fields){
-		if (error) {
+	dbconn.query(sqlGetQuery, function (err, results, fields){
+		if (err) {
+			console.log(err);
 			res.status(200).json({ api_msg: "MySQL " + error });
 		}
 		else {
@@ -66,11 +67,13 @@ router.get('/retrieveAllItems', (req, res) => {
 			sqlQuery += 'item_price, item_availability ';
 			sqlQuery += 'FROM rest_item_categories JOIN rest_item ';
 			sqlQuery += `ON ric_restaurant_ID=${rest_ID} AND ric_ID=ri_cat_ID `;
+			sqlQuery += `WHERE item_availability!=2 `
 			sqlQuery += 'ORDER BY ric_name, item_name';
 
-			dbconn.query(sqlQuery, function (error, results, fields) {
-				if (error) {
-					res.status(200).json({ api_msg: "MySQL " + error });
+			dbconn.query(sqlQuery, function (err, results, fields) {
+				if (err) {
+					console.log(err);
+					res.status(200).json({ api_msg: "MySQL " + err });
 			  }
 			  else {
 					// console.log(results);
@@ -574,6 +577,13 @@ router.post('/addmenuitem', upload.single('imageFile'), (req, res) => {
 			itemCategory
 		}
 	} = req;
+
+	// Set the file's name
+	var filename = "no_file.png";
+	
+	if (file) {
+		filename = file.filename;
+	}
 	
 	// Console log for testing, please comment out when done
 	// console.log("restaurant.js line 196 ", file, req.body);
@@ -593,7 +603,7 @@ router.post('/addmenuitem', upload.single('imageFile'), (req, res) => {
 			// Construct insert sqlQuery 
 			var sqlQuery = 'INSERT INTO `rest_item`(`ri_rest_ID`, `ri_cat_ID`, `item_name`, `item_png_ID`, ';
 			sqlQuery += ' `item_desc`, `item_allergen_warning`, `item_price`, `item_availability`) ';
-			sqlQuery += `VALUES (${rest_ID}, ${itemCategory}, "${itemName}", "${file.filename}", `;
+			sqlQuery += `VALUES (${rest_ID}, ${itemCategory}, "${itemName}", "${filename}", `;
 			sqlQuery += `"${itemDesc}", "${itemAllergy}", ${itemPrice}, ${itemAvailability})`;
 
 			// Make sqlQuery
@@ -727,7 +737,7 @@ router
 		// needs to find that ID and delete it
 		const itemID = req.params.itemid
 
-		var sqlDeleteQuery = 'DELETE FROM `rest_item` ';
+		var sqlDeleteQuery = 'UPDATE rest_item SET item_availability=2 ';
 		sqlDeleteQuery += `WHERE ri_item_ID=${itemID}`;
 
 		dbconn.query(sqlDeleteQuery, function(error, results, fields) {

@@ -7,6 +7,7 @@ const dbconn = require('../models/db_model');
 
 // General Imports
 const pw_gen = require('generate-password');
+const asyncHandler = require('express-async-handler');
 // const { v4: uuidv4 } = require('uuid');
 // const datetime_T = require('date-and-time');
 // const fs = require('fs');
@@ -38,7 +39,7 @@ router.use(express.urlencoded({ extended: true }))
  * Restaurant Register for an account 																			*
  ****************************************************************************
  */
-router.post('/restaurant', (req, res) => {
+router.post('/restaurant', asyncHandler(async(req, res) => {
   // Assuming that we pass the form data into the route
   // 1. We will need to decode the form and draw out the data
   // console.log(req.body);
@@ -52,8 +53,61 @@ router.post('/restaurant', (req, res) => {
     numbers: true,
     symbols: '!@#$*?%^&',
     strict: true
-  })
+  });
 
+  // Query to find and see if the restaurant name can be found 
+  var sqlRestGet = `SELECT restaurant_name FROM restaurant `;
+  sqlRestGet += `WHERE restaurant_name="${restaurant_name}" `;
+
+  const verifyRestaurantName = await new Promise((resolve, reject) => {
+    dbconn.query(sqlRestGet, function (err, results, fields){
+      if (err) {
+        console.log(err);
+        reject(err);
+      }
+      else {
+        // console.log(results);
+        if (results[0]) {
+          resolve({checkRestaurant: "fail"});
+        }
+        else {
+          resolve({checkRestaurant: "OK"});
+        }
+      }
+    });
+  });
+
+  if (verifyRestaurantName.checkRestaurant === "fail") {
+    res.status(200).send({ api_msg: "Restaurant Name already exist!" });
+    return;
+  }
+
+  // Username check
+  var sqlGetQuery = `SELECT username FROM app_user WHERE username="${username}"`;
+
+  const verifyUsername = await new Promise((resolve, reject) => {
+    dbconn.query(sqlGetQuery, function(err, results, fields){
+      if (err) {
+        console.log(err);
+        reject(err);
+      }
+      else {
+        if (results[0]) {
+          resolve({checkUsername: "fail"});
+        }
+        else {
+          resolve({checkUsername: "OK"});
+        }  
+      }
+    });
+  });
+
+  if (verifyUsername.checkUsername === "fail") {
+    res.status(200).send({ api_msg: "Username already exist!" });
+    return;
+  }
+  
+  // All checks pass, proceed with restaurant creation
   var sqlQuery = "INSERT INTO app_user(`username`, `user_password`, `user_type`, `account_status`) ";
   sqlQuery += `VALUES ("${username}", "${default_pw}", "Restaurant General Manager", "active")`;
 
@@ -96,7 +150,7 @@ router.post('/restaurant', (req, res) => {
       }); // Second nested query closed
     };
   }); // First actual query
-}); // Restaurant Register Route close
+})); // Restaurant Register Route close
 
 /****************************************************************************
  * Restaurant Register for an account 																			*
@@ -111,7 +165,7 @@ router.post('/customer', (req, res) => {
   } = req.body;
 
   var sqlQuery = "INSERT INTO app_user(`username`, `user_password`, `user_type`, `account_status`) ";
-  sqlQuery += `VALUES ("${username}", "${password}", "Customer", "active")`;
+  sqlQuery += `VALUES ("${username}", "${password}", "Customer", "first")`;
 
   // First query creates the app_user entry
   dbconn.query(sqlQuery, function(error, results, fields){

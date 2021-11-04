@@ -202,8 +202,8 @@ router.post("/approve", (req, res) => {
             .then((response) => {
               sendMail(response)
                 .then(result => {
-                  // console.log("sendmail triggered successfully!");
-                  // console.log(result);
+                  console.log("sendmail triggered successfully!");
+                  console.log(result);
                   // 4. Response back to axios call with api_msg
                   res.status(200).json({ api_msg: "Successful!" });
                 })

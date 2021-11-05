@@ -1,5 +1,6 @@
 require('dotenv').config();
 const dbconn = require('./models/db_model.js');
+const fs = require('fs');
 const sendMail = require('./models/email_model.js');
 const express = require('express');
 const app = express();
@@ -171,6 +172,42 @@ app.get('/icalgen', (req, res) => {
       res.status(200).json(result);
     })
     .catch((error) => console.log(error.message));
+});
+
+/****************************************************************************
+ * Testing image retrieval 
+ ****************************************************************************
+ */
+app.get('/testImage/:imageName', (req, res) => {
+  // console.log(path.resolve(`../0-test-pictures/${req.params.imageName}`));
+  // console.log(req.params.imageName);
+  // console.log(pathName);
+	if (req.params.imageName != '') {
+		const pathName = process.env.ASSETS_SAVE_LOC + 'for testing/' + req.params.imageName;
+
+		// Check if path exist. If yes, great, otherwise send an err image instead
+		fs.access(pathName, fs.F_OK, (err) => {
+			if (err) {
+				console.log(err);
+				res.status(200).sendFile(path.resolve('./public/assets/error_img.png'));
+			}
+			else {
+        console.log(pathName);
+        const imagePath = path.resolve(pathName);
+
+        var bitmap = fs.readFileSync(imagePath, 'base64');
+
+        var image = "data:image/png;base64, " + bitmap;
+        
+        const tempJSON = {
+          imagebase64: image,
+          imageID: req.params.imageName
+        }
+
+        res.status(200).send(tempJSON);
+			}
+		})
+	}
 });
 
 /*******************************************************************************************

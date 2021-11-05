@@ -11,6 +11,7 @@ const datetime_T = require('date-and-time');
 const pw_gen = require('generate-password');
 const fs = require('fs');
 const path = require('path');
+const chalk = require('chalk');
 
 // For image uploads
 const multer = require('multer');
@@ -28,6 +29,7 @@ const consoleLogger = require('../middleware/loggerMiddleware');
  * Router Middlewares and parsers																					*
  **************************************************************************/
 router.use(express.json());
+router.use(express.urlencoded({ extended: true }));
 router.use(authTokenMiddleware);
 router.use(consoleLogger);
 
@@ -41,6 +43,8 @@ const default_pw = pw_gen.generate({
 	symbols: '!@#$*?%^&',
 	strict: true
 });
+
+const timestamp = `[${chalk.green(datetime_T.format(new Date(), 'YYYY-MM-DD HH:mm:ss'))}] `;
 
 /****************************************************************************
  * Retrieve restaurant's menu and all items information											*
@@ -866,7 +870,7 @@ router.post('/rgm/addsubuser', (req, res) => {
 
 	const {subuser_username, fname, lname, email, phone, role} = req.body;
 
-	console.log(req.body);
+	// console.log(req.body);
 
 	var sqlGetQuery = `SELECT restaurant_ID, restaurant_name FROM restaurant `;
 	sqlGetQuery += `WHERE rest_rgm_username="${username}"`;
@@ -881,7 +885,7 @@ router.post('/rgm/addsubuser', (req, res) => {
 			// app_user table
 			// Get restaurant ID and name
 			const { restaurant_ID, restaurant_name } = results[0];
-			console.log(restaurant_ID, restaurant_name);
+			// console.log(restaurant_ID, restaurant_name);
 			
 			// Generate a default password
 			const subuser_pw = default_pw;
@@ -902,9 +906,10 @@ router.post('/rgm/addsubuser', (req, res) => {
 						sqlProfilePostQuery += `VALUES (${restaurant_ID}, "${subuser_username}", "${fname}", "${lname}", `
 						sqlProfilePostQuery += `${phone}, "${email}", "${role}")`
 
-						dbconn.query(sqlProfilePostQuery, function(error, results, fields){
-							if (error) {
-								res.status(200).send({ api_msg: "MySQL " + error });
+						dbconn.query(sqlProfilePostQuery, function(err, results, fields){
+							if (err) {
+								console.log(err) 
+								res.status(200).send({ api_msg: "fail" });
 							}
 							else {
 								// 3. Once done with that, we send an email to the subuser with the login details
@@ -915,10 +920,10 @@ router.post('/rgm/addsubuser', (req, res) => {
 										sendMail(mailOptions)
 											.then((response) => {
 												// Console log
-												console.log("Send mail has been triggered successfully for adding a subuser");
+												console.log(timestamp + `Send mail has been triggered successfully for adding subuser ${subuser_username}`);
 
 												// send response back to frontend
-												res.status(200).send({ api_msg: `Successful subuser creation for subuser ${subuser_username}!` });
+												res.status(200).send({ api_msg: "success" });
 											})
 											.catch(error => console.log(error));
 									})
@@ -938,8 +943,7 @@ router.post('/rgm/addsubuser', (req, res) => {
  * The idea for this part is to allow the RGM to change the role of the subuser
  * or other details if that is ever required
  */
-router
-  .route('/rgm/subuser/:subuser_ID')
+router.route('/rgm/subuser/:subuser_ID')
 	.get((req, res) => {
 		// constructing the sql query
 		var sqlGetQuery = `SELECT subuser_ID, subuser_rest_ID, subuser_username, `;
@@ -956,10 +960,52 @@ router
 		});
 	})
 	.put((req, res) => {
-		res.send(`Get item with itemID ${req.params.subuser_ID}`);
+		// Get some useful constants
+		const subUserID = req.params.subuser_ID;
+		const {
+			username, fname, lname, email, phone, role
+		} = req.body;
+
+		// console.log(subUserID);
+		// console.log(req.body);
+
+		// 1. Construct the update query
+		var updateQuery = "UPDATE restaurant_subuser SET "
+		updateQuery += `first_name="${fname}",last_name=[value-6],phone_no=[value-7],email=[value-8],subuser_type=[value-11] ` 
+		updateQuery += `WHERE subuser_ID=${subUserID}`
+
+		dbconn.query(updateQuery, function(err, results, fields){
+			if (err) {
+				console.log(err);
+				res.status(200).send({ api_msg: "fail" });
+			}
+			else {
+				res.status(200).send({ api_msg: "success" });
+			}
+		})
 	})
 	.delete((req, res) => {
-		res.send(`Get item with itemID ${req.params.subuser_ID}`);
+		// 1. Construct the delete query 
+		// DELETE FROM `restaurant_subuser` WHERE `subuser_ID`=2
+		// Get some useful constants
+		const subUserID = req.params.subuser_ID;
+		const {
+			username
+		} = req.body;
+
+		// 1. Construct the update query
+		var sqlDeleteQuery = `DELETE FROM app_user WHERE username="${username}"`
+
+		dbconn.query(sqlDeleteQuery, function(err, results, fields){
+			if (err) {
+				console.log(err);
+				res.status(200).send({ api_msg: "fail" });
+			}
+			else {
+				console.log(timestamp + `Subuser with ${username} deleted successfully`)
+				res.status(200).send({ api_msg: "success" });
+			}
+		})
 	});
 
 

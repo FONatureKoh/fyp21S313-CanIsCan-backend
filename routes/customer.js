@@ -11,6 +11,11 @@ const datetime_T = require('date-and-time');
 const pw_gen = require('generate-password');
 const fs = require('fs');
 const path = require('path');
+const iCal = require('ical-generator');
+const chalk = require('chalk');
+
+// Stripe stuffs
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 // For image uploads
 // const multer = require('multer');
@@ -18,8 +23,8 @@ const path = require('path');
 // Google maps api stuff
 const { Client, defaultAxiosInstance } = require('@googlemaps/google-maps-services-js');
 
-// iCal stuff
-const iCal = require('ical-generator');
+// A good looking timestamp
+let timestamp = `[${chalk.green(datetime_T.format(new Date(), 'YYYY-MM-DD HH:mm:ss'))}] `;
 
 // Email Modules
 const sendMail = require('../models/email_model');
@@ -29,9 +34,6 @@ const { sendCustomerReservation, sendResToRestaurant } = require('../models/rese
 // Middle Ware stuffs
 const authTokenMiddleware = require('../middleware/authTokenMiddleware');
 const asyncHandler = require('express-async-handler');
-
-// Stripe stuffs
-const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 /**************************************************************************
  * Router Middlewares and parsers																					*
@@ -649,14 +651,32 @@ async function sendingOrderEmail(restEmail, custEmail, custName, restName,
       // Send the email to the customer
       const custResponse = await sendMail(custMailOptions);
       
-      console.log("An attempt was made to send an email to a customer with the following result:");
-      console.log(custResponse);
+      // Check if the customer event that was triggered - Console Logger
+      console.log(timestamp + `Sending email to customer for ${doID}`);
+      if (custResponse.code) {
+        console.log(timestamp + "Gmail error status - " + custResponse.response.status);
+        console.log(timestamp + "Gmail error statusText - " + custResponse.response.statusText);
+        console.log(timestamp + "Gmail error data - " + custResponse.response.data.error + " - " + custResponse.response.data.error_description);
+      }
+      else {
+        console.log(timestamp + "Sent to - " + custResponse.accepted);
+        console.log(timestamp + "Response - " + custResponse.response);
+      }
 
       // Send the email to the restaurant administrator
       const restResponse = await sendMail(restMailOptions);
       
-      console.log("An attempt was made to send an email to a restaurant with the following result:");
-      console.log(restResponse);
+      // Check if the customer event that was triggered - Console Logger
+      console.log(timestamp + `Sending email to restaurant ${restName} for ${doID}`);
+      if (restResponse.code) {
+        console.log(timestamp + "Gmail error status - " + restResponse.response.status);
+        console.log(timestamp + "Gmail error statusText - " + restResponse.response.statusText);
+        console.log(timestamp + "Gmail error data - " + restResponse.response.data.error + " - " + restResponse.response.data.error_description);
+      }
+      else {
+        console.log(timestamp + "Sent to - " + restResponse.accepted);
+        console.log(timestamp + "Response - " + restResponse.response);
+      }
 
       // API response
       if (custResponse.response.include("OK") && restResponse.response.include("OK")) {
@@ -896,8 +916,8 @@ router.get('/verifyCustAddress/:address', asyncHandler(async (req, res, next) =>
     }
   }, defaultAxiosInstance);
 
-  console.log("Address Verification Done, results below:")
-  console.log(response.data);
+  console.log(timestamp + "Attempting to verify address...")
+  console.log(timestamp + "Verification Status - " + response.data.status);
 
   res.status(200).json(response.data);
 }));
@@ -1000,14 +1020,32 @@ async function sendingReservationEmail(iCalString, crID, restEmail, custEmail, c
       // Send the email to the customer
       const custResponse = await sendMail(custMailOptions);
       
-      console.log("An attempt was made to send an email to a customer with the following result:");
-      console.log(custResponse);
+      // Check if the customer event that was triggered - Console Logger
+      console.log(timestamp + `Sending email to customer for ${crID}`);
+      if (custResponse.code) {
+        console.log(timestamp + "Gmail error status - " + custResponse.response.status);
+        console.log(timestamp + "Gmail error statusText - " + custResponse.response.statusText);
+        console.log(timestamp + "Gmail error data - " + custResponse.response.data.error + " - " + custResponse.response.data.error_description);
+      }
+      else {
+        console.log(timestamp + "Sent to - " + custResponse.accepted);
+        console.log(timestamp + "Response - " + custResponse.response);
+      }
 
       // Send the email to the restaurant administrator
       const restResponse = await sendMail(restMailOptions);
       
-      console.log("An attempt was made to send an email to a restaurant with the following result:");
-      console.log(restResponse);
+      // Check if the customer event that was triggered - Console Logger
+      console.log(timestamp + `Sending email to restaurant ${restName} for ${crID}`);
+      if (restResponse.code) {
+        console.log(timestamp + "Gmail error status - " + restResponse.response.status);
+        console.log(timestamp + "Gmail error statusText - " + restResponse.response.statusText);
+        console.log(timestamp + "Gmail error data - " + restResponse.response.data.error + " - " + restResponse.response.data.error_description);
+      }
+      else {
+        console.log(timestamp + "Sent to - " + restResponse.accepted);
+        console.log(timestamp + "Response - " + restResponse.response);
+      }
 
       // API response
       if (custResponse.response.include("OK") && restResponse.response.include("OK")) {

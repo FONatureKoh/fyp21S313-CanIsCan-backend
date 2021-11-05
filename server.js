@@ -9,7 +9,9 @@ const { google } = require('googleapis');
 const nodemailer = require('nodemailer');
 const ical = require('ical-generator');
 const datetime_T = require('date-and-time');
+const chalk = require('chalk');
 
+app.use(cors());
 app.use(express.static("public"));
 
 // CORS matters
@@ -20,36 +22,37 @@ const corsOptions ={
   optionSuccessStatus: 200
 }
 
-app.use(cors());
+// A good looking timestamp
+let timestamp = `[${chalk.green(datetime_T.format(new Date(), 'YYYY-MM-DD HH:mm:ss'))}] `;
 
-app.get('/', (req, res) => {
-  console.log("Route success");
-  res.json({message: "Server Load successful!"});
-});
+// app.get('/', (req, res) => {
+//   console.log("Route success");
+//   res.json({message: "Server Load successful!"});
+// });
 
 // Cow Test api
-app.get('/cow', (req, res) => {
-  console.log("Route success");
-  res.send("Hi Kelvin. More Cows This is your cat Cow. FUN FUN");
-});
+// app.get('/cow', (req, res) => {
+//   console.log("Route success");
+//   res.send("Hi Kelvin. More Cows This is your cat Cow. FUN FUN");
+// });
 
 // Cat test API
-app.get('/cats', (req, res) => {
-  console.log("Route success");
-  res.send("This is a cat. Can you see the cat?");
-});
+// app.get('/cats', (req, res) => {
+//   console.log("Route success");
+//   res.send("This is a cat. Can you see the cat?");
+// });
 
 /* === Test DB Connection === */
-app.get('/dbtest', (req, res) => {
-  dbconn.query('SELECT 1', function (error, results, fields) {
-    if (error) {
-      res.send("MySQL error: " + error);
-    }
-    else {
-      res.send("MySQL Connected successfully");// connected!
-    }
-  });
-});
+// app.get('/dbtest', (req, res) => {
+//   dbconn.query('SELECT 1', function (error, results, fields) {
+//     if (error) {
+//       res.send("MySQL error: " + error);
+//     }
+//     else {
+//       res.send("MySQL Connected successfully");// connected!
+//     }
+//   });
+// });
 
 /* === All /users routes matters === */
 const userRouter = require("./routes/users");
@@ -76,7 +79,7 @@ app.use("/admin", adminRouter);
 /* === All /admin routes matters === */
 const customerRouter = require("./routes/customer");
 const { calendar } = require('googleapis/build/src/apis/calendar');
-const chalk = require('chalk');
+
 
 app.use("/customer", customerRouter);
 
@@ -86,6 +89,10 @@ app.use("/customer", customerRouter);
  * functions to test email, test database connection and others should come here
  */
 app.get('/testemail/:emailaddress', (req, res) => {
+  // Console logging
+  console.log(timestamp + "Testmail route has been triggered");
+
+  // Useful variables
   const emailAdd = req.params.emailaddress;
 
   const mailOptions = {
@@ -95,16 +102,24 @@ app.get('/testemail/:emailaddress', (req, res) => {
     text: 'Hello world, plain text test for cancanfoodapp Gmail',
     html: '<h1>Hello world</h1>' + '<h2>This is a test for cancanfoodapp Gmail API</h2>'
   };
-  
-  // console.log(mailOptions);
 
   sendMail(mailOptions)
     .then(result => {
-      console.log("sendmail triggered")
-      console.log(result);
+      // If there's a code, it probably means there is an error, therefore we take a look at what
+      // is going on
+      if (result.code) {
+        console.log(timestamp + "Gmail error status - " + result.response.status);
+        console.log(timestamp + "Gmail error statusText - " + result.response.statusText);
+        console.log(timestamp + "Gmail error data - " + result.response.data.error + " - " + result.response.data.error_description);
+      }
+      else {
+        console.log(timestamp + "Sent to - " + result.accepted);
+        console.log(timestamp + "Response - " + result.response);
+      }
+
       res.status(200).json(result);
     })
-    .catch((error) => console.log(error.message));
+    .catch((err) => console.log(err.message));
 });
 
 /*******************************************************************************************
@@ -164,9 +179,6 @@ app.get('/icalgen', (req, res) => {
  * Everything below here is only for starting up
  */
 app.listen(5000, () => {
-  // A good looking timestamp
-  let timestamp = `[${chalk.green(datetime_T.format(new Date(), 'YYYY-MM-DD HH:mm:ss'))}] `;
-
   // States port listening
   console.log(timestamp + "API SERVER STARTING...");
   console.log(timestamp + "FULL DATETIME STAMP - " + new Date());
@@ -190,6 +202,7 @@ app.listen(5000, () => {
       }
     });
 
+    console.log(timestamp + "Gmail API check triggered! Attempting to send an email...");
     // Challenge gmail API - Sends email to fonaturekoh@outlook.sg on restart
     const mailOptions = {
       from: 'Administrator <cancanfoodapp@gmail.com>',
@@ -201,10 +214,17 @@ app.listen(5000, () => {
 
     sendMail(mailOptions)
       .then(result => {
-        console.log(timestamp + "Gmail API check triggered! Attempting to send an email...")
-        console.log(result);
+        if (result.code) {
+          console.log(timestamp + "Gmail error status - " + result.response.status);
+          console.log(timestamp + "Gmail error statusText - " + result.response.statusText);
+          console.log(timestamp + "Gmail error data - " + result.response.data.error + " - " + result.response.data.error_description);
+        }
+        else {
+          console.log(timestamp + "Sent to - " + result.accepted);
+          console.log(timestamp + "Response - " + result.response);
+        }
       })
-      .catch((err) => console.log(err));
+      .catch((err) => console.log(timestamp + err));
   }
 });
 

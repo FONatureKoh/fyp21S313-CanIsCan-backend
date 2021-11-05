@@ -27,6 +27,7 @@ const { sendRGMEmail } = require('../models/credentials_email_template');
 
 // Middle Ware stuffs
 const authTokenMiddleware = require('../middleware/authTokenMiddleware');
+const consoleLogger = require('../middleware/loggerMiddleware');
 const asyncHandler = require('express-async-handler');
 
 /**************************************************************************
@@ -35,6 +36,7 @@ const asyncHandler = require('express-async-handler');
 router.use(express.json());
 // router.use(express.urlencoded({ extended: true }));
 router.use(authTokenMiddleware);
+router.use(consoleLogger);
 
 /****************************************************************************
  * Getting all the pending restaurants																			*

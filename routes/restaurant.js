@@ -22,13 +22,14 @@ const { sendSubUserEmail } = require('../models/credentials_email_template');
 // Middle Ware stuffs
 const authTokenMiddleware = require('../middleware/authTokenMiddleware');
 const asyncHandler = require('express-async-handler');
-const { resolve } = require('path');
+const consoleLogger = require('../middleware/loggerMiddleware');
 
 /**************************************************************************
  * Router Middlewares and parsers																					*
  **************************************************************************/
 router.use(express.json());
 router.use(authTokenMiddleware);
+router.use(consoleLogger);
 
 /**************************************************************************
  * Router Constants																												*

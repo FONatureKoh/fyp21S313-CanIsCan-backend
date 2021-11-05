@@ -25,15 +25,14 @@ const { sendSubUserEmail } = require('../models/credentials_email_template');
 
 // Middle Ware stuffs
 // const authTokenMiddleware = require('../middleware/authTokenMiddleware');
+const consoleLogger = require('../middleware/loggerMiddleware');
 
 /**************************************************************************
  * Router Middlewares and parsers																					*
  **************************************************************************/
 router.use(express.json());
-router.use(express.urlencoded({ extended: true }))
-
-// Universal Middleware
-// All middleware for this route comes here
+router.use(express.urlencoded({ extended: true }));
+router.use(consoleLogger);
 
 /****************************************************************************
  * Restaurant Register for an account 																			*

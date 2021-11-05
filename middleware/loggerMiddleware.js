@@ -22,7 +22,7 @@ module.exports = function consoleLogger (req, res, next) {
   const start = process.hrtime();
   const durationInMilliseconds = getActualRequestDurationInMilliseconds(start);
 
-  let log = `[${chalk.blue(
+  let log = `[${chalk.green(
     formatted_date
   )}] ${method}:${url} ${status} ${chalk.red(
     durationInMilliseconds.toLocaleString() + "ms"

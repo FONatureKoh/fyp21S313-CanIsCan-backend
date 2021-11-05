@@ -143,7 +143,7 @@ router.post('/restaurant', asyncHandler(async(req, res) => {
             }
             else {
               // Sends back success message
-              res.status(200).json({ api_msg: "Successful" });
+              res.status(200).json({ api_msg: "success" });
             }
           }); // Third nested query close
         };

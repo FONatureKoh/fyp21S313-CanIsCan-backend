@@ -544,11 +544,11 @@ router
 								if (err) {
 									conn.release();
 									console.log(err);
-									res.status(400).send("MySQL error. If you're the client, contact your developer");
+									res.status(200).json({ api_msg: "fail" });
 								}
 								else {
 									conn.release();
-									res.status(200).json({ api_msg: "Successful!" });
+									res.status(200).json({ api_msg: "success" });
 								}
 							}); // Close nested SQL Query
 						}

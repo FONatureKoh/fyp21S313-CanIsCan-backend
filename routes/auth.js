@@ -4,7 +4,7 @@ const router = express.Router();
 const dbconn = require("../models/db_model");
 
 // Middleware Functions
-const authenticateToken = require("../middleware/authTokenMiddleware");
+// const authenticateToken = require("../middleware/authTokenMiddleware");
 
 router.use(express.json())
 /************************************************************************************
@@ -63,12 +63,12 @@ router.post("/login", (req, res) => {
   }
 });
 
-router.get("/username", authenticateToken, (req, res) => {
-  // console.log(req);
-  res.status(200).json({
-    username: res.locals.userData.username
-  });
-});
+// router.get("/username", authenticateToken, (req, res) => {
+//   // console.log(req);
+//   res.status(200).json({
+//     username: res.locals.userData.username
+//   });
+// });
 
 /*******************************************************************************************
  * NO ROUTES FUNCTIONS OR DECLARATIONS BELOW THIS DIVIDER 

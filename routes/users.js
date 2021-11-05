@@ -22,12 +22,14 @@ const sendMail = require('../models/email_model');
 
 // Middle Ware stuffs
 const authTokenMiddleware = require('../middleware/authTokenMiddleware');
+const consoleLogger = require('../middleware/loggerMiddleware');
 
 /**************************************************************************
  * Router Middlewares and parsers																					*
  **************************************************************************/
 router.use(express.json());
 router.use(authTokenMiddleware);
+router.use(consoleLogger);
 
 /****************************************************************************
  * For users to get their account status																		*
@@ -150,13 +152,14 @@ const profileUpload = multer({storage: profileStorage}); //{ dest: '../assets'}
 router
   .route('/profilemanagement')
 	.get((req, res) => {
+		// console.log(req.method);
 		// Get the userData from the access token
 		// console.log(res.locals.userData)
 		const {
 			username, userType
 		} = res.locals.userData;
 		
-		console.log(username, userType);
+		// console.log(username, userType);
 
 		if (username == null) {
 			res.status(200).send({ api_msg: "No username found, did something go wrong?" });

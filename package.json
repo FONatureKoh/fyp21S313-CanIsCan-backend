@@ -19,6 +19,7 @@
   "homepage": "https://github.com/FONatureKoh/fyp21S313-CanIsCan-backend#readme",
   "dependencies": {
     "@googlemaps/google-maps-services-js": "^3.3.0",
+    "chalk": "^4.1.2",
     "cors": "^2.8.5",
     "date-and-time": "^2.0.1",
     "dotenv": "^10.0.0",

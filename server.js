@@ -8,6 +8,7 @@ const path = require('path');
 const { google } = require('googleapis');
 const nodemailer = require('nodemailer');
 const ical = require('ical-generator');
+const datetime_T = require('date-and-time');
 
 app.use(express.static("public"));
 
@@ -75,6 +76,7 @@ app.use("/admin", adminRouter);
 /* === All /admin routes matters === */
 const customerRouter = require("./routes/customer");
 const { calendar } = require('googleapis/build/src/apis/calendar');
+const chalk = require('chalk');
 
 app.use("/customer", customerRouter);
 
@@ -162,26 +164,29 @@ app.get('/icalgen', (req, res) => {
  * Everything below here is only for starting up
  */
 app.listen(5000, () => {
-  // States port listening
-  console.log("API SERVER STARTING...");
-  console.log("DATE TIME CHECK: " + new Date());
+  // A good looking timestamp
+  let timestamp = `[${chalk.green(datetime_T.format(new Date(), 'YYYY-MM-DD HH:mm:ss'))}] `;
 
-  console.log("cancanfoodapp API server listening on port 5000!");
+  // States port listening
+  console.log(timestamp + "API SERVER STARTING...");
+  console.log(timestamp + "FULL DATETIME STAMP - " + new Date());
+
+  console.log(timestamp + "API server listening on port 5000!");
 
   // Respond based on app_status
   if (process.env.APP_STATUS == "test") {
-    console.log("APP_STATUS is test. No checks will be ran!")
+    console.log(timestamp + "APP_STATUS is test. No checks will be ran!")
   }
   else {
-    console.log("APP_STATUS is deployed. Running checks...");
+    console.log(timestamp + "APP_STATUS is deployed. Running checks...");
 
     // Challenge MySQL Database connection
     dbconn.query('SELECT 1', function (err, results, fields) {
       if (err) {
-        console.log("MySQL error on start: " + err);
+        console.log(timestamp + "MySQL error on start: " + err);
       }
       else {
-        console.log("MySQL Database Connected successfully");// connected!
+        console.log(timestamp + "MySQL Database Connected successfully");// connected!
       }
     });
 
@@ -196,7 +201,7 @@ app.listen(5000, () => {
 
     sendMail(mailOptions)
       .then(result => {
-        console.log("Gmail API check triggered! Attempting to send an email...")
+        console.log(timestamp + "Gmail API check triggered! Attempting to send an email...")
         console.log(result);
       })
       .catch((err) => console.log(err));

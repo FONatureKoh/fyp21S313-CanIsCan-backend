@@ -9,6 +9,7 @@ const dbconn = require('../models/db_model');
 const { v4: uuidv4 } = require('uuid');
 const asyncHandler = require('express-async-handler');
 const datetime_T = require('date-and-time');
+const chalk = require('chalk');
 const pw_gen = require('generate-password');
 const fs = require('fs');
 const path = require('path');
@@ -30,6 +31,11 @@ const consoleLogger = require('../middleware/loggerMiddleware');
 router.use(express.json());
 router.use(authTokenMiddleware);
 router.use(consoleLogger);
+
+/**************************************************************************
+ * Router Constants																												*
+ **************************************************************************/
+const timestamp = `[${chalk.green(datetime_T.format(new Date(), 'YYYY-MM-DD HH:mm:ss'))}] `;
 
 /****************************************************************************
  * For users to get their account status																		*
@@ -140,7 +146,7 @@ const profileStorage = multer.diskStorage({
 		// Step 2: Config Multer to the exact location for upload and get a uuidv4 random
 		// uuid for the file name
 		// console.log('Multer Config');
-		console.log(file);
+		// console.log(file);
 		if (file) {
 			const profilePictureName = Date.now() + '-' + uuidv4();
 			cb(null, profilePictureName + path.extname(file.originalname)); 
@@ -149,9 +155,46 @@ const profileStorage = multer.diskStorage({
 })
 const profileUpload = multer({storage: profileStorage}); //{ dest: '../assets'}
 
+// Async function to encode the image into a string
+async function transformImage(imageID) {
+	try {
+		const pathName = process.env.ASSETS_SAVE_LOC + 'profile_pictures/' + imageID;
+
+		// Check if path exist. If yes, great, otherwise send an err image instead
+		// Of course, we use our favourite promises
+		const imagebase64 = await new Promise((resolve, reject) => {
+			fs.access(pathName, fs.F_OK, (err) => {
+				if (err) {
+					// Console log the error
+					console.log(timestamp + "restaurant.js line 172 " + err);
+					
+					var bitmap = fs.readFileSync('./public/assets/default-profile.png', 'base64');
+					var imageString = "data:image/png;base64, " + bitmap;
+
+					resolve(imageString);
+				}
+				else {
+					// console.log(pathName);
+					const imagePath = path.resolve(pathName);
+
+					var bitmap = fs.readFileSync(imagePath, 'base64');
+					var imageString = "data:image/png;base64, " + bitmap;
+
+					resolve(imageString);
+				};
+			});
+		});
+
+		return imagebase64;
+	}
+	catch(err) {
+		console.log(timestamp + "error in users.js image transformer " + err);
+	}
+}
+
 router
   .route('/profilemanagement')
-	.get((req, res) => {
+	.get(asyncHandler(async(req, res, next) => {
 		// console.log(req.method);
 		// Get the userData from the access token
 		// console.log(res.locals.userData)
@@ -177,27 +220,35 @@ router
 				sqlGetQuery += `WHERE rgm_username="${username}"`;
 
 				// Query the db and return the said fields to the frontend app
-				dbconn.query(sqlGetQuery, function (err, results, fields) {
-					if (err) {
-						console.log(err);
-						res.status(400).send("MySQL error. If you're the client, contact your developer");
-					}
-					else {
-						const dataJson = {
-							profile_image: results[0].picture_ID ?? "err.png",
-							username: results[0].rgm_username,
-							userType: userType,
-							first_name: results[0].first_name ?? "NIL",
-							last_name: results[0].last_name ?? "NIL",
-							phone_no: results[0].phone_no ?? "NIL",
-							email: results[0].email ?? "NIL",
-							address: results[0].home_address ?? "NIL",
-							postal_code: results[0].home_postal_code ?? "NIL"
+				var dataJSON = await new Promise((resolve, reject) => {
+					dbconn.query(sqlGetQuery, function (err, results, fields) {
+						if (err) {
+							console.log(err);
+							reject(err);
 						}
+						else {
+							const tempJSON = {
+								profile_image: results[0].picture_ID ?? "error.png",
+								username: results[0].rgm_username,
+								userType: userType,
+								first_name: results[0].first_name ?? "NIL",
+								last_name: results[0].last_name ?? "NIL",
+								phone_no: results[0].phone_no ?? "NIL",
+								email: results[0].email ?? "NIL",
+								address: results[0].home_address ?? "NIL",
+								postal_code: results[0].home_postal_code ?? "NIL"
+							}
 
-						res.status(200).send(dataJson);
-					}
-				})
+							resolve(tempJSON);
+						}
+					}); // Closing DB query
+				}); // Closing promise
+
+				// Transform the image into a encoded string
+				dataJSON['profile_image_base64'] = await transformImage(dataJSON.profile_image);
+
+				res.status(200).send(dataJSON);
+
 				break;
 			// =========================================================================
 			// Restaurant Deliveries Manager User Type =================================
@@ -208,60 +259,73 @@ router
 				sqlGetQuery += `WHERE subuser_username="${username}"`;
 
 				// Query the db and return the said fields to the frontend app
-				dbconn.query(sqlGetQuery, function (err, results, fields) {
-					if (err) {
-						console.log(err);
-						res.status(400).send("MySQL error. If you're the client, contact your developer");
-					}
-					else {
-						// console.log(results);
-						const dataJson = {
-							profile_image: results[0].subuser_picture_ID ?? "error.png",
-							username: results[0].subuser_username,
-							userType: userType,
-							first_name: results[0].first_name,
-							last_name: results[0].last_name,
-							phone_no: results[0].phone_no,
-							email: results[0].email,
-							address: results[0].home_address ?? "NIL",
-							postal_code: results[0].home_postal_code ?? "NIL"
+				var dataJSON = await new Promise((resolve, reject) => {
+					dbconn.query(sqlGetQuery, function (err, results, fields) {
+						if (err) {
+							console.log(err);
+							reject(err);
 						}
+						else {
+							const tempJSON = {
+								profile_image: results[0].subuser_picture_ID ?? "error.png",
+								username: results[0].subuser_username,
+								userType: userType,
+								first_name: results[0].first_name ?? "NIL",
+								last_name: results[0].last_name ?? "NIL",
+								phone_no: results[0].phone_no ?? "NIL",
+								email: results[0].email ?? "NIL",
+								address: results[0].home_address ?? "NIL",
+								postal_code: results[0].home_postal_code ?? "NIL"
+							}
 
-						res.status(200).send(dataJson);
-					}
-				});
+							resolve(tempJSON);
+						}
+					}); // Closing DB query
+				}); // Closing promise
+
+				// Transform the image into a encoded string
+				dataJSON['profile_image_base64'] = await transformImage(dataJSON.profile_image);
+
+				res.status(200).send(dataJSON);
 
 				break;
 			// =========================================================================
 			// System Administrator User Type ==========================================
 			case "System Administrator":
-				var sqlGetQuery = "SELECT username, user_type, first_name, last_name, phone_no, ";
+				var sqlGetQuery = "SELECT admin_username, picture_ID, first_name, last_name, phone_no, ";
 				sqlGetQuery += "email, home_address, home_postal_code ";
-				sqlGetQuery += "FROM app_user JOIN admin_user ";
-				sqlGetQuery += `ON username="${username}" WHERE username=admin_username`;
+				sqlGetQuery += "FROM admin_user ";
+				sqlGetQuery += `WHERE username="${username}"`;
 
 				// Query the db and return the said fields to the frontend app
-				dbconn.query(sqlGetQuery, function (err, results, fields) {
-					if (err) {
-						console.log(err);
-						res.status(400).send("MySQL error. If you're the client, contact your developer");
-					}
-					else {
-						const dataJson = {
-							profile_image: results[0].picture_ID ?? "error.png",
-							username: results[0].username,
-							userType: userType,
-							first_name: results[0].first_name ?? "NIL",
-							last_name: results[0].last_name ?? "NIL",
-							phone_no: results[0].phone_no ?? "NIL",
-							email: results[0].email,
-							address: results[0].home_address ?? "NIL",
-							postal_code: results[0].home_postal_code ?? "NIL"
+				var dataJSON = await new Promise((resolve, reject) => {
+					dbconn.query(sqlGetQuery, function (err, results, fields) {
+						if (err) {
+							console.log(err);
+							reject(err);
 						}
+						else {
+							const tempJSON = {
+								profile_image: results[0].picture_ID ?? "error.png",
+								username: results[0].admin_username,
+								userType: userType,
+								first_name: results[0].first_name ?? "NIL",
+								last_name: results[0].last_name ?? "NIL",
+								phone_no: results[0].phone_no ?? "NIL",
+								email: results[0].email ?? "NIL",
+								address: results[0].home_address ?? "NIL",
+								postal_code: results[0].home_postal_code ?? "NIL"
+							}
 
-						res.status(200).send(dataJson);
-					}
-				});
+							resolve(tempJSON);
+						}
+					}); // Closing DB query
+				}); // Closing promise
+
+				// Transform the image into a encoded string
+				dataJSON['profile_image_base64'] = await transformImage(dataJSON.profile_image);
+
+				res.status(200).send(dataJSON);
 
 				break;
 			// =========================================================================
@@ -270,37 +334,41 @@ router
 				var sqlGetQuery = `SELECT * FROM customer_user WHERE cust_username="${username}"`;
 
 				// Query the db and return the said fields to the frontend app
-				dbconn.query(sqlGetQuery, function (err, results, fields) {
-					if (err) {
-						console.log(err);
-						res.status(400).send("MySQL error. If you're the client, contact your developer");
-					}
-					else {
-						let dataJSON = {}
-
-						if (results[0]) {
-							dataJSON = {
+				var dataJSON = await new Promise((resolve, reject) => {
+					dbconn.query(sqlGetQuery, function (err, results, fields) {
+						if (err) {
+							console.log(err);
+							reject(err);
+						}
+						else {
+							const tempJSON = {
 								profile_image: results[0].cust_picture_ID ?? "error.png",
 								username: results[0].cust_username,
 								userType: userType,
 								first_name: results[0].first_name ?? "NIL",
 								last_name: results[0].last_name ?? "NIL",
 								phone_no: results[0].phone_no ?? "NIL",
-								email: results[0].email,
+								email: results[0].email ?? "NIL",
 								address: results[0].address_info ?? "NIL",
 								postal_code: results[0].postal_code ?? "NIL"
 							}
+
+							resolve(tempJSON);
 						}
-						res.status(200).send(dataJSON);
-					}
-				});
+					}); // Closing DB query
+				}); // Closing promise
+
+				// Transform the image into a encoded string
+				dataJSON['profile_image_base64'] = await transformImage(dataJSON.profile_image);
+
+				res.status(200).send(dataJSON);
 
 				break;
 			// =========================================================================	
 			default:
 				break;
 		}
-	})
+	}))
 	.put(profileUpload.single("profileImage"), (req, res) => {
 		// Get the userData from the access token
 		// console.log(res.locals.userData)
@@ -316,10 +384,25 @@ router
 				phoneNo,
 				email,
 				address,
-				postalCode
+				postalCode,
+				oldImageFile
 			}
 		}	= req;
 
+		if (oldImageFile || oldImageFile != '') {
+			// Path of original file
+			const pathName = process.env.ASSETS_SAVE_LOC + 'profile_pictures/' + oldImageFile ;
+
+			// Check if the file exist, if yes delete the old file first then save into MySQL
+			if(fs.existsSync(path.resolve(pathName))) {
+				// fs.unlink deletes old file
+				fs.unlink(path.resolve(pathName), (err) => {
+					if (err) 
+						console.log(err);
+				});
+			}
+		}
+		
 		// Construct a Switch to handle the sql query based on the userType
 		switch (userType) {
 			// RGM User Type ==========================================================
@@ -357,7 +440,6 @@ router
 						}
 					});
 				}
-
 
 				break;
 			// =========================================================================
@@ -403,13 +485,76 @@ router
 			// =========================================================================
 			// System Administrator User Type ==========================================
 			case "System Administrator":
-				res.status(200).json({ username: username, userType: userType });
+				if (file) {
+					var sqlUpdateQuery = `UPDATE admin_user SET picture_ID="${file.filename}",`
+					sqlUpdateQuery += `first_name="${fname}",last_name="${lname}",phone_no=${phoneNo},`
+					sqlUpdateQuery += `email="${email}",home_address="${address}",home_postal_code=${postalCode} `;
+					sqlUpdateQuery += `WHERE admin_username="${username}"`;
+
+					dbconn.query(sqlUpdateQuery, function(err, results, fields){
+						if (err) {
+							console.log(err);
+							res.status(400).json({ api_msg: "MySQL error" });
+						}
+						else {
+							res.status(200).json({ api_msg: "Successful!" });
+						}
+					});
+				}
+				else {
+					var sqlUpdateQuery = `UPDATE admin_user SET `
+					sqlUpdateQuery += `first_name="${fname}",last_name="${lname}",phone_no=${phoneNo},`
+					sqlUpdateQuery += `email="${email}",home_address="${address}",home_postal_code=${postalCode} `;
+					sqlUpdateQuery += `WHERE admin_username="${username}"`;
+
+					dbconn.query(sqlUpdateQuery, function(err, results, fields){
+						if (err) {
+							console.log(err);
+							res.status(400).json({ api_msg: "MySQL error" });
+						}
+						else {
+							res.status(200).json({ api_msg: "Successful!" });
+						}
+					});
+				}
 
 				break;
 			// =========================================================================
 			// Customer User Type ======================================================
 			case "Customer":
-				res.status(200).json({ username: username, userType: userType });
+				// Steps to edit profile for all users, generally the same less the customer
+				if (file) {
+					var sqlUpdateQuery = `UPDATE customer_user SET cust_picture_ID="${file.filename}",`
+					sqlUpdateQuery += `first_name="${fname}",last_name="${lname}",phone_no=${phoneNo},`
+					sqlUpdateQuery += `email="${email}",address_info="${address}",postal_code=${postalCode} `;
+					sqlUpdateQuery += `WHERE cust_username="${username}"`;
+
+					dbconn.query(sqlUpdateQuery, function(err, results, fields){
+						if (err) {
+							console.log(err);
+							res.status(400).json({ api_msg: "MySQL error" });
+						}
+						else {
+							res.status(200).json({ api_msg: "Successful!" });
+						}
+					});
+				}
+				else {
+					var sqlUpdateQuery = `UPDATE customer_user SET `
+					sqlUpdateQuery += `first_name="${fname}",last_name="${lname}",phone_no=${phoneNo},`
+					sqlUpdateQuery += `email="${email}",address_info="${address}",postal_code=${postalCode} `;
+					sqlUpdateQuery += `WHERE cust_username="${username}"`;
+
+					dbconn.query(sqlUpdateQuery, function(err, results, fields){
+						if (err) {
+							console.log(err);
+							res.status(400).json({ api_msg: "MySQL error" });
+						}
+						else {
+							res.status(200).json({ api_msg: "Successful!" });
+						}
+					});
+				}
 
 				break;
 			// =========================================================================	

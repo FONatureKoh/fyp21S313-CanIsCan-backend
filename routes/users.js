@@ -295,7 +295,7 @@ router
 				var sqlGetQuery = "SELECT admin_username, picture_ID, first_name, last_name, phone_no, ";
 				sqlGetQuery += "email, home_address, home_postal_code ";
 				sqlGetQuery += "FROM admin_user ";
-				sqlGetQuery += `WHERE username="${username}"`;
+				sqlGetQuery += `WHERE admin_username="${username}"`;
 
 				// Query the db and return the said fields to the frontend app
 				var dataJSON = await new Promise((resolve, reject) => {

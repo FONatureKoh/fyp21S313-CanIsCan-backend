@@ -183,7 +183,7 @@ router.get('/allRestaurantInfo', asyncHandler(async(req, res, next) => {
   // Within this for loop, we convert the image to something that we can use
   for (let restaurant of allRestaurantInfo) {
     if (restaurant.rest_banner) {
-			const pathName = process.env.ASSETS_SAVE_LOC + 'rest_banner/' + restaurant.rest_banner;
+			const pathName = process.env.ASSETS_SAVE_LOC + 'rest_banners/' + restaurant.rest_banner;
 
 			// Check if path exist. If yes, great, otherwise send an err image instead
 			// Of course, we use our favourite promises
@@ -298,7 +298,7 @@ router.get('/selectedRestaurantInfo/:tag', asyncHandler(async(req, res) => {
   // Within this for loop, we convert the image to something that we can use
   for (let restaurant of allRestaurantInfo) {
     if (restaurant.rest_banner) {
-			const pathName = process.env.ASSETS_SAVE_LOC + 'rest_banner/' + restaurant.rest_banner;
+			const pathName = process.env.ASSETS_SAVE_LOC + 'rest_banners/' + restaurant.rest_banner;
 
 			// Check if path exist. If yes, great, otherwise send an err image instead
 			// Of course, we use our favourite promises

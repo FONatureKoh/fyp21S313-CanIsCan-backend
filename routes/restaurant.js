@@ -118,7 +118,7 @@ router.get('/retrieveAllItems', asyncHandler(async(req, res) => {
 		}
 
 		if (item.item_png_ID) {
-			const pathName = process.env.ASSETS_SAVE_LOC + 'for rest_items_png/' + item.item_png_ID;
+			const pathName = process.env.ASSETS_SAVE_LOC + 'rest_items_png/' + item.item_png_ID;
 
 			// Check if path exist. If yes, great, otherwise send an err image instead
 			// Of course, we use our favourite promises

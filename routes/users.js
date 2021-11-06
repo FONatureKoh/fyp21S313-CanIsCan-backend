@@ -236,7 +236,7 @@ router
 								phone_no: results[0].phone_no ?? "NIL",
 								email: results[0].email ?? "NIL",
 								address: results[0].home_address ?? "NIL",
-								postal_code: results[0].home_postal_code ?? "NIL"
+								postal_code: results[0].home_postal_code ?? 000000
 							}
 
 							resolve(tempJSON);
@@ -275,7 +275,7 @@ router
 								phone_no: results[0].phone_no ?? "NIL",
 								email: results[0].email ?? "NIL",
 								address: results[0].home_address ?? "NIL",
-								postal_code: results[0].home_postal_code ?? "NIL"
+								postal_code: results[0].home_postal_code ?? 000000
 							}
 
 							resolve(tempJSON);
@@ -314,7 +314,7 @@ router
 								phone_no: results[0].phone_no ?? "NIL",
 								email: results[0].email ?? "NIL",
 								address: results[0].home_address ?? "NIL",
-								postal_code: results[0].home_postal_code ?? "NIL"
+								postal_code: results[0].home_postal_code ?? 000000
 							}
 
 							resolve(tempJSON);
@@ -350,7 +350,7 @@ router
 								phone_no: results[0].phone_no ?? "NIL",
 								email: results[0].email ?? "NIL",
 								address: results[0].address_info ?? "NIL",
-								postal_code: results[0].postal_code ?? "NIL"
+								postal_code: results[0].postal_code ?? 000000
 							}
 
 							resolve(tempJSON);
@@ -792,7 +792,7 @@ router
 	});
 
 /****************************************************************************
- * User Profile 																									*
+ * User Profile 	
  ****************************************************************************
  * This route should be used to manage the password
 */

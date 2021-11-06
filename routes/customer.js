@@ -110,75 +110,118 @@ router.get('/singleRestaurantInfo/:restID', (req, res) => {
  * Retrieve restaurant's menu and all items information											*
  ****************************************************************************
  */
-router.get('/allRestaurantInfo', (req, res) => {
+router.get('/allRestaurantInfo', asyncHandler(async(req, res, next) => {
 	// Save the restaurantID first from the URL
 	const { username } = res.locals.userData;
 
 	// Construct getQuery
 	var sqlGetQuery =  `SELECT * FROM restaurant `;
+  // sqlGetQuery += `WHERE NOT rest_status IN ("closed", "first", "pending")`; // Remove this line if want to show all
 
-	dbconn.query(sqlGetQuery, function (err, results, fields){
-		if (err) {
-			res.status(200).json({ api_msg: "MySQL " + err });
+	const allRestaurantInfo = await new Promise((resolve, reject) => {
+    dbconn.query(sqlGetQuery, function (err, results, fields){
+      if (err) {
+        console.log(err);
+        reject(err);
+      }
+      else {
+        // Since the result is an Array, we will need to transform accordingly
+        // using the for each array element method
+        let restaurantsArray = [];
+
+        results.forEach(restaurant => {
+          // 2. We need to transform 2 things:
+          //		- Time	
+          var rest_op_hours = datetime_T.transform(restaurant.rest_opening_time, 'HH:mm:ss', 'hh:mm A');
+          rest_op_hours += ' to ' + datetime_T.transform(restaurant.rest_closing_time, 'HH:mm:ss', 'hh:mm A');
+
+          //		- Tags
+          var rest_tags = [];
+
+          if (restaurant.rest_tag_1) 
+            rest_tags.push(restaurant.rest_tag_1);
+
+          if (restaurant.rest_tag_2) 
+            rest_tags.push(restaurant.rest_tag_2);
+
+          if (restaurant.rest_tag_3) 
+            rest_tags.push(restaurant.rest_tag_3);
+
+          // 3. Then we send the other necessary information together with it back to the frontend
+          // in json format
+          var restaurantProfileData = {
+            restaurant_ID: restaurant.restaurant_ID,
+            restaurant_name: restaurant.restaurant_name,
+            rest_rgm_username: restaurant.rest_rgm_username,
+            rest_banner: restaurant.rest_banner_ID,
+            rest_op_hours: rest_op_hours,
+            rest_phone_no: restaurant.rest_phone_no,
+            rest_address_info: restaurant.rest_address_info,
+            rest_postal_code: restaurant.rest_postal_code,
+            rest_tags: rest_tags,
+            rest_rating: restaurant.rest_rating,
+            rest_status: restaurant.rest_status,
+            rest_opening_time: restaurant.rest_opening_time,
+            rest_closing_time: restaurant.rest_closing_time,
+            rest_tag_1: restaurant.rest_tag_1, 
+            rest_tag_2: restaurant.rest_tag_2,
+            rest_tag_3: restaurant.rest_tag_3
+          }  
+
+          // Push into the array that will send the data back
+          restaurantsArray.push(restaurantProfileData);      
+        });
+
+        resolve(restaurantsArray);      
+      }
+    }); // Closing db query
+  }); // closing promise
+
+  // Declare a temp array
+  var restaurantArray = [];
+
+  // Within this for loop, we convert the image to something that we can use
+  for (let restaurant of allRestaurantInfo) {
+    if (restaurant.rest_banner) {
+			const pathName = process.env.ASSETS_SAVE_LOC + 'rest_items_png/' + restaurant.rest_banner;
+
+			// Check if path exist. If yes, great, otherwise send an err image instead
+			// Of course, we use our favourite promises
+			const imagebase64 = await new Promise((resolve, reject) => {
+				fs.access(pathName, fs.F_OK, (err) => {
+					if (err) {
+						// Console log the error
+						console.log(timestamp + "restaurant.js line 172 " + err);
+						
+						var bitmap = fs.readFileSync('./public/assets/default-shopfront.png', 'base64');
+						var imageString = "data:image/png;base64, " + bitmap;
+
+						resolve(imageString);
+					}
+					else {
+						// console.log(pathName);
+						const imagePath = path.resolve(pathName);
+
+						var bitmap = fs.readFileSync(imagePath, 'base64');
+						var imageString = "data:image/png;base64, " + bitmap;
+
+						resolve(imageString);
+					};
+				});
+			});
+
+			restaurant['rest_banner'] = imagebase64;
+			restaurantArray.push(restaurant);	
 		}
-		else {
-      // Since the result is an Array, we will need to transform accordingly
-      // using the for each array element method
-      let restaurantsArray = [];
+  }
 
-      results.forEach(restaurant => {
-        // 2. We need to transform 2 things:
-        //		- Time	
-        var rest_op_hours = datetime_T.transform(restaurant.rest_opening_time, 'HH:mm:ss', 'hh:mm A');
-        rest_op_hours += ' to ' + datetime_T.transform(restaurant.rest_closing_time, 'HH:mm:ss', 'hh:mm A');
-
-        //		- Tags
-        var rest_tags = [];
-
-        if (restaurant.rest_tag_1) 
-          rest_tags.push(restaurant.rest_tag_1);
-
-        if (restaurant.rest_tag_2) 
-          rest_tags.push(restaurant.rest_tag_2);
-
-        if (restaurant.rest_tag_3) 
-          rest_tags.push(restaurant.rest_tag_3);
-
-        // 3. Then we send the other necessary information together with it back to the frontend
-        // in json format
-        const restaurantProfileData = {
-          restaurant_ID: restaurant.restaurant_ID,
-          restaurant_name: restaurant.restaurant_name,
-          rest_rgm_username: restaurant.rest_rgm_username,
-          rest_banner_ID: restaurant.rest_banner_ID,
-          rest_op_hours: rest_op_hours,
-          rest_phone_no: restaurant.rest_phone_no,
-          rest_address_info: restaurant.rest_address_info,
-          rest_postal_code: restaurant.rest_postal_code,
-          rest_tags: rest_tags,
-          rest_rating: restaurant.rest_rating,
-          rest_status: restaurant.rest_status,
-          rest_opening_time: restaurant.rest_opening_time,
-          rest_closing_time: restaurant.rest_closing_time,
-          rest_tag_1: restaurant.rest_tag_1, 
-          rest_tag_2: restaurant.rest_tag_2,
-          rest_tag_3: restaurant.rest_tag_3
-        }  
-
-        // Push into the array that will send the data back
-        restaurantsArray.push(restaurantProfileData);      
-      });
-
-      // Send back to the frontend
-      res.status(200).send(restaurantsArray);
-		}
-	})
-});
+  res.status(200).send(restaurantArray);
+}));
 
 /****************************************************************************
  * Retrieve restaurant's menu and all items information											*
  ****************************************************************************/
-router.get('/selectedRestaurantInfo/:tag', (req, res) => {
+router.get('/selectedRestaurantInfo/:tag', asyncHandler(async(req, res) => {
 	// Save the restaurantID first from the URL
 	const { username } = res.locals.userData;
 
@@ -189,88 +232,226 @@ router.get('/selectedRestaurantInfo/:tag', (req, res) => {
 	var sqlGetQuery =  `SELECT * FROM restaurant `;
   sqlGetQuery += `WHERE rest_tag_1="${tag}" OR rest_tag_2="${tag}" OR rest_tag_3="${tag}"`;
 
-	dbconn.query(sqlGetQuery, function (err, results, fields){
-		if (err) {
-			res.status(200).json({ api_msg: "MySQL " + err });
+	const allRestaurantInfo = await new Promise((resolve, reject) => {
+    dbconn.query(sqlGetQuery, function (err, results, fields){
+      if (err) {
+        console.log(err);
+        reject(err);
+      }
+      else {
+        // Since the result is an Array, we will need to transform accordingly
+        // using the for each array element method
+        let restaurantsArray = [];
+
+        results.forEach(restaurant => {
+          // 2. We need to transform 2 things:
+          //		- Time	
+          var rest_op_hours = datetime_T.transform(restaurant.rest_opening_time, 'HH:mm:ss', 'hh:mm A');
+          rest_op_hours += ' to ' + datetime_T.transform(restaurant.rest_closing_time, 'HH:mm:ss', 'hh:mm A');
+
+          //		- Tags
+          var rest_tags = [];
+
+          if (restaurant.rest_tag_1) 
+            rest_tags.push(restaurant.rest_tag_1);
+
+          if (restaurant.rest_tag_2) 
+            rest_tags.push(restaurant.rest_tag_2);
+
+          if (restaurant.rest_tag_3) 
+            rest_tags.push(restaurant.rest_tag_3);
+
+          // 3. Then we send the other necessary information together with it back to the frontend
+          // in json format
+          var restaurantProfileData = {
+            restaurant_ID: restaurant.restaurant_ID,
+            restaurant_name: restaurant.restaurant_name,
+            rest_rgm_username: restaurant.rest_rgm_username,
+            rest_banner: restaurant.rest_banner_ID,
+            rest_op_hours: rest_op_hours,
+            rest_phone_no: restaurant.rest_phone_no,
+            rest_address_info: restaurant.rest_address_info,
+            rest_postal_code: restaurant.rest_postal_code,
+            rest_tags: rest_tags,
+            rest_rating: restaurant.rest_rating,
+            rest_status: restaurant.rest_status,
+            rest_opening_time: restaurant.rest_opening_time,
+            rest_closing_time: restaurant.rest_closing_time,
+            rest_tag_1: restaurant.rest_tag_1, 
+            rest_tag_2: restaurant.rest_tag_2,
+            rest_tag_3: restaurant.rest_tag_3
+          }  
+
+          // Push into the array that will send the data back
+          restaurantsArray.push(restaurantProfileData);      
+        });
+
+        resolve(restaurantsArray);      
+      }
+    }); // Closing db query
+  }); // closing promise
+
+  // Declare a temp array
+  var restaurantArray = [];
+
+  // console.log(allRestaurantInfo);
+  // Within this for loop, we convert the image to something that we can use
+  for (let restaurant of allRestaurantInfo) {
+    if (restaurant.rest_banner) {
+			const pathName = process.env.ASSETS_SAVE_LOC + 'rest_items_png/' + restaurant.rest_banner;
+
+			// Check if path exist. If yes, great, otherwise send an err image instead
+			// Of course, we use our favourite promises
+			const imagebase64 = await new Promise((resolve, reject) => {
+				fs.access(pathName, fs.F_OK, (err) => {
+					if (err) {
+						// Console log the error
+						console.log(timestamp + "restaurant.js line 172 " + err);
+						
+						var bitmap = fs.readFileSync('./public/assets/default-shopfront.png', 'base64');
+						var imageString = "data:image/png;base64, " + bitmap;
+
+						resolve(imageString);
+					}
+					else {
+						// console.log(pathName);
+						const imagePath = path.resolve(pathName);
+
+						var bitmap = fs.readFileSync(imagePath, 'base64');
+						var imageString = "data:image/png;base64, " + bitmap;
+
+						resolve(imageString);
+					};
+				});
+			});
+
+			restaurant['rest_banner'] = imagebase64;
+			restaurantArray.push(restaurant);	
 		}
-		else {
-      // Since the result is an Array, we will need to transform accordingly
-      // using the for each array element method
-      let restaurantsArray = [];
+  }
 
-      results.forEach(restaurant => {
-        // 2. We need to transform 2 things:
-        //		- Time	
-        var rest_op_hours = datetime_T.transform(restaurant.rest_opening_time, 'HH:mm:ss', 'hh:mm A');
-        rest_op_hours += ' to ' + datetime_T.transform(restaurant.rest_closing_time, 'HH:mm:ss', 'hh:mm A');
-
-        //		- Tags
-        var rest_tags = [];
-
-        if (restaurant.rest_tag_1) 
-          rest_tags.push(restaurant.rest_tag_1);
-
-        if (restaurant.rest_tag_2) 
-          rest_tags.push(restaurant.rest_tag_2);
-
-        if (restaurant.rest_tag_3) 
-          rest_tags.push(restaurant.rest_tag_3);
-
-        // 3. Then we send the other necessary information together with it back to the frontend
-        // in json format
-        const restaurantProfileData = {
-          restaurant_ID: restaurant.restaurant_ID,
-          restaurant_name: restaurant.restaurant_name,
-          rest_rgm_username: restaurant.rest_rgm_username,
-          rest_banner_ID: restaurant.rest_banner_ID,
-          rest_op_hours: rest_op_hours,
-          rest_phone_no: restaurant.rest_phone_no,
-          rest_address_info: restaurant.rest_address_info,
-          rest_postal_code: restaurant.rest_postal_code,
-          rest_tags: rest_tags,
-          rest_rating: restaurant.rest_rating,
-          rest_status: restaurant.rest_status,
-          rest_opening_time: restaurant.rest_opening_time,
-          rest_closing_time: restaurant.rest_closing_time,
-          rest_tag_1: restaurant.rest_tag_1, 
-          rest_tag_2: restaurant.rest_tag_2,
-          rest_tag_3: restaurant.rest_tag_3
-        }  
-
-        // Push into the array that will send the data back
-        restaurantsArray.push(restaurantProfileData);      
-      });
-
-      // Send back to the frontend
-      res.status(200).send(restaurantsArray);
-		}
-	})
-});
+  res.status(200).send(restaurantArray);
+}));
 
 /****************************************************************************
  * Retrieve restaurant's menu and all items information											*
  ****************************************************************************/
-router.get('/allRestaurantItems/:restID', (req, res) => {
+router.get('/allRestaurantItems/:restID', asyncHandler(async(req, res, next) => {
+	// Save the restaurantID first from the URL
+	const { username } = res.locals.userData;
+  const restID = req.params.restID;
+
+  // Temp Variables
+  var tempItemsArray = [];
+
+	// Construct getQuery
+	var sqlGetQuery =  `SELECT ri_item_ID, item_png_ID, item_name, item_desc, `;
+  sqlGetQuery += `item_allergen_warning, item_price, ric_name `
+  sqlGetQuery += `FROM rest_item JOIN rest_item_categories `;
+  sqlGetQuery += `ON ri_cat_ID=ric_ID `;
+  sqlGetQuery += `WHERE item_availability=1 AND ri_rest_ID=${restID} `;
+  sqlGetQuery += `ORDER BY ric_name`;
+
+  const itemsAvailableQuery = await new Promise((resolve, reject) => {
+    dbconn.query(sqlGetQuery, function (err, results, fields){
+      if (err) {
+        console.log(err);
+        reject(err);
+      }
+      else {
+        // Since the result is an Array, we will need to transform accordingly
+        // using the for each array element method
+        resolve(results);
+      }
+    });
+  });
+
+  // Transform the array
+  for (let item of itemsAvailableQuery) {
+		var tempJSON = {
+      itemID: item.ri_item_ID,
+      itemImage: item.item_png_ID,
+      itemName: item.item_name,
+      itemDesc: item.item_desc,
+      itemAllergen: item.item_allergen_warning,
+      itemPrice: item.item_price,
+      itemCategory: item.ric_name
+		}
+
+    if (item.item_png_ID) {
+      const pathName = process.env.ASSETS_SAVE_LOC + 'rest_items_png/' + item.item_png_ID;
+
+      // Check if path exist. If yes, great, otherwise send an err image instead
+      // Of course, we use our favourite promises
+      const imagebase64 = await new Promise((resolve, reject) => {
+        fs.access(pathName, fs.F_OK, (err) => {
+          if (err) {
+            // Console log the error
+            console.log(timestamp + "restaurant.js line 172 " + err);
+            
+            var bitmap = fs.readFileSync('./public/assets/default-item.png', 'base64');
+            var imageString = "data:image/png;base64, " + bitmap;
+
+            resolve(imageString);
+          }
+          else {
+            // console.log(pathName);
+            const imagePath = path.resolve(pathName);
+
+            var bitmap = fs.readFileSync(imagePath, 'base64');
+            var imageString = "data:image/png;base64, " + bitmap;
+
+            resolve(imageString);
+          };
+        });
+      });
+
+      tempJSON['itemImage'] = imagebase64;
+      tempItemsArray.push(tempJSON);	
+    }
+  }
+
+  res.status(200).send(tempItemsArray);
+}));
+
+/****************************************************************************
+ * Retrieve all the unique category names that has available items
+ ****************************************************************************/
+router.get('/availableCategories/:restID', asyncHandler(async(req, res, next) => {
 	// Save the restaurantID first from the URL
 	const { username } = res.locals.userData;
   const restID = req.params.restID;
 
 	// Construct getQuery
-	var sqlGetQuery =  `SELECT * FROM rest_item JOIN rest_item_categories `;
-  sqlGetQuery += `ON ri_cat_ID=ric_ID AND ri_rest_ID=${restID} `
+	var sqlGetQuery =  `SELECT DISTINCT ric_name `
+  sqlGetQuery += `FROM rest_item JOIN rest_item_categories `;
+  sqlGetQuery += `ON ri_cat_ID=ric_ID `;
+  sqlGetQuery += `WHERE item_availability=1 AND ri_rest_ID=${restID} `;
   sqlGetQuery += `ORDER BY ric_name`;
 
-	dbconn.query(sqlGetQuery, function (err, results, fields){
-		if (err) {
-			res.status(200).json({ api_msg: "MySQL " + err });
-		}
-		else {
-      // Since the result is an Array, we will need to transform accordingly
-      // using the for each array element method
-      res.status(200).send(results);
-		}
-	})
-});
+  const availableCategoriesQuery = await new Promise((resolve, reject) => {
+    dbconn.query(sqlGetQuery, function (err, results, fields){
+      if (err) {
+        console.log(err);
+        reject(err);
+      }
+      else {
+        // Since the result is an Array, we will need to transform accordingly
+        // using the for each array element method
+        resolve(results);
+      }
+    });
+  });
+
+  // We only need the category names, so lets get that out of the results
+  var tempCategoriesArray = [];
+
+  for (let category of availableCategoriesQuery) {
+    tempCategoriesArray.push(category.ric_name);
+  }
+
+  res.status(200).send(tempCategoriesArray);
+}));
 
 /****************************************************************************
  * Retrieve all of the customer's personal orders                           *

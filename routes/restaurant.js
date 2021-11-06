@@ -852,7 +852,26 @@ router.get('/rgm/allsubusers', (req, res) => {
 					res.status(200).send({ api_msg: "MySQL " + error });
 				}
 				else {
-					res.status(200).send(results);
+					// Transform the results first before sending the data to the frontend
+					var subuser_array = [];
+
+					for (let subuser of results) {
+						var temp_json = {
+							id: subuser.subuser_ID,
+							username: subuser.subuser_username,
+							name: subuser.first_name + " " + subuser.last_name,
+							type: subuser.subuser_type,
+							userID: subuser.subuser_ID,
+							fname: subuser.first_name,
+							lname: subuser.last_name,
+							email: subuser.email,
+							phoneNo: subuser.phone_no
+						};
+
+						subuser_array.push(temp_json);
+					}
+					
+					res.status(200).send(subuser_array);
 				}
 			})
 		}
@@ -971,7 +990,7 @@ router.route('/rgm/subuser/:subuser_ID')
 
 		// 1. Construct the update query
 		var updateQuery = "UPDATE restaurant_subuser SET "
-		updateQuery += `first_name="${fname}",last_name=[value-6],phone_no=[value-7],email=[value-8],subuser_type=[value-11] ` 
+		updateQuery += `first_name="${fname}",last_name="${lname}",phone_no=${phone},email="${email}",subuser_type="${role}" ` 
 		updateQuery += `WHERE subuser_ID=${subUserID}`
 
 		dbconn.query(updateQuery, function(err, results, fields){

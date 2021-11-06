@@ -126,7 +126,7 @@ router.get('/retrieveAllItems', asyncHandler(async(req, res) => {
 				fs.access(pathName, fs.F_OK, (err) => {
 					if (err) {
 						// Console log the error
-						// console.log(timestamp + "restaurant.js line 172 " + err);
+						console.log(timestamp + "restaurant.js line 172 " + err);
 						
 						var bitmap = fs.readFileSync('./public/assets/default-item.png', 'base64');
 						var imageString = "data:image/png;base64, " + bitmap;

@@ -50,44 +50,113 @@ const timestamp = `[${chalk.green(datetime_T.format(new Date(), 'YYYY-MM-DD HH:m
  * Retrieve restaurant's menu and all items information											*
  ****************************************************************************
  */
-router.get('/retrieveAllItems', (req, res) => {
-	// Save the restaurantID first from the URL
+router.get('/retrieveAllItems', asyncHandler(async(req, res) => {
+	// Refracting code to get the image encoding into base64 so that it can be sent
+	// as part of the json so that there is no need to go through getting of an image
+	// 1. As always we get the restaurant ID first from the username
 	const { username } = res.locals.userData;
 
 	// Construct getQuery
 	var sqlGetQuery =  `SELECT restaurant_ID FROM restaurant `;
 	sqlGetQuery += `WHERE rest_rgm_username='${username}'`;
 
-	dbconn.query(sqlGetQuery, function (err, results, fields){
-		if (err) {
-			console.log(err);
-			res.status(200).json({ api_msg: "MySQL " + error });
-		}
-		else {
-			const rest_ID = results[0].restaurant_ID;
-
-			// Now we do the actual query we always wanted
-			var sqlQuery = 'SELECT ric_name, ri_item_ID, ri_rest_ID, ri_cat_ID, item_name, ';
-			sqlQuery += 'item_png_ID, item_desc, item_allergen_warning, '; 
-			sqlQuery += 'item_price, item_availability ';
-			sqlQuery += 'FROM rest_item_categories JOIN rest_item ';
-			sqlQuery += `ON ric_restaurant_ID=${rest_ID} AND ric_ID=ri_cat_ID `;
-			sqlQuery += `WHERE item_availability!=2 `
-			sqlQuery += 'ORDER BY ric_name, item_name';
-
-			dbconn.query(sqlQuery, function (err, results, fields) {
-				if (err) {
-					console.log(err);
-					res.status(200).json({ api_msg: "MySQL " + err });
-			  }
-			  else {
-					// console.log(results);
-			    res.status(200).send(results);
+	const restID = await new Promise((resolve, reject) => {
+		dbconn.query(sqlGetQuery, function(err, results, fields) {
+			if (err) {
+				console.log(timestamp + err);
+				reject(err);
+			}
+			else {
+				if (results[0]) {
+					resolve(results[0].restaurant_ID);
 				}
-			})
+				else {
+					resolve(0);
+				}				
+			}
+		});
+	});
+
+	// 2. Then we get all the items that belongs to that restaurant.
+	var sqlQuery = 'SELECT ric_name, ri_item_ID, ri_rest_ID, ri_cat_ID, item_name, ';
+	sqlQuery += 'item_png_ID, item_desc, item_allergen_warning, '; 
+	sqlQuery += 'item_price, item_availability ';
+	sqlQuery += 'FROM rest_item_categories JOIN rest_item ';
+	sqlQuery += `ON ric_restaurant_ID=${restID} AND ric_ID=ri_cat_ID `;
+	sqlQuery += `WHERE item_availability!=2 `
+	sqlQuery += 'ORDER BY ric_name, item_name';
+
+	const allItems = await new Promise((resolve, reject) => {
+		dbconn.query(sqlQuery, function (err, results, fields) {
+			if (err) {
+				console.log(err);
+				reject(err);
+			}
+			else {
+				// console.log(results);
+				resolve(results);
+			}
+		});
+	});
+
+	// 3. Once these two promises are resolved, we then parse the data, into a useable
+	// JSON for the front end.
+	var tempItemsArray = [];
+
+	for (let item of allItems) {
+		var tempJSON = {
+			ric_name: item.ric_name,
+			ri_item_ID: item.ri_item_ID,
+			ri_rest_ID: item.ri_rest_ID,
+			ri_cat_ID: item.ri_cat_ID,
+			item_name: item.item_name,
+			item_png_ID: item.item_png_ID,
+			item_desc: item.item_desc,
+			item_allergen_warning: item.item_allergen_warning,
+			item_price: item.item_price,
+			item_availability: item.item_availability
 		}
-	})
-});
+
+		if (item.item_png_ID) {
+			const pathName = process.env.ASSETS_SAVE_LOC + 'for rest_items_png/' + item.item_png_ID;
+
+			// Check if path exist. If yes, great, otherwise send an err image instead
+			// Of course, we use our favourite promises
+			const imagebase64 = await new Promise((resolve, reject) => {
+				fs.access(pathName, fs.F_OK, (err) => {
+					if (err) {
+						// Console log the error
+						// console.log(timestamp + "restaurant.js line 172 " + err);
+						
+						var bitmap = fs.readFileSync('./public/assets/default-item.png', 'base64');
+						var imageString = "data:image/png;base64, " + bitmap;
+
+						resolve(imageString);
+					}
+					else {
+						// console.log(pathName);
+						const imagePath = path.resolve(pathName);
+
+						var bitmap = fs.readFileSync(imagePath, 'base64');
+						var imageString = "data:image/png;base64, " + bitmap;
+
+						resolve(imageString);
+					};
+				});
+			});
+
+			tempJSON['item_png_base64'] = imagebase64;
+			tempItemsArray.push(tempJSON);	
+		}
+	}
+
+	if (tempItemsArray.length != 0) {
+		res.status(200).send(tempItemsArray);
+	}
+	else {
+		res.status(200).send({ api_msg: "No items found" });
+	}
+}));
 
 /****************************************************************************
  * Retrieve restaurant's item category / categories information							*
@@ -117,7 +186,7 @@ router.get('/retrieveCategories', (req, res) => {
  * Retrieve restaurant's item category / categories information (New)				*
  ****************************************************************************
  */
-router.get('/itemCategory', (req, res) => {
+router.get('/itemCategories', (req, res) => {
 		// Some useful variables for this route
 		var selectedRestID;
 		// Save the restaurantID first from the header and also auth
@@ -184,8 +253,27 @@ router.post('/createNewCategory', (req, res) => {
  ****************************************************************************
  */
 router.route('/itemCategoryManagement')
-	.get((req, res) => {
-		res.status(200).json({ api_msg: "itemCategoryManagement Route" });
+	.put((req, res) => {
+		// 1. We get some useful variables
+		const { catID, newCatName } = req.body;
+
+		// 2. We construct the query
+		var updateQuery = `UPDATE rest_item_categories SET ric_name="${newCatName}" WHERE ric_ID=${catID}`;
+
+		// 3. We execute the query
+		dbconn.query(updateQuery, function(err, results, fields){
+			if (err) {
+				console.log(err);
+				res.status(200).send({ api_msg: "fail" });
+			}
+			else {
+				console.log(results);
+				res.status(200).send({ api_msg: "success" });
+			}
+		});
+	})
+	.delete((req, res) => {
+
 	});
 
 /****************************************************************************
@@ -675,7 +763,7 @@ router
 		// 2. Check if there was a new file in the first place
 		if (file) {
 			// console.log("We need to do something about that file.");
-			// 3. If there is a new file, delete the old file
+			
 			// 4. Save all the new variables into the database
 			// First we find the path once again
 			const pathName = process.env.ASSETS_SAVE_LOC + `rest_items_png/${itemPngID}`;
@@ -683,6 +771,7 @@ router
 			// Once delete, we can proceed to save the data into the database
 			// console.log(path.resolve(pathName));
 
+			// 3. If there is a new file, delete the old file
 			// Check if the file exist, if yes delete the old file first then save into MySQL
 			if(fs.existsSync(path.resolve(pathName))) {
 				// fs.unlink deletes old file
@@ -704,7 +793,7 @@ router
 								res.status(200).json({ api_msg: 'Update error, double check for when new image is uploaded!' }); 
 							}
 							else {
-								res.status(200).json({ api_msg: `Updated item '${itemName}'! NOTE: New image found! Old image deleted.` });
+								res.status(200).json({ api_msg: `Item updated! NOTE: New image found! Old image deleted.` });
 							}
 						});
 					}
@@ -723,7 +812,7 @@ router
 						res.status(200).json({ api_msg: "Update error, double check for when new image is uploaded!" }); 
 					}
 					else {
-						res.status(200).json({ api_msg: `Updated item ${itemName}! NOTE: New image uploaded!` });
+						res.status(200).json({ api_msg: `Updated item name ${itemName}! NOTE: New image uploaded!` });
 					}
 				});
 			}
@@ -742,7 +831,7 @@ router
 					res.status(200).json({ api_msg: "Update error, double check for when no image and only data is updated" }); 
 				}
 				else {
-					res.status(200).json({ api_msg: `Updated item "${itemName}"!` });
+					res.status(200).json({ api_msg: `Item updated!` });
 				}
 			});
 		}

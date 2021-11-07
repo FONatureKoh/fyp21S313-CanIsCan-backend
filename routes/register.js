@@ -117,9 +117,6 @@ router.post('/restaurant', asyncHandler(async(req, res) => {
       res.status(200).json({ api_msg: "username exist" });
     }
     else {
-      // Console log to see MySQL
-      // console.log(results);
-
       // Once the app user is created, we can now create the restaurant
       var sqlRestaurantQuery = "INSERT INTO restaurant(`restaurant_name`, `rest_rgm_username`, ";
       sqlRestaurantQuery += "`rest_phone_no`, `rest_email`,`rest_opening_time`, `rest_closing_time`, `rest_status`) ";

@@ -125,7 +125,7 @@ router.get('/retrieveAllItems', asyncHandler(async(req, res) => {
 			const imagebase64 = await new Promise((resolve, reject) => {
 				fs.access(pathName, fs.F_OK, (err) => {
 					if (err) {
-						// Console log the error
+						// Console log the err
 						console.log(timestamp + "restaurant.js line 172 " + err);
 						
 						var bitmap = fs.readFileSync('./public/assets/default-item.png', 'base64');
@@ -172,9 +172,9 @@ router.get('/retrieveCategories', (req, res) => {
 	sqlQuery += 'GROUP BY ric_name';
 
 	// Query the db and return the said fields to the frontend app
-	dbconn.query(sqlQuery, function (error, results, fields) {
-		if (error) {
-			res.send('MySQL error: ' + error);
+	dbconn.query(sqlQuery, function (err, results, fields) {
+		if (err) {
+			res.send('MySQL err: ' + err);
     }
     else {
       res.status(200).send(results);
@@ -198,9 +198,9 @@ router.get('/itemCategories', (req, res) => {
 		sqlQuery += `WHERE rest_rgm_username="${username}" AND ric_restaurant_ID=restaurant_ID `;
 
 		// Query the db and return the said fields to the afrontend app
-		dbconn.query(sqlQuery, function (error, results, fields) {
-			if (error) {
-				res.status(200).json({ api_msg: 'MySQL error: ' + error });
+		dbconn.query(sqlQuery, function (err, results, fields) {
+			if (err) {
+				res.status(200).json({ api_msg: 'MySQL err: ' + err });
 			}
 			else {
 				res.status(200).send(results);
@@ -223,9 +223,9 @@ router.post('/createNewCategory', (req, res) => {
 	var sqlGetQuery = `SELECT restaurant_ID FROM restaurant `;
 	sqlGetQuery += `WHERE rest_rgm_username="${username}"`;
 
-	dbconn.query(sqlGetQuery, function(error, results, fields){
-		if (error) {
-			res.status(200).json({ api_msg: "MySQL " + error });
+	dbconn.query(sqlGetQuery, function(err, results, fields){
+		if (err) {
+			res.status(200).json({ api_msg: "MySQL " + err });
 		}
 		else {
 			// Set the rest_ID first 
@@ -235,9 +235,9 @@ router.post('/createNewCategory', (req, res) => {
 			var sqlInsertQuery = "INSERT INTO rest_item_categories(`ric_restaurant_ID`, `ric_name`) ";
 			sqlInsertQuery += `VALUES (${rest_ID}, "${ric_name}")`;
 
-			dbconn.query(sqlInsertQuery, function(error, results, fields){
-				if (error) {
-					res.status(200).json({ api_msg: "MySQL " + error });
+			dbconn.query(sqlInsertQuery, function(err, results, fields){
+				if (err) {
+					res.status(200).json({ api_msg: "MySQL " + err });
 				}
 				else {
 					console.log(results);
@@ -293,10 +293,10 @@ router.get('/retrieveCategoriesItems/:ric_ID', (req, res) => {
 	sqlGetQuery += `ON ri_rest_ID=ric_restaurant_ID AND ric_ID=${ric_ID} `;
 	sqlGetQuery += `ORDER BY item_name`;
 
-	dbconn.query(sqlGetQuery, function(error, results, fields){
-		if (error) {
-			res.status(200).json({ api_msg: 'MySQL ' + error});
-			// console.log(error);
+	dbconn.query(sqlGetQuery, function(err, results, fields){
+		if (err) {
+			res.status(200).json({ api_msg: 'MySQL ' + err});
+			// console.log(err);
 		}
 		else {
 			// 3. Once selected, then we'll use that ID to retrieve everything else
@@ -316,7 +316,7 @@ router.get('/itemImage/:imageName', (req, res) => {
 	if (req.params.imageName != '') {
 		const pathName = process.env.ASSETS_SAVE_LOC + 'rest_items_png/' + req.params.imageName;
 
-		// Check if path exist. If yes, great, otherwise send an error image instead
+		// Check if path exist. If yes, great, otherwise send an err image instead
 		fs.access(pathName, fs.F_OK, (err) => {
 			if (err) {
 				// console.log(err);
@@ -340,7 +340,7 @@ router.get('/restaurantBanner/:imageName', (req, res) => {
 	if (req.params.imageName != '') {
 		const pathName = process.env.ASSETS_SAVE_LOC + 'rest_banners/' + req.params.imageName;
 
-		// Check if path exist. If yes, great, otherwise send an error image instead
+		// Check if path exist. If yes, great, otherwise send an err image instead
 		fs.access(pathName, fs.F_OK, (err) => {
 			if (err) {
 				// console.log(err);
@@ -402,9 +402,9 @@ router
 		sqlQuery += `WHERE rest_rgm_username="${username}"`;
 
 		// Query the db and return the said fields to the frontend app
-		dbconn.query(sqlQuery, function (error, results, fields) {
-			if (error) {
-				res.status(200).send({ api_msg: 'MySQL error: ' + error });
+		dbconn.query(sqlQuery, function (err, results, fields) {
+			if (err) {
+				res.status(200).send({ api_msg: 'MySQL err: ' + err });
 			}
 			else {
 				// For this purpose, we should be creating a template to send back to the frontend
@@ -499,9 +499,9 @@ router
 					if (err) 
 						return res.status(200).json({ api_msg: 'Error deleteing the file' }); 
 					else {
-						dbconn.query(sqlUpdateQuery, function(error, results, fields){
-							if (error) {
-								res.status(200).json({ api_msg: "MySql " + error});
+						dbconn.query(sqlUpdateQuery, function(err, results, fields){
+							if (err) {
+								res.status(200).json({ api_msg: "MySql " + err});
 							}
 							else {
 								res.status(200).send({ api_msg: "There's a file. Update successful!" });
@@ -511,9 +511,9 @@ router
 				});
 			}
 			else {
-				dbconn.query(sqlUpdateQuery, function(error, results, fields){
-					if (error) {
-						res.status(200).json({ api_msg: "MySql " + error});
+				dbconn.query(sqlUpdateQuery, function(err, results, fields){
+					if (err) {
+						res.status(200).json({ api_msg: "MySql " + err});
 					}
 					else {
 						res.status(200).send({ api_msg: "There's a file. Update successful!" });
@@ -539,9 +539,9 @@ router
 
 			sqlUpdateQuery += ` WHERE rest_rgm_username="${username}"`;
 			
-			dbconn.query(sqlUpdateQuery, function(error, results, fields){
-				if (error) {
-					res.status(200).json({ api_msg: "MySql " + error});
+			dbconn.query(sqlUpdateQuery, function(err, results, fields){
+				if (err) {
+					res.status(200).json({ api_msg: "MySql " + err});
 				}
 				else {
 					res.status(200).send({ api_msg: "There's no file. Update successful!" });
@@ -554,7 +554,7 @@ router
 		// 4. Try the query and see if it is successful. If yes return success api_msg
 
 	})
-	.post(bannerUpload.single('bannerImage'), (req, res) => {
+	.post(bannerUpload.single('bannerImage'), asyncHandler(async(req, res, next) => {
 		// This post route is for first login / firstLog / firstLogin 
 		// 1. Get username from the token
 		const { username } = res.locals.userData;
@@ -593,22 +593,59 @@ router
 		sqlUpdateQuery += `rest_opening_time="${openingTime}",rest_closing_time="${closingTime}" `
 		sqlUpdateQuery += `WHERE rest_rgm_username="${username}"`;
 
-		dbconn.query(sqlUpdateQuery, function(error, results, fields){
-			if (error) {
-				res.status(200).json({ api_msg: "MySQL " + error });
-			}
-			else {
-				res.status(200).json({ api_msg: "Successful!" });
-			}
-		})
+		const updateResponse = await new Promise((resolve, reject) => {
+			dbconn.query(sqlUpdateQuery, function(err, results, fields){
+				if (err) {
+					console.log(err);
+					resolve({ status: "fail" });
+				}
+				else {
+					resolve({ status: "success" });
+				}
+			});
+		});
 
+		// Also insert into the db the reservation settings, but we will need to get the restID first
+		var sqlQueryRestID = `SELECT restaurant_ID FROM restaurant `;
+		sqlQueryRestID += `WHERE rest_rgm_username="${username}"`;
+
+		const restID = await new Promise((resolve, reject) => {
+			dbconn.query(sqlQueryRestID, function(err, results, fields){
+				if (err) {
+					reject(err);
+				}
+				else {
+					resolve(results[0].restaurant_ID);
+				}
+			})
+		});
+
+		// Query to make the reservation settings
+		var sqlCreateResSettings = "INSERT INTO `rest_reservation_setting`(`rrs_rest_ID`, `reservation_interval`, "
+		sqlCreateResSettings += "`reservation_starttime`, `reservation_endtime`, `max_tables`) " 
+		sqlCreateResSettings += `VALUES (${restID}, 1, "${openingTime}", "${closingTime}", 4)`
+
+		const createResponse = await new Promise((resolve, reject) => {
+			dbconn.query(sqlCreateResSettings, function(err, results, fields){
+				if (err) {
+					console.log(err);
+					reject(err);
+				}
+				else {
+					resolve({ status: "success" });
+				}
+			})
+		});
+
+		if (updateResponse.status == "success" && createResponse.status == "success") {
+			res.status(200).send({ api_msg: "Restaurant First Login settings successful!" });
+		}
+		
 		// var sqlUpdateQuery = `UPDATE rest_reservation_setting SET `;
 		// sqlUpdateQuery += `reservation_starttime="${startTime}", reservation_endtime="${endTime}", `;
 		// sqlUpdateQuery += `reservation_interval=${reservationIntervals}, max_tables=${noOfTables} `;
 		// sqlUpdateQuery += `WHERE rrs_ID=${settingsID}`;
-
-		console.log(req.file, req.body);
-	});
+	}));
 
 /****************************************************************************
  * Retrieve all available Restaurant Tags																		*
@@ -619,9 +656,9 @@ router.get('/tags', (req, res) => {
 		var sqlQuery = `SELECT restaurant_tag FROM rest_tags `;
 
 		// Query the db and return the said fields to the frontend app
-		dbconn.query(sqlQuery, function (error, results, fields) {
-			if (error) {
-				res.status(200).json({ api_msg: 'MySQL error: ' + error });
+		dbconn.query(sqlQuery, function (err, results, fields) {
+			if (err) {
+				res.status(200).json({ api_msg: 'MySQL err: ' + err });
 			}
 			else {
 				var restaurantTags = [];
@@ -694,10 +731,10 @@ router.post('/addmenuitem', upload.single('imageFile'), (req, res) => {
 	var sqlQueryRestID = `SELECT restaurant_ID FROM restaurant `;
 	sqlQueryRestID += `WHERE rest_rgm_username="${username}"`;
 
-	dbconn.query(sqlQueryRestID, function(error, results, fields){
-		if (error) {
-			res.status(200).send('MySQL error: ' + error);
-			// console.log(error);
+	dbconn.query(sqlQueryRestID, function(err, results, fields){
+		if (err) {
+			res.status(200).send('MySQL err: ' + err);
+			// console.log(err);
 		}
 		else {
 			// 3. Once selected, then we'll use that ID to retrieve everything else
@@ -710,10 +747,10 @@ router.post('/addmenuitem', upload.single('imageFile'), (req, res) => {
 			sqlQuery += `"${itemDesc}", "${itemAllergy}", ${itemPrice}, ${itemAvailability})`;
 
 			// Make sqlQuery
-			dbconn.query(sqlQuery, function(error, results, fields) {
-				if (error) {
-					//console.log(error);
-					res.status(200).send('MySQL error: ' + error);
+			dbconn.query(sqlQuery, function(err, results, fields) {
+				if (err) {
+					//console.log(err);
+					res.status(200).send('MySQL err: ' + err);
 				}
 				else {
 					// console.log(results);
@@ -737,9 +774,9 @@ router
 		sqlGetQuery += `JOIN rest_item_categories `
 		sqlGetQuery += `ON ri_cat_ID=ric_ID AND ri_item_ID=${itemID} `;
 
-		dbconn.query(sqlGetQuery, function(error, results, fields){
-			if (error) {
-				res.status(200).json({ api_msg: "MySQL " + error });
+		dbconn.query(sqlGetQuery, function(err, results, fields){
+			if (err) {
+				res.status(200).json({ api_msg: "MySQL " + err });
 			}
 			else {
 				res.status(200).send(results[0]);
@@ -788,9 +825,9 @@ router
 						sqlUpdateQuery += `WHERE ri_item_ID=${itemID}`; 
 
 						// This will update with all the new stuff!
-						dbconn.query(sqlUpdateQuery, function(error, results, fields){
-							if (error) {
-								res.status(200).json({ api_msg: 'Update error, double check for when new image is uploaded!' }); 
+						dbconn.query(sqlUpdateQuery, function(err, results, fields){
+							if (err) {
+								res.status(200).json({ api_msg: 'Update err, double check for when new image is uploaded!' }); 
 							}
 							else {
 								res.status(200).json({ api_msg: `Item updated! NOTE: New image found! Old image deleted.` });
@@ -807,9 +844,9 @@ router
 				sqlUpdateQuery += `WHERE ri_item_ID=${itemID}`;
 
 				// Query the MySQL
-				dbconn.query(sqlUpdateQuery, function(error, results, fields){
-					if (error) {
-						res.status(200).json({ api_msg: "Update error, double check for when new image is uploaded!" }); 
+				dbconn.query(sqlUpdateQuery, function(err, results, fields){
+					if (err) {
+						res.status(200).json({ api_msg: "Update err, double check for when new image is uploaded!" }); 
 					}
 					else {
 						res.status(200).json({ api_msg: `Updated item name ${itemName}! NOTE: New image uploaded!` });
@@ -826,9 +863,9 @@ router
 			sqlUpdateQuery += `WHERE ri_item_ID=${itemID}`;
 
 			// Query the MySQL
-			dbconn.query(sqlUpdateQuery, function(error, results, fields){
-				if (error) {
-					res.status(200).json({ api_msg: "Update error, double check for when no image and only data is updated" }); 
+			dbconn.query(sqlUpdateQuery, function(err, results, fields){
+				if (err) {
+					res.status(200).json({ api_msg: "Update err, double check for when no image and only data is updated" }); 
 				}
 				else {
 					res.status(200).json({ api_msg: `Item updated!` });
@@ -844,9 +881,9 @@ router
 		var sqlDeleteQuery = 'UPDATE rest_item SET item_availability=2 ';
 		sqlDeleteQuery += `WHERE ri_item_ID=${itemID}`;
 
-		dbconn.query(sqlDeleteQuery, function(error, results, fields) {
-			if (error) {
-				res.status(200).json({ api_msg: 'MySQL ' + error });
+		dbconn.query(sqlDeleteQuery, function(err, results, fields) {
+			if (err) {
+				res.status(200).json({ api_msg: 'MySQL ' + err });
 			}
 			else {
 				res.status(200).json({ api_msg: 'Item with itemID: ' + itemID + ' deleted.' });
@@ -876,9 +913,9 @@ router.route('/restaurantStatus')
 		sqlGetQuery += `WHERE rest_rgm_username="${username}"`;
 		
 		// 3. Then after that we make the dbconn
-		dbconn.query(sqlGetQuery, function(error, results, fields){
-			if (error) {
-				res.status(200).json({ api_msg: "MySQL " + error });
+		dbconn.query(sqlGetQuery, function(err, results, fields){
+			if (err) {
+				res.status(200).json({ api_msg: "MySQL " + err });
 			}
 			else {
 				// 4. Return the restaurant's status
@@ -898,10 +935,10 @@ router.route('/restaurantStatus')
 		sqlGetQuery += `WHERE rest_rgm_username="${username}"`;
 		
 		// 3. Then after that we make the dbconn
-		dbconn.query(sqlGetQuery, function(error, results, fields){
-			if (error) {
-				console.log(error);
-				res.status(200).json({ api_msg: "MySQL " + error });
+		dbconn.query(sqlGetQuery, function(err, results, fields){
+			if (err) {
+				console.log(err);
+				res.status(200).json({ api_msg: "MySQL " + err });
 			}
 			else {
 				// 4. Return the restaurant's status
@@ -922,9 +959,9 @@ router.get('/rgm/allsubusers', (req, res) => {
 	var sqlQuery = `SELECT restaurant_ID FROM restaurant `;
 	sqlQuery += `WHERE rest_rgm_username="${username}"`;
 
-	dbconn.query(sqlQuery, function(error, results, fields){
-		if (error) {
-			res.status(200).send({ api_msg: "MySQL " + error });
+	dbconn.query(sqlQuery, function(err, results, fields){
+		if (err) {
+			res.status(200).send({ api_msg: "MySQL " + err });
 		}
 		else {
 			// 2. Using the ID, we get all the subusers
@@ -936,9 +973,9 @@ router.get('/rgm/allsubusers', (req, res) => {
 
 			// 3. With that we can return the whole result query from the SQL, and then
 			// we'll parse the data accordingly with an async function at the frontend
-			dbconn.query(sqlGetQuery, function(error, results, fields){
-				if (error) {
-					res.status(200).send({ api_msg: "MySQL " + error });
+			dbconn.query(sqlGetQuery, function(err, results, fields){
+				if (err) {
+					res.status(200).send({ api_msg: "MySQL " + err });
 				}
 				else {
 					// Transform the results first before sending the data to the frontend
@@ -983,9 +1020,9 @@ router.post('/rgm/addsubuser', (req, res) => {
 	var sqlGetQuery = `SELECT restaurant_ID, restaurant_name FROM restaurant `;
 	sqlGetQuery += `WHERE rest_rgm_username="${username}"`;
 
-	dbconn.query(sqlGetQuery, function(error, results, fields){
-		if (error) {
-			res.status(200).send({ api_msg: "MySQL " + error });
+	dbconn.query(sqlGetQuery, function(err, results, fields){
+		if (err) {
+			res.status(200).send({ api_msg: "MySQL " + err });
 		}
 		else {
 			// 2. Once we get the restaurant ID, we can then construct a POST query to create the new
@@ -1002,9 +1039,9 @@ router.post('/rgm/addsubuser', (req, res) => {
 			var sqlPostQuery = "INSERT INTO app_user(`username`, `user_password`, `user_type`, `account_status`)";
 			sqlPostQuery += `VALUES ("${subuser_username}", "${subuser_pw}", "${role}", "first")`;
 
-			dbconn.query(sqlPostQuery, function(error, results, fields){
-				if (error) {
-					res.status(200).send({ api_msg: "MySQL " + error });
+			dbconn.query(sqlPostQuery, function(err, results, fields){
+				if (err) {
+					res.status(200).send({ api_msg: "MySQL " + err });
 				}
 				else {
 					if (results.affectedRows > 0) {
@@ -1033,9 +1070,9 @@ router.post('/rgm/addsubuser', (req, res) => {
 												// send response back to frontend
 												res.status(200).send({ api_msg: "success" });
 											})
-											.catch(error => console.log(error));
+											.catch(err => console.log(err));
 									})
-									.catch(error => console.log(error));								
+									.catch(err => console.log(err));								
 							}
 						}); // Closed for third query
 					}
@@ -1058,9 +1095,9 @@ router.route('/rgm/subuser/:subuser_ID')
 		sqlGetQuery += ` first_name, last_name, phone_no, email, subuser_type `;
 		sqlGetQuery += `FROM restaurant_subuser WHERE subuser_ID=${req.params.subuser_ID}`;
 
-		dbconn.query(sqlGetQuery, function(error, results, fields){
-			if (error) {
-				res.status(200).send({ api_msg: "MySQL " + error });
+		dbconn.query(sqlGetQuery, function(err, results, fields){
+			if (err) {
+				res.status(200).send({ api_msg: "MySQL " + err });
 			}
 			else {
 				res.status(200).send(results[0]);
@@ -1382,9 +1419,9 @@ router.get('/updateorderstatus/:orderID/:orderStatus', (req, res) => {
   var sqlGetIDQuery = `UPDATE delivery_order SET order_status="${orderStatus}" `;
   sqlGetIDQuery += `WHERE order_ID="${orderID}"`;
 
-  dbconn.query(sqlGetIDQuery, function(error, results, fields){
-    if (error) {
-      res.status(200).send({ api_msg: "MySQL " + error });
+  dbconn.query(sqlGetIDQuery, function(err, results, fields){
+    if (err) {
+      res.status(200).send({ api_msg: "MySQL " + err });
     }
     else{
       res.status(200).send({ api_msg: `Successful update for Delivery Order ID ${orderID}` });
@@ -1680,9 +1717,9 @@ router.get('/updatereservationstatus/:reservationID/:reservationStatus', (req, r
   var sqlUpdateQuery = `UPDATE cust_reservation SET cr_status="${reservationStatus}" `;
   sqlUpdateQuery += `WHERE cust_reservation_ID="${reservationID}"`;
 
-  dbconn.query(sqlUpdateQuery, function(error, results, fields){
-    if (error) {
-      res.status(200).send({ api_msg: "MySQL " + error });
+  dbconn.query(sqlUpdateQuery, function(err, results, fields){
+    if (err) {
+      res.status(200).send({ api_msg: "MySQL " + err });
     }
     else{
       res.status(200).send({ api_msg: `Successful update for Reservation ${reservationID}` });
@@ -1717,10 +1754,10 @@ router.get('/updatepostatus/:poid/:postatus', asyncHandler (async (req, res) => 
   var sqlUpdateQuery = `UPDATE pre_order SET po_status="${postatus}" `;
   sqlUpdateQuery += `WHERE po_ID=${poid}`;
 
-  dbconn.query(sqlUpdateQuery, function(error, results, fields){
-    if (error) {
+  dbconn.query(sqlUpdateQuery, function(err, results, fields){
+    if (err) {
       res.status(200).send({ 
-				api_msg: "MySQL " + error,
+				api_msg: "MySQL " + err,
 				updateStatus: "fail"
 			 });
     }
@@ -1734,7 +1771,7 @@ router.get('/updatepostatus/:poid/:postatus', asyncHandler (async (req, res) => 
 }));
 
 /****************************************************************************
- * Deliveries Manager (DM): Updates order status for order
+ * Reservations Manager (RM): Reservation settings things
  ****************************************************************************/
 router.route('/reservationSettings')
 	.get((req, res) => {
@@ -1777,7 +1814,6 @@ router.route('/reservationSettings')
 								rest_closing_time: results[0].rest_closing_time, 
 								rrs_ID: results[0].rrs_ID, 
 								rrs_rest_ID: results[0].rrs_rest_ID, 
-								rrs_rest_name: results[0].rrs_rest_name, 
 								reservation_interval: results[0].reservation_interval, 
 								reservation_starttime: results[0].reservation_starttime, 
 								reservation_endtime: results[0].reservation_endtime, 

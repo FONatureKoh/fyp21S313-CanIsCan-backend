@@ -456,59 +456,142 @@ router.get('/availableCategories/:restID', asyncHandler(async(req, res, next) =>
 /****************************************************************************
  * Retrieve all of the customer's personal orders                           *
  ****************************************************************************/
-router.get('/alldeliveryorders', (req, res) => {
-	// Save the restaurantID first from the URL
+router.get('/alldeliveryorders', asyncHandler(async(req, res, next) => {
+	// Get customer's username
 	const { username } = res.locals.userData;
-
-  // console.log(username);
 
   // 1. Get the customer's ID from the customer_users table
   var sqlGetIDQuery = `SELECT customer_ID FROM customer_user `;
-  sqlGetIDQuery += `WHERE cust_username="${username}"`;
+  sqlGetIDQuery += `WHERE cust_username="${username}" `;
 
-  dbconn.query(sqlGetIDQuery, function(err, results, fields){
-    if (err) {
-      res.status(200).send({ api_msg: "MySQL " + err });
+  const custInfo = await new Promise((resolve, reject) => {
+    dbconn.query(sqlGetIDQuery, function(err, results, fields){
+      if (err) {
+        reject(err);
+        console.log(err);
+      }
+      else {
+        resolve(results[0]);
+      }
+    });
+  });
+
+  // 2. Once we get the custID, we can now get all the orders from the delivery orders table
+  const custID = custInfo.customer_ID;
+
+  var sqlGetOrders = `SELECT * FROM delivery_order `;
+  sqlGetOrders += `WHERE o_cust_ID=${custID} `;
+  sqlGetOrders += `ORDER BY o_datetime`;
+
+  const custOrders = await new Promise((resolve, reject) => {
+    dbconn.query(sqlGetOrders, function(err, results, fields) {
+      if (err) {
+        console.log(err);
+        reject(err);
+      }
+      else {
+        resolve(results);
+      }
+    })
+  });
+
+  // 3. With all the orders taken we now convert everything that's necessary and also
+  // get all the order items from the order items table
+  var tempOrdersArray = [];
+
+  for (let order of custOrders) {
+    // Set Customer Reservation ID
+    const orderID = order.order_ID;
+
+    const orderDate = new Date(order.o_datetime);
+		const pattern = datetime_T.compile('ddd, DD MMM YYYY');
+		const convertedDate = datetime_T.format(orderDate, pattern);
+    
+    var tempJSON = {
+      orderID: order.order_ID,
+      orderDate: convertedDate,
+      restID: order.o_rest_ID,
+      restaurantName: order.o_rest_name,
+      address: order.delivery_address + " S(" + order.delivery_postal_code + ")",
+      price: order.total_cost,
+      status: order.order_status
     }
-    else{
-      const custID = results[0].customer_ID;
-      // 2. Then simply return all the orders that matches the customer's ID 
-      // and we will parse the info at the front
-      var sqlGetQuery = `SELECT * FROM delivery_order WHERE o_cust_ID=${custID}`;
 
-      dbconn.query(sqlGetQuery, function(err, results, field) {
+    const orderItems = await new Promise((resolve, reject) => {
+      var sqlGetItems = "SELECT * FROM do_item ";
+      sqlGetItems += `WHERE do_order_ID="${orderID}"`;
+
+      dbconn.query(sqlGetItems, function(err, results, fields){
         if (err) {
-          res.status(200).send({ api_msg: "MySQL " + err });
+          console.log(err);
+          reject(err);
         }
         else {
-          res.status(200).send(results);
+          resolve(results);
         }
-      }) // close nested query
+      });
+    });
+
+    // If there's more than 1 preorderitems then we have to make it into an array
+    if (orderItems.length > 0) {
+      var tempItemsArray = [];
+
+      for(let selectedItem of orderItems) {
+        var itemJSON = {
+          itemID: selectedItem.do_item_ID,
+          itemName: selectedItem.do_item_name,
+          itemPrice: selectedItem.do_item_price,
+          itemQty: selectedItem.do_item_qty,
+          itemSO: selectedItem.special_order ?? "NIL",
+          item_restItemID: selectedItem.do_rest_item_ID
+        }
+        tempItemsArray.push(itemJSON);
+      } 
+      tempJSON["orderItems"] = tempItemsArray;
     }
-  }) // close first query
-});
+    else {
+      tempJSON["orderItems"] = "None";
+    }
+    // Push
+    tempOrdersArray.push(tempJSON);
+  }
+  res.status(200).send(tempOrdersArray);
+}));
 
 /****************************************************************************
- * Retrieve all of the customer's order items                               *
+ * Retrieve all of the customer's personal orders                           *
  ****************************************************************************/
-router.get('/orderitems/:orderID', (req, res) => {
-	// Save the restaurantID first from the URL
+router.put('/updateDOStatus', asyncHandler(async(req, res, next) => {
+  // Get customer's username
 	const { username } = res.locals.userData;
-  const orderID = req.params.orderID;
+  
+  // Get orderID
+  const { orderID } = req.body;
 
-  // 1. Get the customer's ID from the customer_users table
-  var sqlGetIDQuery = `SELECT * FROM do_item `;
-  sqlGetIDQuery += `WHERE do_order_ID="${orderID}"`;
+  var sqlUpdateStatus = `UPDATE delivery_order SET order_status="Fulfilled" `
+  sqlUpdateStatus += `WHERE order_ID="${orderID}" `;
 
-  dbconn.query(sqlGetIDQuery, function(err, results, fields){
-    if (err) {
-      res.status(200).send({ api_msg: "MySQL " + err });
-    }
-    else{
-      res.status(200).send(results);
-    }
-  }) // close first query
-});
+  // Create as a promise
+  const updateResponse = await new Promise((resolve, reject) => {
+    dbconn.query(sqlUpdateStatus, function(err, results, fields){
+      if(err) {
+        console.log(err);
+        reject(err);
+      }
+      else {
+        resolve({ status: "success" });
+      }
+    });
+  })
+
+  if (updateResponse.status == "success"){
+    res.status(200).send({ api_msg: "success" });
+  }
+  else {
+    res.status(200).send({ api_msg: "fail" });
+  }
+}));
+
 
 /****************************************************************************
  * Retrieve all of the customer's past reservations

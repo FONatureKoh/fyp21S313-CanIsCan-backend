@@ -1126,138 +1126,246 @@ router.route('/rgm/subuser/:subuser_ID')
  * Deliveries Manager (DM): Retrieve all the pending delivery 
  * orders for that restaurant             
  ****************************************************************************/
-router.get('/pendingdeliveryorders', (req, res) => {
+router.get('/pendingdeliveryorders', asyncHandler(async(req, res) => {
 	// Save the restaurantID first from the URL
 	const { username } = res.locals.userData;
 
-  // console.log(username);
-
-  // 1. Get the customer's ID from the customer_users table
-  var sqlGetIDQuery = `SELECT subuser_rest_ID FROM restaurant_subuser `;
+  // 1. Get the restaurant's ID from the restaurant_subuser table
+	var sqlGetIDQuery = `SELECT subuser_rest_ID FROM restaurant_subuser `;
   sqlGetIDQuery += `WHERE subuser_username="${username}"`;
 
-  dbconn.query(sqlGetIDQuery, function(error, results, fields){
-    if (error) {
-      res.status(200).send({ api_msg: "MySQL " + error });
-    }
-    else{
-      const restID = results[0].subuser_rest_ID;
-      // 2. Then simply return all the orders that matches the customer's ID 
-      // and we will parse the info at the front
-      var sqlGetQuery = `SELECT * FROM delivery_order `
-			sqlGetQuery += `WHERE o_rest_ID=${restID} AND order_status="Pending"`;
+	const restID = await new Promise((resolve, reject) => {
+		dbconn.query(sqlGetIDQuery, function(err, results, fields){
+			if (err) {
+				console.log(timestamp + err);
+				reject(err); // THIS WILL ENSURE THE ROUTE RUNS 
+			}
+			else {
+				if (results[0]) 
+					resolve(results[0].subuser_rest_ID);
+				else 
+					resolve(0); // THIS WILL ENSURE THE ROUTE RUNS 
+			}
+		});
+	});
 
-      dbconn.query(sqlGetQuery, function(error, results, field) {
-        if (error) {
-          res.status(200).send({ api_msg: "MySQL " + error });
-        }
-        else {
-          res.status(200).send(results);
-        }
-      }) // close nested query
-    }
-  }) // close first query
-});
+	// 2. Use that to get all the orders belonging to that restaurant
+	var sqlGetQuery = `SELECT * FROM delivery_order `
+	sqlGetQuery += `WHERE o_rest_ID=${restID} AND order_status="Pending"`;
+
+	const pendingDOs = await new Promise((resolve, reject) => {
+		dbconn.query(sqlGetQuery, function(err, results, fields){
+			if (err) {
+				console.log(timestamp + err);
+				reject(err); // THIS WILL ENSURE THE ROUTE RUNS 
+			}
+			else {
+				resolve(results);
+			}
+		})
+	});
+	
+	// 3. After getting all the pending orders, we can then get the do_items from the
+	// do_item table
+	var tempOrdersArray = [];
+
+	for (let order of pendingDOs) {
+		// GET ITEMS QUERY
+		var sqlGetItems = `SELECT * FROM do_item `;
+		sqlGetItems += `WHERE do_order_ID="${order.order_ID}"`;
+
+		const doItems = await new Promise((resolve, reject) => {
+			dbconn.query(sqlGetItems, function(err, results, fields){
+				if (err) {
+					console.log(timestamp + err);
+					reject(err);
+				}
+				else{
+					resolve(results);
+				}
+			}); // CLOSING THE DB QUERY
+		}); // CLOSING THE PROMISE
+
+		var tempJSON = {
+			orderID: order.order_ID,
+			restID: order.o_rest_ID,
+			customerName: order.o_cust_name,
+			address: order.delivery_address + " S(" + order.delivery_postal_code + ")",
+			price: order.total_cost,
+			status: order.order_status,
+			items: doItems
+		}
+
+		tempOrdersArray.push(tempJSON);
+	}
+
+	// 4. Put that all into an array and then return it to the frontend
+	res.status(200).send(tempOrdersArray);
+}));
 
 /****************************************************************************
  * Deliveries Manager (DM):  Retrieve all the ongoing delivery 
  * orders for that restaurant           
  ****************************************************************************/
-router.get('/ongoingdeliveryorders', (req, res) => {
+router.get('/ongoingdeliveryorders', asyncHandler(async(req, res) => {
 	// Save the restaurantID first from the URL
 	const { username } = res.locals.userData;
 
-  // console.log(username);
-
-  // 1. Get the customer's ID from the customer_users table
+  // 1. Get the restaurant's ID from the restaurant_subuser table
   var sqlGetIDQuery = `SELECT subuser_rest_ID FROM restaurant_subuser `;
   sqlGetIDQuery += `WHERE subuser_username="${username}"`;
 
-  dbconn.query(sqlGetIDQuery, function(error, results, fields){
-    if (error) {
-      res.status(200).send({ api_msg: "MySQL " + error });
-    }
-    else{
-      const restID = results[0].subuser_rest_ID;
-      // 2. Then simply return all the orders that matches the customer's ID 
-      // and we will parse the info at the front
-      var sqlGetQuery = `SELECT * FROM delivery_order `
-			sqlGetQuery += `WHERE o_rest_ID=${restID} AND order_status IN ("Preparing", "Delivering") `;
-			sqlGetQuery += `ORDER BY order_status ASC`;
+	const restID = await new Promise((resolve, reject) => {
+		dbconn.query(sqlGetIDQuery, function(err, results, fields){
+			if (err) {
+				console.log(timestamp + err);
+				reject(err); // THIS WILL ENSURE THE ROUTE RUNS 
+			}
+			else {
+				if (results[0]) 
+					resolve(results[0].subuser_rest_ID);
+				else 
+					resolve(0); // THIS WILL ENSURE THE ROUTE RUNS 
+			}
+		});
+	});
 
-      dbconn.query(sqlGetQuery, function(err, results, field) {
-        if (err) {
+  // 2. Use that to get all the orders belonging to that restaurant
+	var sqlGetQuery = `SELECT * FROM delivery_order `
+	sqlGetQuery += `WHERE o_rest_ID=${restID} AND order_status IN ("Preparing", "Delivering") `;
+	sqlGetQuery += `ORDER BY order_status ASC`;
+
+	const ongoingDOs = await new Promise((resolve, reject) => {
+		dbconn.query(sqlGetQuery, function(err, results, fields){
+			if (err) {
+				console.log(timestamp + err);
+				reject(err); // THIS WILL ENSURE THE ROUTE RUNS 
+			}
+			else {
+				resolve(results);
+			}
+		})
+	});
+	
+	// 3. After getting all the pending orders, we can then get the do_items from the
+	// do_item table
+	var tempOrdersArray = [];
+
+	for (let order of ongoingDOs) {
+		// GET ITEMS QUERY
+		var sqlGetItems = `SELECT * FROM do_item `;
+		sqlGetItems += `WHERE do_order_ID="${order.order_ID}"`;
+
+		const doItems = await new Promise((resolve, reject) => {
+			dbconn.query(sqlGetItems, function(err, results, fields){
+				if (err) {
 					console.log(timestamp + err);
-          res.status(200).send({ api_msg: "MySQL " + error });
-        }
-        else {
-          res.status(200).send(results);
-        }
-      }) // close nested query
-    }
-  }) // close first query
-});
+					reject(err);
+				}
+				else{
+					resolve(results);
+				}
+			}); // CLOSING THE DB QUERY
+		}); // CLOSING THE PROMISE
+
+		var tempJSON = {
+			orderID: order.order_ID,
+			restID: order.o_rest_ID,
+			customerName: order.o_cust_name,
+			address: order.delivery_address + " S(" + order.delivery_postal_code + ")",
+			price: order.total_cost,
+			status: order.order_status,
+			items: doItems
+		}
+
+		tempOrdersArray.push(tempJSON);
+	}
+
+	// 4. Put that all into an array and then return it to the frontend
+	res.status(200).send(tempOrdersArray);
+}));
 
 /****************************************************************************
  * Deliveries Manager (DM): Retrieve all the fufilled delivery 
  * orders for that restaurant            
  ****************************************************************************/
-router.get('/fulfilledorders', (req, res) => {
-	// Save the restaurantID first from the URL
+router.get('/fulfilledorders', asyncHandler(async(req, res) => {
+	// Save the username from the token middleware
 	const { username } = res.locals.userData;
 
-  // console.log(username);
-
-  // 1. Get the customer's ID from the customer_users table
+  // 1. Get the restaurant's ID from the restaurant_subuser table
   var sqlGetIDQuery = `SELECT subuser_rest_ID FROM restaurant_subuser `;
   sqlGetIDQuery += `WHERE subuser_username="${username}"`;
 
-  dbconn.query(sqlGetIDQuery, function(error, results, fields){
-    if (error) {
-      res.status(200).send({ api_msg: "MySQL " + error });
-    }
-    else{
-      const restID = results[0].subuser_rest_ID;
-      // 2. Then simply return all the orders that matches the customer's ID 
-      // and we will parse the info at the front
-      var sqlGetQuery = `SELECT * FROM delivery_order `
-			sqlGetQuery += `WHERE o_rest_ID=${restID} AND order_status="fulfilled" `;
-			sqlGetQuery += `ORDER BY o_datetime`
+  const restID = await new Promise((resolve, reject) => {
+		dbconn.query(sqlGetIDQuery, function(err, results, fields){
+			if (err) {
+				console.log(timestamp + err);
+				reject(err); // THIS WILL ENSURE THE ROUTE RUNS 
+			}
+			else {
+				if (results[0]) 
+					resolve(results[0].subuser_rest_ID);
+				else 
+					resolve(0); // THIS WILL ENSURE THE ROUTE RUNS 
+			}
+		});
+	});
 
-      dbconn.query(sqlGetQuery, function(err, results, field) {
-        if (err) {
-					console.log(err);
-          res.status(200).send({ api_msg: "MySQL " + err });
-        }
-        else {
-          res.status(200).send(results);
-        }
-      }) // close nested query
-    }
-  }) // close first query
-});
+  // 2. Use that to get all the orders belonging to that restaurant
+	var sqlGetQuery = `SELECT * FROM delivery_order `
+	sqlGetQuery += `WHERE o_rest_ID=${restID} AND order_status IN ("fulfilled") `;
+	sqlGetQuery += `ORDER BY o_datetime`;
 
-/****************************************************************************
- * Deliveries Manager (DM): Retrieves all the items of that order		
- ****************************************************************************/
-router.get('/doitems/:orderID', (req, res) => {
-	// Save the restaurantID first from the URL
-	const { username } = res.locals.userData;
-  const orderID = req.params.orderID;
+	const fulfilledDOs = await new Promise((resolve, reject) => {
+		dbconn.query(sqlGetQuery, function(err, results, fields){
+			if (err) {
+				console.log(timestamp + err);
+				reject(err); // THIS WILL ENSURE THE ROUTE RUNS 
+			}
+			else {
+				resolve(results);
+			}
+		})
+	});
+	
+	// 3. After getting all the pending orders, we can then get the do_items from the
+	// do_item table
+	var tempOrdersArray = [];
 
-  // 1. Get the customer's ID from the customer_users table
-  var sqlGetIDQuery = `SELECT * FROM do_item `;
-  sqlGetIDQuery += `WHERE do_order_ID="${orderID}"`;
+	for (let order of fulfilledDOs) {
+		// GET ITEMS QUERY
+		var sqlGetItems = `SELECT * FROM do_item `;
+		sqlGetItems += `WHERE do_order_ID="${order.order_ID}"`;
 
-  dbconn.query(sqlGetIDQuery, function(error, results, fields){
-    if (error) {
-      res.status(200).send({ api_msg: "MySQL " + error });
-    }
-    else{
-      res.status(200).send(results);
-    }
-  }) // close first query
-});
+		const doItems = await new Promise((resolve, reject) => {
+			dbconn.query(sqlGetItems, function(err, results, fields){
+				if (err) {
+					console.log(timestamp + err);
+					reject(err);
+				}
+				else{
+					resolve(results);
+				}
+			}); // CLOSING THE DB QUERY
+		}); // CLOSING THE PROMISE
+
+		var tempJSON = {
+			orderID: order.order_ID,
+			restID: order.o_rest_ID,
+			customerName: order.o_cust_name,
+			address: order.delivery_address + " S(" + order.delivery_postal_code + ")",
+			price: order.total_cost,
+			status: order.order_status,
+			items: doItems
+		}
+
+		tempOrdersArray.push(tempJSON);
+	}
+
+	// 4. Put that all into an array and then return it to the frontend
+	res.status(200).send(tempOrdersArray);
+}));
 
 /****************************************************************************
  * Deliveries Manager (DM): Updates order status for order

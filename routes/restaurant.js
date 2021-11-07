@@ -50,7 +50,7 @@ const timestamp = `[${chalk.green(datetime_T.format(new Date(), 'YYYY-MM-DD HH:m
  * Retrieve restaurant's menu and all items information											*
  ****************************************************************************
  */
-router.get('/retrieveAllItems', asyncHandler(async(req, res) => {
+router.get('/retrieveAllItems', asyncHandler(async(req, res, next) => {
 	// Refracting code to get the image encoding into base64 so that it can be sent
 	// as part of the json so that there is no need to go through getting of an image
 	// 1. As always we get the restaurant ID first from the username
@@ -1851,6 +1851,96 @@ router.route('/reservationSettings')
 			res.status(200).send({ api_msg: "success" });
 		})
 	})
+
+/****************************************************************************
+ * Retrieve delivery statistics for restaurant
+ ****************************************************************************
+ */
+router.get('/rgm/getdeliverystatistics', asyncHandler(async(req, res, next) => {
+	// Get the usual constants
+	const { username } = res.locals.userData;
+	const { startDate, endDate } = req.query;
+
+	// 1. With the two dates, we can get the range that the restaurant manager wants to see
+	// Therefore we convert them to the useable format first
+	const convertedStartDate = datetime_T.format(new Date(startDate), 'YYYY-MM-DD HH:mm:ss');
+	const convertedEndDate = datetime_T.format(new Date(endDate), 'YYYY-MM-DD HH:mm:ss');
+
+	console.log(convertedStartDate, convertedEndDate);
+
+	var statsQuery = `SELECT DATE(o_datetime) AS date, COUNT(*) AS count FROM delivery_order `;
+	statsQuery += `WHERE o_datetime BETWEEN "${convertedStartDate}" AND "${convertedEndDate}" `
+	statsQuery += `GROUP BY DATE(o_datetime) ORDER BY DATE(o_datetime)`;
+
+	const statsResponse = await new Promise((resolve, reject) => {
+		dbconn.query(statsQuery, function(err, results, fields){
+			if (err) {
+				reject(err);
+			}
+			else {
+				resolve(results);
+			}
+		})
+	})
+
+	var tempDataArray = [];
+
+	for (let stat of statsResponse) {
+		const tempJSON = {
+			dateValue: datetime_T.format(new Date(stat.date), "YYYY-MM-DD"),
+			count: stat.count
+		}
+
+		tempDataArray.push(tempJSON);
+	}
+
+	res.send(tempDataArray);
+}));
+
+/****************************************************************************
+ * Retrieve statistics for restaurant
+ ****************************************************************************
+ */
+router.get('/rgm/getreservationstatistics', asyncHandler(async(req, res, next) => {
+	// Get the usual constants
+	const { username } = res.locals.userData;
+	const { startDate, endDate } = req.query;
+
+	// 1. With the two dates, we can get the range that the restaurant manager wants to see
+	// Therefore we convert them to the useable format first
+	const convertedStartDate = datetime_T.format(new Date(startDate), 'YYYY-MM-DD');
+	const convertedEndDate = datetime_T.format(new Date(endDate), 'YYYY-MM-DD');
+
+	console.log(convertedStartDate, convertedEndDate);
+
+	var statsQuery = `SELECT cr_date AS date, COUNT(*) AS count FROM cust_reservation `;
+	statsQuery += `WHERE cr_date BETWEEN "${convertedStartDate}" AND "${convertedEndDate}" `
+	statsQuery += `GROUP BY cr_date ORDER BY cr_date`;
+
+	const statsResponse = await new Promise((resolve, reject) => {
+		dbconn.query(statsQuery, function(err, results, fields){
+			if (err) {
+				reject(err);
+			}
+			else {
+				resolve(results);
+			}
+		})
+	})
+
+	var tempDataArray = [];
+
+	for (let stat of statsResponse) {
+		const tempJSON = {
+			dateValue: datetime_T.format(new Date(stat.date), "YYYY-MM-DD"),
+			count: stat.count
+		}
+
+		tempDataArray.push(tempJSON);
+	}
+
+	res.send(tempDataArray);
+}));
 
 /*******************************************************************************************
  * NO ROUTES FUNCTIONS OR DECLARATIONS BELOW THIS DIVIDER 

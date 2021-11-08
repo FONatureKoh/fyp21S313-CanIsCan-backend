@@ -154,7 +154,7 @@ router.get('/retrieveAllItems', asyncHandler(async(req, res, next) => {
 		res.status(200).send(tempItemsArray);
 	}
 	else {
-		res.status(200).send({ api_msg: "No items found" });
+		res.status(200).send([]);
 	}
 }));
 
@@ -1886,6 +1886,7 @@ router.get('/rgm/getdeliverystatistics', asyncHandler(async(req, res, next) => {
 			if(err) {
 				console.log(err);
 				reject(err);
+				next();
 			}
 			else {
 				resolve(results[0].restaurant_ID);
@@ -1900,8 +1901,9 @@ router.get('/rgm/getdeliverystatistics', asyncHandler(async(req, res, next) => {
 
 	console.log(convertedStartDate, convertedEndDate);
 
-	var statsQuery = `SELECT DATE(o_datetime) AS date, COUNT(*) AS count FROM delivery_order `;
+	var statsQuery = `SELECT DATE(o_datetime) AS date, COUNT(*) AS count, SUM(total_cost) AS sum FROM delivery_order `;
 	statsQuery += `WHERE o_datetime BETWEEN "${convertedStartDate}" AND "${convertedEndDate}" `
+	statsQuery += `AND o_rest_ID=${restID} `
 	statsQuery += `GROUP BY DATE(o_datetime) ORDER BY DATE(o_datetime)`;
 
 	const statsResponse = await new Promise((resolve, reject) => {
@@ -1910,23 +1912,28 @@ router.get('/rgm/getdeliverystatistics', asyncHandler(async(req, res, next) => {
 				reject(err);
 			}
 			else {
+				console.log(results);
 				resolve(results);
 			}
 		})
 	})
 
-	var tempDataArray = [];
+	var doStatsArray = [];
+	var totalEarnings = 0;
 
 	for (let stat of statsResponse) {
 		const tempJSON = {
 			dateValue: datetime_T.format(new Date(stat.date), "YYYY-MM-DD"),
-			count: stat.count
+			count: stat.count,
+			dailyEarnings: stat.sum
 		}
+		// Total Cost
+		totalEarnings += stat.sum;
 
-		tempDataArray.push(tempJSON);
+		doStatsArray.push(tempJSON);
 	}
 
-	res.send(tempDataArray);
+	// Get the most popular item
 
 	var sqlDOQuery = `SELECT order_ID FROM delivery_order `;
 	sqlDOQuery += `WHERE o_datetime BETWEEN "${convertedStartDate}" AND "${convertedEndDate}" `
@@ -1938,14 +1945,35 @@ router.get('/rgm/getdeliverystatistics', asyncHandler(async(req, res, next) => {
 				reject(err);
 			}
 			else {
-				resolve(results);
+				// First we put all the orders into an array
+				var tempArray = [];
+
+				for (let doItem of results) {
+					tempArray.push(`"${doItem.order_ID}"`);
+				}
+				resolve(tempArray);
 			}
 		})
 	})
 
-	for (let doItem of doQueryResponse) {
-		console.log(doItem.order_ID);
-	}
+	// Now we find the most popular item
+	var itemsQuery = `SELECT do_item_name AS itemName, SUM(do_item_qty) AS sum FROM do_item `;
+	itemsQuery += `WHERE do_order_ID IN (${doQueryResponse.toString()}) `;
+	itemsQuery += `GROUP BY do_item_name ORDER BY sum DESC`;
+
+	const itemsQueryResponse = await new Promise((resolve, reject) => {
+		dbconn.query(itemsQuery, function(err, results, field){
+			if (err) {
+				console.log(err);
+				reject(err);
+			}
+			else {
+				resolve(results);
+			}
+		})
+	});
+
+	res.status(200).send({doStatsArray, totalEarnings, mostPopItem: itemsQueryResponse[0]});
 }));
 
 /****************************************************************************
@@ -1963,9 +1991,26 @@ router.get('/rgm/getreservationstatistics', asyncHandler(async(req, res, next) =
 	const convertedEndDate = datetime_T.format(new Date(endDate), 'YYYY-MM-DD');
 	// console.log(convertedStartDate, convertedEndDate);
 
+		// Restrieve the restaurant ID from the restaurant table
+	var sqlGetIDQuery = `SELECT restaurant_ID FROM restaurant WHERE rest_rgm_username="${username}"`
+
+	const restID = await new Promise((resolve, reject) => {
+		dbconn.query(sqlGetIDQuery, function(err, results, fields){
+			if(err) {
+				console.log(err);
+				reject(err);
+				next();
+			}
+			else {
+				resolve(results[0].restaurant_ID);
+			}
+		})
+	})
+
 	// CONSTRUCT THE QUERY TO SEARCH FOR PARAMS WITHIN A RANGE
 	var statsQuery = `SELECT cr_date AS date, COUNT(*) AS count FROM cust_reservation `;
-	statsQuery += `WHERE cr_date BETWEEN "${convertedStartDate}" AND "${convertedEndDate}" `
+	statsQuery += `WHERE cr_date BETWEEN "${convertedStartDate}" AND "${convertedEndDate}" `;
+	statsQuery += `AND cr_rest_ID=${restID} `;
 	statsQuery += `GROUP BY cr_date ORDER BY cr_date`;
 
 	const statsResponse = await new Promise((resolve, reject) => {
@@ -1993,6 +2038,7 @@ router.get('/rgm/getreservationstatistics', asyncHandler(async(req, res, next) =
 	// CONSTRUCT THE QUERY TO SEARCH FOR PARAMS WITHIN A RANGE
 	var timeslotQuery = `SELECT cr_timeslot, COUNT(*) AS count FROM cust_reservation `;
 	timeslotQuery += `WHERE cr_date BETWEEN "${convertedStartDate}" AND "${convertedEndDate}" `
+	timeslotQuery += `AND cr_rest_ID=${restID} `;
 	timeslotQuery += `GROUP BY cr_timeslot ORDER BY count DESC, cr_timeslot`;
 
 	const timeslotResponse = await new Promise((resolve, reject) => {

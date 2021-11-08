@@ -46,7 +46,7 @@ router.use(authTokenMiddleware);
  * Retrieve a single restaurant's information         											*
  ****************************************************************************
  */
-router.get('/singleRestaurantInfo/:restID', (req, res) => {
+router.get('/singleRestaurantInfo/:restID', asyncHandler(async(req, res) => {
 	// Save the restaurantID first from the URL
 	const restID = req.params.restID;
 
@@ -54,57 +54,91 @@ router.get('/singleRestaurantInfo/:restID', (req, res) => {
 	var sqlGetQuery =  `SELECT * FROM restaurant `;
   sqlGetQuery += `WHERE restaurant_ID=${restID}`
 
-	dbconn.query(sqlGetQuery, function (err, results, fields){
-		if (err) {
-			res.status(200).json({ api_msg: "MySQL " + err });
-		}
-		else {
-      // Since the result is an Array, we will need to transform accordingly
-      // using the for each array element method
-      // 2. We need to transform 2 things:
-      //		- Time	
-      var rest_op_hours = datetime_T.transform(results[0].rest_opening_time, 'HH:mm:ss', 'hh:mm A');
-      rest_op_hours += ' to ' + datetime_T.transform(results[0].rest_closing_time, 'HH:mm:ss', 'hh:mm A');
-
-      //		- Tags
-      var rest_tags = [];
-
-      if (results[0].rest_tag_1) 
-        rest_tags.push(results[0].rest_tag_1);
-
-      if (results[0].rest_tag_2) 
-        rest_tags.push(results[0].rest_tag_2);
-
-      if (results[0].rest_tag_3) 
-        rest_tags.push(results[0].rest_tag_3);
-
-      // 3. Then we send the other necessary information together with it back to the frontend
-      // in json format
-      const restaurantProfileData = {
-        restaurant_ID: results[0].restaurant_ID,
-        restaurant_name: results[0].restaurant_name,
-        rest_rgm_username: results[0].rest_rgm_username,
-        rest_banner_ID: results[0].rest_banner_ID,
-        rest_op_hours: rest_op_hours,
-        rest_phone_no: results[0].rest_phone_no,
-        rest_email: results[0].rest_email,
-        rest_address_info: results[0].rest_address_info,
-        rest_postal_code: results[0].rest_postal_code,
-        rest_tags: rest_tags,
-        rest_rating: results[0].rest_rating,
-        rest_status: results[0].rest_status,
-        rest_opening_time: results[0].rest_opening_time,
-        rest_closing_time: results[0].rest_closing_time,
-        rest_tag_1: results[0].rest_tag_1, 
-        rest_tag_2: results[0].rest_tag_2,
-        rest_tag_3: results[0].rest_tag_3
+	var tempJSON = await new Promise((resolve, reject) => {
+    dbconn.query(sqlGetQuery, function (err, results, fields){
+      if (err) {
+        res.status(200).json({ api_msg: "MySQL " + err });
       }
-      
-      // Send back to the frontend
-      res.status(200).send(restaurantProfileData);;
-		}
-	})
-});
+      else {
+        // Since the result is an Array, we will need to transform accordingly
+        // using the for each array element method
+        // 2. We need to transform 2 things:
+        //		- Time	
+        var rest_op_hours = datetime_T.transform(results[0].rest_opening_time, 'HH:mm:ss', 'hh:mm A');
+        rest_op_hours += ' to ' + datetime_T.transform(results[0].rest_closing_time, 'HH:mm:ss', 'hh:mm A');
+
+        //		- Tags
+        var rest_tags = [];
+
+        if (results[0].rest_tag_1) 
+          rest_tags.push(results[0].rest_tag_1);
+
+        if (results[0].rest_tag_2) 
+          rest_tags.push(results[0].rest_tag_2);
+
+        if (results[0].rest_tag_3) 
+          rest_tags.push(results[0].rest_tag_3);
+
+        // 3. Then we send the other necessary information together with it back to the frontend
+        // in json format
+        const restaurantProfileData = {
+          restaurant_ID: results[0].restaurant_ID,
+          restaurant_name: results[0].restaurant_name,
+          rest_rgm_username: results[0].rest_rgm_username,
+          rest_banner_ID: results[0].rest_banner_ID,
+          rest_op_hours: rest_op_hours,
+          rest_phone_no: results[0].rest_phone_no,
+          rest_email: results[0].rest_email,
+          rest_address_info: results[0].rest_address_info,
+          rest_postal_code: results[0].rest_postal_code,
+          rest_tags: rest_tags,
+          rest_rating: results[0].rest_rating,
+          rest_status: results[0].rest_status,
+          rest_opening_time: results[0].rest_opening_time,
+          rest_closing_time: results[0].rest_closing_time,
+          rest_tag_1: results[0].rest_tag_1, 
+          rest_tag_2: results[0].rest_tag_2,
+          rest_tag_3: results[0].rest_tag_3
+        }
+        
+        // Send back to the frontend
+        resolve(restaurantProfileData);
+      }
+    })
+  })
+
+  if (tempJSON.rest_banner_ID) {
+    const pathName = process.env.ASSETS_SAVE_LOC + 'rest_banners/' + tempJSON.rest_banner_ID;
+
+    // Check if path exist. If yes, great, otherwise send an err image instead
+    // Of course, we use our favourite promises
+    const imagebase64 = await new Promise((resolve, reject) => {
+      fs.access(pathName, fs.F_OK, (err) => {
+        if (err) {
+          // Console log the error
+          console.log(timestamp + "restaurant.js line 172 " + err);
+          
+          var bitmap = fs.readFileSync('./public/assets/default-shopfront.png', 'base64');
+          var imageString = "data:image/png;base64, " + bitmap;
+
+          resolve(imageString);
+        }
+        else {
+          // console.log(pathName);
+          const imagePath = path.resolve(pathName);
+
+          var bitmap = fs.readFileSync(imagePath, 'base64');
+          var imageString = "data:image/png;base64, " + bitmap;
+
+          resolve(imageString);
+        };
+      });
+    });
+
+    tempJSON['rest_banner'] = imagebase64;
+    res.status(200).send(tempJSON);	
+  }
+}));
 
 /****************************************************************************
  * Retrieve restaurant's menu and all items information											*
@@ -943,7 +977,7 @@ async function sendingOrderEmail(restEmail, custEmail, custName, restName,
       }
 
       // API response
-      if (custResponse.response.include("OK") && restResponse.response.include("OK")) {
+      if (custResponse.response.includes("OK") && restResponse.response.includes("OK")) {
         return "success";
       }
       else {
@@ -1012,7 +1046,7 @@ router.post('/submitorder', asyncHandler(async (req, res, next) => {
           console.log(err);
         }
         else {
-          // console.log(results);
+          console.log(results);
           const custID = results[0].customer_ID
           const fullName = results[0].first_name + " " + results[0].last_name;
           const custEmail = results[0].email;
@@ -1057,6 +1091,7 @@ router.post('/submitorder', asyncHandler(async (req, res, next) => {
                         sendingOrderEmail(restEmail, custEmail, fullName, restName, address,
                           postalCode, readableDate, doID, etd, orderItems, sqlTotalCost)
                           .then((response) => {
+                            // console.log(response)
                             if (response == "success") {
                               res.status(200).send({api_msg: "Your order has been made successfully. Please check your email for confirmation!"});
                             }
@@ -1089,6 +1124,7 @@ router.post('/submitorder', asyncHandler(async (req, res, next) => {
                     sendingOrderEmail(restEmail, custEmail, fullName, restName, address,
                       postalCode, readableDate, doID, etd, orderItems, sqlTotalCost)
                       .then((response) => {
+                        // console.log(response);
                         if (response == "success") {
                           res.status(200).send({api_msg: "Your order has been made successfully. Please check your email for confirmation!"});
                         }
@@ -1312,7 +1348,7 @@ async function sendingReservationEmail(iCalString, crID, restEmail, custEmail, c
       }
 
       // API response
-      if (custResponse.response.include("OK") && restResponse.response.include("OK")) {
+      if (custResponse.response.includes("OK") && restResponse.response.includes("OK")) {
         return "success";
       }
       else {

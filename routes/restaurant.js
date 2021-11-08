@@ -2069,6 +2069,8 @@ router.get('/rgm/getdeliverystatistics', asyncHandler(async(req, res, next) => {
 				}
 			})
 		});
+
+		res.status(200).send({doStatsArray, totalEarnings, mostPopItem: itemsQueryResponse});
 	}
 	else {
 		res.status(200).send({doStatsArray, totalEarnings, mostPopItem: { itemName: "No data yet", sum: 0 }});

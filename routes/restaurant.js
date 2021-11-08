@@ -238,11 +238,12 @@ router.post('/createNewCategory', (req, res) => {
 
 			dbconn.query(sqlInsertQuery, function(err, results, fields){
 				if (err) {
-					res.status(200).json({ api_msg: "MySQL " + err });
+					console.log(err);
+					res.status(200).json({ api_msg: "fail" });
 				}
 				else {
 					// console.log(results);
-					res.status(200).json({ api_msg: "Successful!" });
+					res.status(200).json({ api_msg: "success" });
 				}
 			})
 		}

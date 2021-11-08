@@ -330,30 +330,6 @@ router.get('/itemImage/:imageName', (req, res) => {
 });
 
 /****************************************************************************
- * Retrieve restaurant's items imaage																				*
- ****************************************************************************
- */
-router.get('/restaurantBanner/:imageName', (req, res) => {
-  // console.log(path.resolve(`../0-test-pictures/${req.params.imageName}`));
-  // console.log(req.params.imageName);
-  // console.log(pathName);
-	if (req.params.imageName != '') {
-		const pathName = process.env.ASSETS_SAVE_LOC + 'rest_banners/' + req.params.imageName;
-
-		// Check if path exist. If yes, great, otherwise send an err image instead
-		fs.access(pathName, fs.F_OK, (err) => {
-			if (err) {
-				// console.log(err);
-				res.status(200).sendFile(path.resolve('./public/assets/error_img.png'));
-			}
-			else {
-				res.status(200).sendFile(path.resolve(pathName));
-			}
-		})
-	}
-});
-
-/****************************************************************************
  * Restaurant Status retrieval																*
  ****************************************************************************
  * GET route will get the information based on the rgm's username
@@ -393,7 +369,7 @@ const bannerUpload = multer({storage: restaurantBannerStorage});
 
 router
 	.route('/restaurantProfile')
-	.get((req, res) => {
+	.get(asyncHandler(async(req, res) => {
 		// Firstly, we get the username of the RGM of the restaurant
 		const { username } = res.locals.userData;
 
@@ -402,56 +378,92 @@ router
 		sqlQuery += `WHERE rest_rgm_username="${username}"`;
 
 		// Query the db and return the said fields to the frontend app
-		dbconn.query(sqlQuery, function (err, results, fields) {
-			if (err) {
-				res.status(200).send({ api_msg: 'MySQL err: ' + err });
-			}
-			else {
-				// For this purpose, we should be creating a template to send back to the frontend
-				// based on the information that is needed to be displayed.
-				// 1. First, understand that the results form both tables together.
-				// 2. We need to transform 2 things:
-				//		- Time
-				var rest_op_hours = datetime_T.transform(results[0].rest_opening_time, 'HH:mm:ss', 'hh:mm A');
-				rest_op_hours += ' to ' + datetime_T.transform(results[0].rest_closing_time, 'HH:mm:ss', 'hh:mm A');
-
-				//		- Tags
-				var rest_tags = [];
-
-				if (results[0].rest_tag_1) 
-					rest_tags.push(results[0].rest_tag_1);
-
-				if (results[0].rest_tag_2) 
-					rest_tags.push(results[0].rest_tag_2);
-
-				if (results[0].rest_tag_3) 
-					rest_tags.push(results[0].rest_tag_3);
-
-				// 3. Then we send the other necessary information together with it back to the frontend
-				// in json format
-				const restaurantProfileData = {
-					restaurant_ID: results[0].restaurant_ID,
-					restaurant_name: results[0].restaurant_name,
-					rest_banner_ID: results[0].rest_banner_ID,
-					rest_op_hours: rest_op_hours,
-					rest_phone_no: results[0].rest_phone_no,
-					rest_email: results[0].rest_email,
-					rest_address_info: results[0].rest_address_info,
-					rest_postal_code: results[0].rest_postal_code,
-					rest_tags: rest_tags,
-					rest_status: results[0].rest_status,
-					rest_opening_time: results[0].rest_opening_time,
-					rest_closing_time: results[0].rest_closing_time,
-					rest_tag_1: results[0].rest_tag_1, 
-					rest_tag_2: results[0].rest_tag_2,
-					rest_tag_3: results[0].rest_tag_3
+		const profileInfo = await new Promise((resolve, reject) => {
+			dbconn.query(sqlQuery, function (err, results, fields) {
+				if (err) {
+					console.log(err);
+					reject(err);
 				}
-
-				// console.log(restaurantProfileData);
-				res.status(200).json(restaurantProfileData);
-			}
+				else {
+					resolve(results[0]);
+				}
+			});
 		});
-	})
+
+		// For this purpose, we should be creating a template to send back to the frontend
+		// based on the information that is needed to be displayed.
+		// 1. First, understand that the results form both tables together.
+		// 2. We need to transform 2 things:
+		//		- Time
+		var rest_op_hours = datetime_T.transform(profileInfo.rest_opening_time, 'HH:mm:ss', 'hh:mm A');
+		rest_op_hours += ' to ' + datetime_T.transform(profileInfo.rest_closing_time, 'HH:mm:ss', 'hh:mm A');
+
+		//		- Tags
+		var rest_tags = [];
+
+		if (profileInfo.rest_tag_1) 
+			rest_tags.push(profileInfo.rest_tag_1);
+
+		if (profileInfo.rest_tag_2) 
+			rest_tags.push(profileInfo.rest_tag_2);
+
+		if (profileInfo.rest_tag_3) 
+			rest_tags.push(profileInfo.rest_tag_3);
+
+		// 3. Then we send the other necessary information together with it back to the frontend
+		// in json format
+		var restaurantProfileData = {
+			restaurant_ID: profileInfo.restaurant_ID,
+			restaurant_name: profileInfo.restaurant_name,
+			rest_banner_ID: profileInfo.rest_banner_ID ?? "no_file.png",
+			rest_op_hours: rest_op_hours,
+			rest_phone_no: profileInfo.rest_phone_no,
+			rest_email: profileInfo.rest_email,
+			rest_address_info: profileInfo.rest_address_info ?? "NIL",
+			rest_postal_code: profileInfo.rest_postal_code ?? 0,
+			rest_tags: rest_tags,
+			rest_status: profileInfo.rest_status ,
+			rest_opening_time: profileInfo.rest_opening_time,
+			rest_closing_time: profileInfo.rest_closing_time,
+			rest_tag_1: profileInfo.rest_tag_1 ?? "NIL", 
+			rest_tag_2: profileInfo.rest_tag_2 ?? "NIL",
+			rest_tag_3: profileInfo.rest_tag_3 ?? "NIL"
+		}
+
+		// console.log(restaurantProfileData);
+		// res.status(200).json(restaurantProfileData);
+
+		// Image conversion to base64
+		const pathName = process.env.ASSETS_SAVE_LOC + 'rest_banners/' + profileInfo.rest_banner_ID;
+
+		// Check if path exist. If yes, great, otherwise send an err image instead
+		// Of course, we use our favourite promises
+		const imagebase64 = await new Promise((resolve, reject) => {
+			fs.access(pathName, fs.F_OK, (err) => {
+				if (err) {
+					// Console log the err
+					console.log(timestamp + "restaurant.js line 172 " + err);
+					
+					var bitmap = fs.readFileSync('./public/assets/default-shopfront.png', 'base64');
+					var imageString = "data:image/png;base64, " + bitmap;
+
+					resolve(imageString);
+				}
+				else {
+					// console.log(pathName);
+					const imagePath = path.resolve(pathName);
+
+					var bitmap = fs.readFileSync(imagePath, 'base64');
+					var imageString = "data:image/png;base64, " + bitmap;
+
+					resolve(imageString);
+				};
+			});
+		});
+
+		restaurantProfileData['banner_base64'] = imagebase64;
+		res.status(200).send(restaurantProfileData);
+	}))
 	.put(bannerUpload.single('bannerImage'), (req, res) => {
 		// Updating of the restaurant's profile
 		const { username } = res.locals.userData;
@@ -575,7 +587,12 @@ router
 		const tagsArray = tags.split(",");
 
 		// 3. Update the table with all the data gotten.
-		var sqlUpdateQuery = `UPDATE restaurant SET rest_banner_ID="${file.filename}",`
+		var sqlUpdateQuery = `UPDATE restaurant SET `;
+
+		if (file) {
+			sqlUpdateQuery += `rest_banner_ID="${file.filename}",`;
+		}
+
 		sqlUpdateQuery += `rest_address_info="${address}",rest_postal_code=${postalCode},rest_status="closed",`
 
 		if (tagsArray[0]) {
@@ -1861,6 +1878,21 @@ router.get('/rgm/getdeliverystatistics', asyncHandler(async(req, res, next) => {
 	const { username } = res.locals.userData;
 	const { startDate, endDate } = req.query;
 
+	// Restrieve the restaurant ID from the restaurant table
+	var sqlGetIDQuery = `SELECT restaurant_ID FROM restaurant WHERE rest_rgm_username="${username}"`
+
+	const restID = await new Promise((resolve, reject) => {
+		dbconn.query(sqlGetIDQuery, function(err, results, fields){
+			if(err) {
+				console.log(err);
+				reject(err);
+			}
+			else {
+				resolve(results[0].restaurant_ID);
+			}
+		})
+	})
+
 	// 1. With the two dates, we can get the range that the restaurant manager wants to see
 	// Therefore we convert them to the useable format first
 	const convertedStartDate = datetime_T.format(new Date(startDate), 'YYYY-MM-DD HH:mm:ss');
@@ -1895,6 +1927,25 @@ router.get('/rgm/getdeliverystatistics', asyncHandler(async(req, res, next) => {
 	}
 
 	res.send(tempDataArray);
+
+	var sqlDOQuery = `SELECT order_ID FROM delivery_order `;
+	sqlDOQuery += `WHERE o_datetime BETWEEN "${convertedStartDate}" AND "${convertedEndDate}" `
+	sqlDOQuery += `AND o_rest_ID=${restID}`;
+
+	const doQueryResponse = await new Promise((resolve, reject) => {
+		dbconn.query(sqlDOQuery, function(err, results, fields){
+			if (err) {
+				reject(err);
+			}
+			else {
+				resolve(results);
+			}
+		})
+	})
+
+	for (let doItem of doQueryResponse) {
+		console.log(doItem.order_ID);
+	}
 }));
 
 /****************************************************************************
@@ -1910,9 +1961,9 @@ router.get('/rgm/getreservationstatistics', asyncHandler(async(req, res, next) =
 	// Therefore we convert them to the useable format first
 	const convertedStartDate = datetime_T.format(new Date(startDate), 'YYYY-MM-DD');
 	const convertedEndDate = datetime_T.format(new Date(endDate), 'YYYY-MM-DD');
+	// console.log(convertedStartDate, convertedEndDate);
 
-	console.log(convertedStartDate, convertedEndDate);
-
+	// CONSTRUCT THE QUERY TO SEARCH FOR PARAMS WITHIN A RANGE
 	var statsQuery = `SELECT cr_date AS date, COUNT(*) AS count FROM cust_reservation `;
 	statsQuery += `WHERE cr_date BETWEEN "${convertedStartDate}" AND "${convertedEndDate}" `
 	statsQuery += `GROUP BY cr_date ORDER BY cr_date`;
@@ -1930,16 +1981,50 @@ router.get('/rgm/getreservationstatistics', asyncHandler(async(req, res, next) =
 
 	var tempDataArray = [];
 
+	// CONSTRUCT THE DATA INTO A READABLE FORMAT FOR FRONTEND
 	for (let stat of statsResponse) {
 		const tempJSON = {
 			dateValue: datetime_T.format(new Date(stat.date), "YYYY-MM-DD"),
 			count: stat.count
 		}
-
 		tempDataArray.push(tempJSON);
 	}
 
-	res.send(tempDataArray);
+	// CONSTRUCT THE QUERY TO SEARCH FOR PARAMS WITHIN A RANGE
+	var timeslotQuery = `SELECT cr_timeslot, COUNT(*) AS count FROM cust_reservation `;
+	timeslotQuery += `WHERE cr_date BETWEEN "${convertedStartDate}" AND "${convertedEndDate}" `
+	timeslotQuery += `GROUP BY cr_timeslot ORDER BY count DESC, cr_timeslot`;
+
+	const timeslotResponse = await new Promise((resolve, reject) => {
+		dbconn.query(timeslotQuery, function(err, results, fields){
+			if (err) {
+				reject(err);
+			}
+			else {
+				resolve(results);
+			}
+		})
+	})
+
+	// FIND THE HIGHEST COUNT
+	var tempArray = []
+
+	for (let element of timeslotResponse) {
+		tempArray.push(element.count);
+	};
+
+	const maxCount = tempArray[0];
+	
+	var tempTimeslotArray = [];
+
+	for (let timeslotStat of timeslotResponse) {
+		if (timeslotStat.count == maxCount) {
+			const time = datetime_T.transform(timeslotStat.cr_timeslot, 'HH:mm:ss', 'h:mm A');
+			tempTimeslotArray.push(time);
+		}
+	}
+
+	res.status(200).send({ dataArray: tempDataArray, timeslotArray: tempTimeslotArray });
 }));
 
 /*******************************************************************************************

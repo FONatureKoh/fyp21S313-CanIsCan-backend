@@ -153,6 +153,8 @@ app.get('/icalgen', (req, res) => {
   // const cal64 = Buffer.from(calString).toString('base64');
   // res.status(200).json({ calString, cal64 });
 
+  // res.status(200).sendFile(cal);
+
   const mailOptions = {
     from: 'Administrator <cancanfoodapp@gmail.com>',
     to: 'fonaturekoh@gmail.com',

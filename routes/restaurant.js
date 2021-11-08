@@ -196,6 +196,7 @@ router.get('/itemCategories', (req, res) => {
 		var sqlQuery = 'SELECT DISTINCT ric_name, ric_ID ';
 		sqlQuery += 'FROM rest_item_categories JOIN restaurant ';
 		sqlQuery += `WHERE rest_rgm_username="${username}" AND ric_restaurant_ID=restaurant_ID `;
+		sqlQuery += `AND ric_status=1`
 
 		// Query the db and return the said fields to the afrontend app
 		dbconn.query(sqlQuery, function (err, results, fields) {
@@ -240,7 +241,7 @@ router.post('/createNewCategory', (req, res) => {
 					res.status(200).json({ api_msg: "MySQL " + err });
 				}
 				else {
-					console.log(results);
+					// console.log(results);
 					res.status(200).json({ api_msg: "Successful!" });
 				}
 			})
@@ -267,14 +268,108 @@ router.route('/itemCategoryManagement')
 				res.status(200).send({ api_msg: "fail" });
 			}
 			else {
-				console.log(results);
+				// console.log(results);
 				res.status(200).send({ api_msg: "success" });
 			}
 		});
 	})
-	.delete((req, res) => {
+	.delete(asyncHandler(async(req, res, next) => {
+		// 1. We get some useful variables
+		const { catID, safeDelete } = req.body;
+		
+		// console.log(catID, safeDelete);
 
+		// 2. We construct the query
+		if (safeDelete == true) {
+			var deleteQuery = `DELETE FROM rest_item_categories WHERE ric_ID=${catID}`;
+
+			// 3. We execute the query
+			dbconn.query(deleteQuery, function(err, results, fields){
+				if (err) {
+					console.log(err);
+					res.status(200).send({ api_msg: "fail" });
+				}
+				else {
+					// console.log(results);
+					res.status(200).send({ api_msg: "success" });
+				}
+			});
+		}
+		else {
+			var deleteQuery = `UPDATE rest_item_categories SET ric_status=2 WHERE ric_ID=${catID}`;
+
+			// 3. We execute the query
+			dbconn.query(deleteQuery, function(err, results, fields){
+				if (err) {
+					console.log(err);
+					res.status(200).send({ api_msg: "fail" });
+				}
+				else {
+					// console.log(results);
+					res.status(200).send({ api_msg: "success" });
+				}
+			});
+		}
+	}));
+
+/****************************************************************************
+ * Restaurant Items Category Management																			*
+ ****************************************************************************
+ */
+router.get('/checkcategory/:catID', asyncHandler(async(req, res) => {
+	// 1. We get some useful variables
+	const catID = req.params.catID;
+
+	// THIS CHECKS IF CATEGORY IS IN USE BY ANY ITEMS
+	var checkQuery = `SELECT COUNT(ri_cat_ID) AS count FROM rest_item `
+	checkQuery += `WHERE ri_cat_ID=${catID} AND item_availability IN (0, 1)`;
+
+	const itemsUsingCat = await new Promise((resolve, reject) => {
+		dbconn.query(checkQuery, function(err, results, fields){
+			if (err) {
+				console.log(err);
+				reject(err);
+			}
+			else {
+				resolve(results[0].count);
+			}
+		});
 	});
+	
+	if (itemsUsingCat == 0) {
+		// IF NO RESTAURANT ITEMS ARE USING THIS CATEGORY, PERFORM DELETED ITEMS CHECK
+		var checkQuery = `SELECT COUNT(ri_cat_ID) AS count FROM rest_item `
+		checkQuery += `WHERE ri_cat_ID=${catID} AND item_availability=2`;
+
+		const deletedItemsUsingCat = await new Promise((resolve, reject) => {
+			dbconn.query(checkQuery, function(err, results, fields){
+				if (err) {
+					console.log(err);
+					reject(err);
+				}
+				else {
+					console.log(results);
+					resolve(results[0].count);		
+				}
+			});
+		});
+
+		// IF THE CATEGORY IS IN USE BY AN ITEM (even if item was deleted deleted), THEN 
+		// MARK THE CATEGORY AS DELETED IN THE ric_statu COLUMN
+		if (deletedItemsUsingCat != 0) {
+			console.log(deletedItemsUsingCat);
+			res.status(200).send({ api_msg: "category in use", canDelete: "yes" });
+		}
+		else {
+			// IF THE CHECK REACHS HERE IT MEANS THAT THE CATEGORY IS NOT USED AT ALL AND CAN BE
+			// DELETED SAFELY
+			res.status(200).send({ api_msg: "category not used", canDelete: "yes" });
+		}
+	}
+	else {
+		res.status(200).send({ api_msg: "category in use", canDelete: "no" })
+	}
+}));
 
 /****************************************************************************
  * Retrieve restaurant's items based on categories ID information						*
@@ -1899,7 +1994,7 @@ router.get('/rgm/getdeliverystatistics', asyncHandler(async(req, res, next) => {
 	const convertedStartDate = datetime_T.format(new Date(startDate), 'YYYY-MM-DD HH:mm:ss');
 	const convertedEndDate = datetime_T.format(new Date(endDate), 'YYYY-MM-DD HH:mm:ss');
 
-	console.log(convertedStartDate, convertedEndDate);
+	// console.log(convertedStartDate, convertedEndDate);
 
 	var statsQuery = `SELECT DATE(o_datetime) AS date, COUNT(*) AS count, SUM(total_cost) AS sum FROM delivery_order `;
 	statsQuery += `WHERE o_datetime BETWEEN "${convertedStartDate}" AND "${convertedEndDate}" `
@@ -1912,7 +2007,7 @@ router.get('/rgm/getdeliverystatistics', asyncHandler(async(req, res, next) => {
 				reject(err);
 			}
 			else {
-				console.log(results);
+				// console.log(results);
 				resolve(results);
 			}
 		})
@@ -1951,29 +2046,33 @@ router.get('/rgm/getdeliverystatistics', asyncHandler(async(req, res, next) => {
 				for (let doItem of results) {
 					tempArray.push(`"${doItem.order_ID}"`);
 				}
+
 				resolve(tempArray);
 			}
 		})
 	})
 
 	// Now we find the most popular item
-	var itemsQuery = `SELECT do_item_name AS itemName, SUM(do_item_qty) AS sum FROM do_item `;
-	itemsQuery += `WHERE do_order_ID IN (${doQueryResponse.toString()}) `;
-	itemsQuery += `GROUP BY do_item_name ORDER BY sum DESC`;
+	if (doQueryResponse.length != 0) {
+		var itemsQuery = `SELECT do_item_name AS itemName, SUM(do_item_qty) AS sum FROM do_item `;
+		itemsQuery += `WHERE do_order_ID IN (${doQueryResponse.toString()}) `;
+		itemsQuery += `GROUP BY do_item_name ORDER BY sum DESC`;
 
-	const itemsQueryResponse = await new Promise((resolve, reject) => {
-		dbconn.query(itemsQuery, function(err, results, field){
-			if (err) {
-				console.log(err);
-				reject(err);
-			}
-			else {
-				resolve(results);
-			}
-		})
-	});
-
-	res.status(200).send({doStatsArray, totalEarnings, mostPopItem: itemsQueryResponse[0]});
+		const itemsQueryResponse = await new Promise((resolve, reject) => {
+			dbconn.query(itemsQuery, function(err, results, field){
+				if (err) {
+					console.log(err);
+					reject(err);
+				}
+				else {
+					resolve(results);
+				}
+			})
+		});
+	}
+	else {
+		res.status(200).send({doStatsArray, totalEarnings, mostPopItem: { itemName: "No data yet", sum: 0 }});
+	}
 }));
 
 /****************************************************************************
@@ -2062,15 +2161,20 @@ router.get('/rgm/getreservationstatistics', asyncHandler(async(req, res, next) =
 	const maxCount = tempArray[0];
 	
 	var tempTimeslotArray = [];
-
-	for (let timeslotStat of timeslotResponse) {
-		if (timeslotStat.count == maxCount) {
-			const time = datetime_T.transform(timeslotStat.cr_timeslot, 'HH:mm:ss', 'h:mm A');
-			tempTimeslotArray.push(time);
+	
+	if (timeslotResponse.length != 0) {
+		for (let timeslotStat of timeslotResponse) {
+			if (timeslotStat.count == maxCount) {
+				const time = datetime_T.transform(timeslotStat.cr_timeslot, 'HH:mm:ss', 'h:mm A');
+				tempTimeslotArray.push(time);
+			}
 		}
+		res.status(200).send({ dataArray: tempDataArray, timeslotArray: tempTimeslotArray });
+	}
+	else {
+		res.status(200).send({ dataArray: tempDataArray, timeslotArray: ["No data yet"] });
 	}
 
-	res.status(200).send({ dataArray: tempDataArray, timeslotArray: tempTimeslotArray });
 }));
 
 /*******************************************************************************************

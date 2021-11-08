@@ -33,6 +33,7 @@ const { sendCustomerReservation, sendResToRestaurant } = require('../models/rese
 
 // Middle Ware stuffs
 const authTokenMiddleware = require('../middleware/authTokenMiddleware');
+const loggerMiddleware = require('../middleware/loggerMiddleware');
 const asyncHandler = require('express-async-handler');
 
 /**************************************************************************
@@ -41,6 +42,7 @@ const asyncHandler = require('express-async-handler');
 router.use(express.json());
 router.use(express.urlencoded({ extended: true }))
 router.use(authTokenMiddleware);
+router.use(loggerMiddleware)
 
 /****************************************************************************
  * Retrieve a single restaurant's information         											*
@@ -789,7 +791,7 @@ router.get('/ongoingreservations', asyncHandler(async(req, res, next) => {
 		const convertedDate = datetime_T.format(reservationDate, pattern);
     
     var tempJSON = {
-      cr_resID: reservation.cr_rest_ID,
+      cr_restID: reservation.cr_rest_ID,
       cr_restName: reservation.cr_rest_name,
       crID: reservation.cust_reservation_ID,
       pax: reservation.cr_pax,
@@ -1361,7 +1363,7 @@ async function sendingReservationEmail(iCalString, crID, restEmail, custEmail, c
 };
 
 router.route('/customerReservation')
-  .post(asyncHandler(async (req, res) => {
+  .post(asyncHandler(async (req, res, next) => {
     // Getting some important variables
     const { username } = res.locals.userData;
     const { 
@@ -1545,6 +1547,24 @@ router.route('/customerReservation')
         res.status(200).send({api_msg: "Something went wrong, please contact an administrator."});
       }
     }
+  }))
+  .delete(asyncHandler(async(req, res, next) => {
+    // Getting some important variables
+    const { username } = res.locals.userData;
+    const { reservationID } = req.body;
+
+    // console.log(reservationID);
+    var deleteQuery = `DELETE FROM cust_reservation WHERE cust_reservation_ID="${reservationID}"`
+
+    dbconn.query(deleteQuery, function(err, results, fields){
+      if (err) {
+        console.log(err);
+        res.status(200).send({ api_msg: "fail" });
+      }
+      else {
+        res.status(200).send({ api_msg: "success" });
+      }
+    })
   }));
 
 /****************************************************************************

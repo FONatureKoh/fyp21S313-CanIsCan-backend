@@ -189,7 +189,7 @@ router.get('/allRestaurantInfo', asyncHandler(async(req, res, next) => {
             restaurant_ID: restaurant.restaurant_ID,
             restaurant_name: restaurant.restaurant_name,
             rest_rgm_username: restaurant.rest_rgm_username,
-            rest_banner: restaurant.rest_banner_ID,
+            rest_banner: restaurant.rest_banner_ID ?? "no_file.png",
             rest_op_hours: rest_op_hours,
             rest_phone_no: restaurant.rest_phone_no,
             rest_address_info: restaurant.rest_address_info,

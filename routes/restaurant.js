@@ -1579,7 +1579,7 @@ router.get('/pendingreservations', asyncHandler(async (req, res, next) => {
 	var sqlGetReservations = `SELECT * FROM cust_reservation WHERE cr_rest_ID=${restID} `;
 	sqlGetReservations += `AND DATE(cr_date) >= DATE(NOW()) `
 	sqlGetReservations += `AND cr_status="Pending" `;
-	sqlGetReservations += `ORDER BY cr_date`;
+	sqlGetReservations += `ORDER BY cr_date, cr_timeslot`;
 
 	const reservations = await new Promise((resolve, reject) => {
 		dbconn.query(sqlGetReservations, function(err, results, fields) {
@@ -1683,7 +1683,7 @@ router.get('/pendingreservations', asyncHandler(async (req, res, next) => {
 /****************************************************************************
  * Reservations Manager (RM): Retrieve all accepted reservations
  ****************************************************************************/
-router.get('/ongoingreservations', asyncHandler(async (req, res, next) => {
+router.get('/fulfilledreservations', asyncHandler(async (req, res, next) => {
 	// Get the username first from the token
 	const { username } = res.locals.userData;
 
@@ -1714,8 +1714,8 @@ router.get('/ongoingreservations', asyncHandler(async (req, res, next) => {
 	// and construct a temp JSON, and also save the reservation ID
 	// First check for the date today
 	var sqlGetReservations = `SELECT * FROM cust_reservation WHERE cr_rest_ID=${restID} `;
-	sqlGetReservations += `AND cr_status="Arrived" `;
-	sqlGetReservations += `ORDER BY cr_date`;
+	sqlGetReservations += `AND cr_status="Fulfilled" `;
+	sqlGetReservations += `ORDER BY cr_date DESC, cr_timeslot DESC`;
 
 	const reservations = await new Promise((resolve, reject) => {
 		dbconn.query(sqlGetReservations, function(err, results, fields) {

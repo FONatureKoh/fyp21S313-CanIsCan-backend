@@ -656,7 +656,7 @@ router.get('/pastreservation', asyncHandler(async(req, res, next) => {
   const custID = custInfo.customer_ID;
 
   var sqlGetReservations = `SELECT * FROM cust_reservation `;
-  sqlGetReservations += `WHERE cr_cust_ID=${custID} AND (DATE(cr_date) < DATE(NOW()) OR cr_status="Fulfilled")`;
+  sqlGetReservations += `WHERE cr_cust_ID=${custID} AND (DATE(cr_date) < DATE(NOW()) AND cr_status IN ("No Show", "Fulfilled")) `;
   sqlGetReservations += `ORDER BY cr_date`;
 
   const custReservations = await new Promise((resolve, reject) => {
@@ -685,7 +685,7 @@ router.get('/pastreservation', asyncHandler(async(req, res, next) => {
 		const convertedDate = datetime_T.format(reservationDate, pattern);
     
     var tempJSON = {
-      cr_resID: reservation.cr_rest_ID,
+      cr_restID: reservation.cr_rest_ID,
       cr_restName: reservation.cr_rest_name,
       crID: reservation.cust_reservation_ID,
       pax: reservation.cr_pax,
@@ -869,6 +869,7 @@ router.post('/submitreview', (req, res) => {
 
       dbconn.query(sqlInsertQuery, function(err, results, fields){
         if (err) {
+          console.log(err);
           res.status(200).send({ api_msg: "MySQL " + err });
         }
         else {
@@ -1513,6 +1514,7 @@ router.route('/customerReservation')
 
       // 3. Construct a datetime object so that we can make the iCal object with it
       const reservationDateTime = datetime_T.parse(datetimeString, 'DD-MM-YYYY HH:mm [GMT]Z');
+      const convertedDateTime = datetime_T.format(reservationDateTime, 'dddd, D MMM YYYY, h:mm A')
       // console.log(reservationDateTime);
 
       // 4. Create the address of the restaurant
@@ -1522,13 +1524,34 @@ router.route('/customerReservation')
       // First we have to create the Calendar object like this
       const cal = new iCal.ICalCalendar({ domain: "google.com", name: "Your reservation Calendar Event" });
 
+      // 6. Create the Description for the customer
+      var calDescription = `You have a table reservation at ${restName} for ${pax} persons `;
+      calDescription += `on ${convertedDateTime}!`;
+
+      if (Array.isArray(preOrderItems) == true) {
+        calDescription += `\nYour preordered items as follows: \n`
+        for (let x in preOrderItems) {
+          const item = JSON.parse(preOrderItems[x]);
+
+          // ADD THE PREORDER ITEMS TO THE DESCRIPTION
+          calDescription += `${item.itemName} - $${item.itemPrice.toFixed(2)} ea - Qty: ${item.itemQty}\n`
+        };
+      }
+      else {
+        calDescription += `\n\nYour preordered items as follows: \n`
+        // Else we treat it as a single item
+        const item = JSON.parse(preOrderItems);
+
+        // ADD THE PREORDER ITEMS TO THE DESCRIPTION
+        calDescription += `${item.itemName} - $${item.itemPrice.toFixed(2)} ea - Qty: ${item.itemQty}\n`
+      }
+
       // Then we create the said event into the calendar object. We assume that the customer will have a 1hour meal
       cal.createEvent({
         start: reservationDateTime,
         end: new Date(reservationDateTime.getTime() + 3600000),
         summary: `Table reservation on ${convertedDate} @ ${restName}`,
-        description: `You have a table reservation at ${restName} for ${pax} persons 
-        on ${datetime_T.format(reservationDateTime, 'dddd, D MMM YYYY, h:mm A')}!`,
+        description: calDescription,
         location: restAddressPostal,
         url: 'https://cancanfoodapp.xyz'
       });
@@ -1538,13 +1561,13 @@ router.route('/customerReservation')
 
       // Now we prep to send the emails with all the information that we got.
       const emailAttempt = await sendingReservationEmail(calString, reservationID, restEmail, queryResponse.custEmail, 
-        queryResponse.custFullName, restName, restAddressPostal, reservationDateTime, pax, preOrderStatus, preOrderItems, preOrderTotal);
+        queryResponse.custFullName, restName, restAddressPostal, convertedDateTime, pax, preOrderStatus, preOrderItems, preOrderTotal);
 
       if (emailAttempt == "success") {
-        res.status(200).send({api_msg: "Your order has been made successfully. Please check your email for confirmation!"});
+        res.status(200).send({api_msg: "success"});
       }
       else {
-        res.status(200).send({api_msg: "Something went wrong, please contact an administrator."});
+        res.status(200).send({api_msg: "fail"});
       }
     }
   }))

@@ -29,7 +29,7 @@ let timestamp = `[${chalk.green(datetime_T.format(new Date(), 'YYYY-MM-DD HH:mm:
 // Email Modules
 const sendMail = require('../models/email_model');
 const { sendCustomerOrder, sendOrderToRestaurant } = require('../models/order_email_template');
-const { sendCustomerReservation, sendResToRestaurant } = require('../models/reservation_email_template');
+const { sendCustomerReservation, sendResToRestaurant, customerCancel, restaurantCancel } = require('../models/reservation_email_template');
 
 // Middle Ware stuffs
 const authTokenMiddleware = require('../middleware/authTokenMiddleware');
@@ -1309,7 +1309,7 @@ router.get('/availableslots/:restID/:date', (req, res) => {
 /****************************************************************************
  * Making a reservation 
  ****************************************************************************/
-// Async function to send email to both customer and restaurant
+// ASYNC FUNCTION TO SEND EMAIL NOTIFICATION FOR CUSTOMER AND RESTAURANT FOR RESERVATION MADE
 async function sendingReservationEmail(iCalString, crID, restEmail, custEmail, custName, restName, restAddressPostal,
   reservationDateTime, pax, preOrderStatus, preOrderItems, preOrderTotal) {
     try {
@@ -1361,6 +1361,57 @@ async function sendingReservationEmail(iCalString, crID, restEmail, custEmail, c
     catch (err) {
       return err;
     }
+};
+
+// ASYNC FUNCTION TO SEND EMAIL NOTIFICATION FOR CUSTOMER AND RESTAURANT FOR CANCELLED RESERVATION
+async function cancelReservationEmail(custEmail, restEmail, crID, custName, restName, restDateTime, pax){
+  try {
+    // Construct the email for customer
+    const custMailOptions = await customerCancel(custEmail, crID, custName, restName, restDateTime);
+
+    const restMailOptions = await restaurantCancel(restEmail, crID, custName, restDateTime, pax);
+    
+    // Send the email to the customer
+    const custResponse = await sendMail(custMailOptions);
+    
+    // Check if the customer event that was triggered - Console Logger
+    console.log(timestamp + `Sending email to customer for ${crID}`);
+    if (custResponse.code) {
+      console.log(timestamp + "Gmail error status - " + custResponse.response.status);
+      console.log(timestamp + "Gmail error statusText - " + custResponse.response.statusText);
+      console.log(timestamp + "Gmail error data - " + custResponse.response.data.error + " - " + custResponse.response.data.error_description);
+    }
+    else {
+      console.log(timestamp + "Sent to - " + custResponse.accepted);
+      console.log(timestamp + "Response - " + custResponse.response);
+    }
+
+    // Send the email to the restaurant administrator
+    const restResponse = await sendMail(restMailOptions);
+    
+    // Check if the customer event that was triggered - Console Logger
+    console.log(timestamp + `Sending email to restaurant ${restName} for ${crID}`);
+    if (restResponse.code) {
+      console.log(timestamp + "Gmail error status - " + restResponse.response.status);
+      console.log(timestamp + "Gmail error statusText - " + restResponse.response.statusText);
+      console.log(timestamp + "Gmail error data - " + restResponse.response.data.error + " - " + restResponse.response.data.error_description);
+    }
+    else {
+      console.log(timestamp + "Sent to - " + restResponse.accepted);
+      console.log(timestamp + "Response - " + restResponse.response);
+    }
+
+    // API response
+    if (custResponse.response.includes("OK") && restResponse.response.includes("OK")) {
+      return "success";
+    }
+    else {
+      return "fail";
+    }
+  }
+  catch (err) {
+    return err;
+  }
 };
 
 router.route('/customerReservation')
@@ -1537,7 +1588,7 @@ router.route('/customerReservation')
           calDescription += `${item.itemName} - $${item.itemPrice.toFixed(2)} ea - Qty: ${item.itemQty}\n`
         };
       }
-      else {
+      else if (preOrderItems != {}){
         calDescription += `\n\nYour preordered items as follows: \n`
         // Else we treat it as a single item
         const item = JSON.parse(preOrderItems);
@@ -1576,6 +1627,77 @@ router.route('/customerReservation')
     const { username } = res.locals.userData;
     const { reservationID } = req.body;
 
+    // 1. Get the details of the reservation, including its restaurant ID as we need to inform both
+    // the restaurant and the customer that a reservation is successfully cancelled.
+    var getDetailsQuery = `SELECT * FROM cust_reservation WHERE cust_reservation_ID="${reservationID}"`;
+
+    const reservationDetails = await new Promise((resolve, reject) => {
+      dbconn.query(getDetailsQuery, function(err, results, fields) {
+        if (err) {
+          console.log(err);
+          reject(err);
+        }
+        else {
+          if (results[0]) {
+            resolve(results[0]);
+          }
+          else {
+            resolve([]);
+          }
+        }
+      })
+    })
+
+    // NOTE: GET THE RESTAURANT'S EMAIL AND CUSTOMER EMAIL
+    const custEmailQuery = `SELECT email FROM customer_user WHERE cust_username="${username}"`;
+
+    const custEmail = await new Promise((resolve, reject) => {
+      dbconn.query(custEmailQuery, function(err, results, fields) {
+        if (err) {
+          console.log(err);
+          reject(err);
+        }
+        else {
+          resolve(results[0].email);
+        }
+      }); // CLOSE QUERY
+    }); // CLOSE PROMISE
+
+    const restEmailQuery = `SELECT rest_email FROM restaurant WHERE restaurant_ID=${reservationDetails.cr_rest_ID}`;
+    
+    const restEmail = await new Promise((resolve, reject) => {
+      dbconn.query(restEmailQuery, function(err, results, fields){
+        if (err) {
+          console.log(err);
+          reject(err);
+        }
+        else {
+          resolve(results[0].rest_email);
+        }
+      })
+    });
+
+    // 1. Convert the received reservation Date
+    const convertedDate =  datetime_T.format(new Date(reservationDate), 'DD-MM-YYYY');
+    // console.log(convertedDate);
+
+    // 2. Make the date into a datetime string with the proper GMT+8 Timezone indicated
+    const datetimeString = convertedDate + " " + reservationTime + " GMT+0800";
+    // console.log(datetimeString);
+
+    // 3. Construct a datetime object so that we can make the iCal object with it
+    const reservationDateTime = datetime_T.parse(datetimeString, 'DD-MM-YYYY HH:mm [GMT]Z');
+    const convertedDateTime = datetime_T.format(reservationDateTime, 'dddd, D MMM YYYY, h:mm A')
+
+    const emailAttempt = await cancelReservationEmail(custEmail, restEmail, reservationID, reservationDetails.cr_custname,
+      reservationDetails.cr_rest_name, restDateTime, reservationDetails.cr_pax);
+
+    if (emailAttempt == "success") {
+      res.status(200).send({api_msg: "success"});
+    }
+    else {
+      res.status(200).send({api_msg: "fail"});
+    }
     // console.log(reservationID);
     var deleteQuery = `DELETE FROM cust_reservation WHERE cust_reservation_ID="${reservationID}"`
 

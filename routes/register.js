@@ -244,7 +244,7 @@ router.get('/verifyusername/:username', asyncHandler(async(req, res) => {
 
   // console.log(queryResponse);
 
-  if (queryResponse[0].username) {
+  if (queryResponse[0]) {
     res.status(200).send({ api_msg: "success" })
   }
   else {

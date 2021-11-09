@@ -456,6 +456,7 @@ const restaurantBannerStorage = multer.diskStorage({
 		// uuid for the file name
 		// console.log("Multer Config");
 		if (file) {
+			console.log(file);
 			const bannerName = Date.now() + '-' + uuidv4();
 			cb(null, bannerName + path.extname(file.originalname)); 
 		}

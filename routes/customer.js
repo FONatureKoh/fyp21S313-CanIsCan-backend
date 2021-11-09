@@ -29,7 +29,7 @@ let timestamp = `[${chalk.green(datetime_T.format(new Date(), 'YYYY-MM-DD HH:mm:
 // Email Modules
 const sendMail = require('../models/email_model');
 const { sendCustomerOrder, sendOrderToRestaurant } = require('../models/order_email_template');
-const { sendCustomerReservation, sendResToRestaurant, customerCancel, restaurantCancel } = require('../models/reservation_email_template');
+const { sendCustomerReservation, sendResToRestaurant, customerCancel, restaurantCancel, sendCustomerReminderEmail } = require('../models/reservation_email_template');
 
 // Middle Ware stuffs
 const authTokenMiddleware = require('../middleware/authTokenMiddleware');
@@ -743,7 +743,7 @@ router.get('/ongoingreservations', asyncHandler(async(req, res, next) => {
 	const { username } = res.locals.userData;
 
   // 1. Get the customer's ID from the customer_users table
-  var sqlGetIDQuery = `SELECT customer_ID FROM customer_user `;
+  var sqlGetIDQuery = `SELECT customer_ID, email FROM customer_user `;
   sqlGetIDQuery += `WHERE cust_username="${username}" `;
 
   const custInfo = await new Promise((resolve, reject) => {
@@ -760,6 +760,7 @@ router.get('/ongoingreservations', asyncHandler(async(req, res, next) => {
 
   // 2. Once we get the custID, we can now get all the reservations from the reservation table
   const custID = custInfo.customer_ID;
+  const custEmail = custInfo.email;
 
   var sqlGetReservations = `SELECT * FROM cust_reservation `;
   sqlGetReservations += `WHERE cr_cust_ID=${custID} AND (DATE(cr_date) >= DATE(NOW()) AND NOT cr_status="Fulfilled") `;
@@ -794,6 +795,7 @@ router.get('/ongoingreservations', asyncHandler(async(req, res, next) => {
       cr_restID: reservation.cr_rest_ID,
       cr_restName: reservation.cr_rest_name,
       crID: reservation.cust_reservation_ID,
+      custEmail: custEmail,
       pax: reservation.cr_pax,
       date: convertedDate,
       timeslot: datetime_T.transform(reservation.cr_timeslot, 'HH:mm:ss', 'h:mm A'),
@@ -1714,6 +1716,184 @@ router.route('/customerReservation')
       res.status(200).send({api_msg: "fail"});
     }
   }));
+
+/****************************************************************************
+ * Reservation Reminder
+ ****************************************************************************/
+router.get('/reservationreminder/:crID/:email', asyncHandler(async(req, res, next) => {
+  // Getting some important variables
+  const { username } = res.locals.userData;
+  const crID = req.params.crID;
+  const email = req.params.email;
+
+  // VARIABLES TO BE USED IN THE EMAIL
+  var mailToEmail = "";
+  var custName = "";
+
+  // 1. Get the details of the reservation, including its restaurant ID as we need to inform both
+  // the restaurant and the customer that a reservation is successfully cancelled.
+  var getDetailsQuery = `SELECT * FROM cust_reservation JOIN restaurant ON cr_rest_ID=restaurant_ID WHERE cust_reservation_ID="${crID}"`;
+
+  const reservationDetails = await new Promise((resolve, reject) => {
+    dbconn.query(getDetailsQuery, function(err, results, fields) {
+      if (err) {
+        console.log(err);
+        reject(err);
+      }
+      else {
+        if (results[0]) {
+          resolve(results[0]);
+        }
+        else {
+          resolve([]);
+        }
+      }
+    })
+  });
+
+  // NOTE: GET THE RESTAURANT'S EMAIL AND CUSTOMER EMAIL
+  const custEmailQuery = `SELECT email FROM customer_user WHERE cust_username="${username}"`;
+
+  const custEmail = await new Promise((resolve, reject) => {
+    dbconn.query(custEmailQuery, function(err, results, fields) {
+      if (err) {
+        console.log(err);
+        reject(err);
+      }
+      else {
+        resolve(results[0].email);
+      }
+    }); // CLOSE QUERY
+  }); // CLOSE PROMISE
+
+  // NOTE: IF EMAIL IS CUSTOMER'S EMAIL, THEN THAT MEANS CUSTOMER IS SENDING IT TO HIMSELF / HERSELF
+  // OTHERWISE, HE IS TRYING TO INVITE SOMEONE ELSE 
+  if (custEmail == email) {
+    mailToEmail = custEmail;
+    custName = reservationDetails.cr_custname
+  }
+  else {
+    mailToEmail = email;
+  }
+
+  // NOTE: GET PREODER DETAILS (IF ANY AT ALL)
+  const poQuery = `SELECT po_crID, total_cost FROM pre_order WHERE po_crID="${crID}"`
+
+  const poDetails = await new Promise((resolve, reject) => {
+    dbconn.query(poQuery, function(err, results, fields){
+      if (err) {
+        console.log(err);
+        resolve({});
+      }
+      else {
+        if (!results[0]) {
+          resolve([]);
+        }
+        else {
+          resolve(results[0]);
+        }
+      }
+    })
+  })
+
+  console.log(poDetails);
+
+  // FIND ALL THE PRE-ORDER ITEMS
+  var tempPOItems = [];
+
+  if (poDetails != []) {
+    const poItemsQuery = `SELECT * FROM pre_order_item WHERE poi_crID="${crID}"`
+
+    const poItemsResponse = await new Promise((resolve, reject) => {
+      dbconn.query(poItemsQuery, function(err, results, fields){
+        if (err) {
+          console.log(err)
+          resolve([]);
+        }
+        else {
+          resolve(results);
+        }
+      }); // CLOSE QUERY
+    }); // CLOSE PROMISE
+
+    for (let item of poItemsResponse) {
+      const tempJSON = {
+        itemName: item.poi_item_name,
+        itemPrice: (item.poi_item_price * item.poi_item_qty),
+        itemQty: item.poi_item_qty,
+        itemSO: item.poi_special_order,
+        item_restItemID: item.poi_rest_item_ID
+      }
+
+      tempPOItems.push(tempJSON);
+    }
+    console.log(tempPOItems);
+  }
+  
+  // 1. Convert the received reservation Date
+  const convertedDate =  datetime_T.format(new Date(reservationDetails.cr_date), 'DD-MM-YYYY');
+  // console.log(convertedDate);
+
+  // 2. Make the date into a datetime string with the proper GMT+8 Timezone indicated
+  const datetimeString = convertedDate + " " + reservationDetails.cr_timeslot + " GMT+0800";
+  // console.log(datetimeString);
+
+  // 3. Construct a datetime object so that we can make the iCal object with it
+  const reservationDateTime = datetime_T.parse(datetimeString, 'DD-MM-YYYY HH:mm:ss [GMT]Z');
+  const convertedDateTime = datetime_T.format(reservationDateTime, 'dddd, D MMM YYYY, h:mm A');
+
+  // 4. Create the address of the restaurant
+  const restAddressPostal = reservationDetails.rest_address_info + ", Singapore " + reservationDetails.rest_postal_code
+
+  // 5. Creating the calendar object
+  // First we have to create the Calendar object like this
+  const cal = new iCal.ICalCalendar({ domain: "google.com", name: "Your reservation Calendar Event" });
+
+  // 6. Create the Description for the customer
+  var calDescription = `You have a table reservation at ${reservationDetails.restaurant_name} for ${reservationDetails.cr_pax} persons `;
+  calDescription += `on ${convertedDateTime}!`;
+
+  if (Array.isArray(tempPOItems) == true && tempPOItems[0]) {
+    calDescription += `\nYour preordered items as follows: \n`
+    for (let x in tempPOItems) {
+      const item = tempPOItems[x];
+
+      // ADD THE PREORDER ITEMS TO THE DESCRIPTION
+      calDescription += `${item.itemName} - $${item.itemPrice.toFixed(2)} ea - Qty: ${item.itemQty}\n`
+    };
+  }
+
+  // Then we create the said event into the calendar object. We assume that the customer will have a 1hour meal
+  cal.createEvent({
+    start: reservationDateTime,
+    end: new Date(reservationDateTime.getTime() + 3600000),
+    summary: `Table reservation on ${convertedDate} @ ${reservationDetails.restaurant_name}`,
+    description: calDescription,
+    location: restAddressPostal,
+    url: 'https://cancanfoodapp.xyz'
+  });
+
+  // We then convert this calendar object to string
+  const calString = cal.toString();
+
+  // SEND THE EMAIL REMINDER
+  const reminderOptions = await sendCustomerReminderEmail(calString, crID, mailToEmail, reservationDetails.cr_rest_name, custName,
+    restAddressPostal, convertedDateTime, reservationDetails.cr_pax, tempPOItems, poDetails.total_cost);
+
+  const reminderResponse = await sendMail(reminderOptions);
+
+  if (reminderResponse.code) {
+    console.log(timestamp + "Gmail error status - " + reminderResponse.response.status);
+    console.log(timestamp + "Gmail error statusText - " + reminderResponse.response.statusText);
+    console.log(timestamp + "Gmail error data - " + reminderResponse.response.data.error + " - " + reminderResponse.response.data.error_description);
+  }
+  else {
+    console.log(timestamp + "Sent to - " + reminderResponse.accepted);
+    console.log(timestamp + "Response - " + reminderResponse.response);
+  }
+
+  res.status(200).send({ api_msg: "success"});
+}));
 
 /****************************************************************************
  * Testing the map services google api                                      *

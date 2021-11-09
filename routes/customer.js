@@ -1678,38 +1678,41 @@ router.route('/customerReservation')
     });
 
     // 1. Convert the received reservation Date
-    const convertedDate =  datetime_T.format(new Date(reservationDate), 'DD-MM-YYYY');
+    const convertedDate =  datetime_T.format(new Date(reservationDetails.cr_date), 'DD-MM-YYYY');
     // console.log(convertedDate);
 
     // 2. Make the date into a datetime string with the proper GMT+8 Timezone indicated
-    const datetimeString = convertedDate + " " + reservationTime + " GMT+0800";
+    const datetimeString = convertedDate + " " + reservationDetails.cr_timeslot + " GMT+0800";
     // console.log(datetimeString);
 
     // 3. Construct a datetime object so that we can make the iCal object with it
-    const reservationDateTime = datetime_T.parse(datetimeString, 'DD-MM-YYYY HH:mm [GMT]Z');
-    const convertedDateTime = datetime_T.format(reservationDateTime, 'dddd, D MMM YYYY, h:mm A')
+    const reservationDateTime = datetime_T.parse(datetimeString, 'DD-MM-YYYY HH:mm:ss [GMT]Z');
+    const convertedDateTime = datetime_T.format(reservationDateTime, 'dddd, D MMM YYYY, h:mm A');
 
     const emailAttempt = await cancelReservationEmail(custEmail, restEmail, reservationID, reservationDetails.cr_custname,
-      reservationDetails.cr_rest_name, restDateTime, reservationDetails.cr_pax);
+      reservationDetails.cr_rest_name, convertedDateTime, reservationDetails.cr_pax);
 
-    if (emailAttempt == "success") {
+    // console.log(reservationID);
+    var deleteQuery = `DELETE FROM cust_reservation WHERE cust_reservation_ID="${reservationID}"`
+
+    const deleteReservation = await new Promise((resolve, reject) => {
+      dbconn.query(deleteQuery, function(err, results, fields){
+        if (err) {
+          console.log(err);
+          resolve({status: "fail"})
+        }
+        else {
+          resolve({status: "success"})
+        }
+      })
+    });
+
+    if (emailAttempt == "success" && deleteReservation.status == "success") {
       res.status(200).send({api_msg: "success"});
     }
     else {
       res.status(200).send({api_msg: "fail"});
     }
-    // console.log(reservationID);
-    var deleteQuery = `DELETE FROM cust_reservation WHERE cust_reservation_ID="${reservationID}"`
-
-    dbconn.query(deleteQuery, function(err, results, fields){
-      if (err) {
-        console.log(err);
-        res.status(200).send({ api_msg: "fail" });
-      }
-      else {
-        res.status(200).send({ api_msg: "success" });
-      }
-    })
   }));
 
 /****************************************************************************

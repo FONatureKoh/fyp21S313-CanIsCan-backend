@@ -8,8 +8,9 @@ const dbconn = require('../models/db_model');
 // General Imports
 const pw_gen = require('generate-password');
 const asyncHandler = require('express-async-handler');
+const chalk = require('chalk');
 // const { v4: uuidv4 } = require('uuid');
-// const datetime_T = require('date-and-time');
+const datetime_T = require('date-and-time');
 // const fs = require('fs');
 // const path = require('path');
 
@@ -19,9 +20,12 @@ const asyncHandler = require('express-async-handler');
 // Google maps api stuff
 // const { Client, defaultAxiosInstance } = require('@googlemaps/google-maps-services-js');
 
+// A good looking timestamp
+let timestamp = `[${chalk.green(datetime_T.format(new Date(), 'YYYY-MM-DD HH:mm:ss'))}] `;
+
 // Email Modules
 const sendMail = require('../models/email_model');
-const { sendSubUserEmail } = require('../models/credentials_email_template');
+const { sendSubUserEmail, resetPWEmail } = require('../models/credentials_email_template');
 
 // Middle Ware stuffs
 // const authTokenMiddleware = require('../middleware/authTokenMiddleware');
@@ -212,6 +216,162 @@ router.post('/customer', asyncHandler(async(req, res, next) => {
     }); // Closed first connection
   }); // Get connection from the pool
 })); // Customer Register Route close
+
+/****************************************************************************
+ * Verify Username
+ ****************************************************************************
+ */
+router.get('/verifyusername/:username', asyncHandler(async(req, res) => {
+  // Assuming that we pass the form data into the route
+  // 1. We will need to decode the form and draw out the data
+  // console.log(req.body);
+  const username = req.params.username;
+
+  // USERNAME QUERY
+  var usernameQuery = `SELECT username FROM app_user WHERE username="${username}"`;
+
+  const queryResponse = await new Promise((resolve, reject) => {
+    dbconn.query(usernameQuery, function(err, results, fields){
+      if (err) {
+        console.log(err);
+        reject(err);
+      }
+      else {
+        resolve(results);
+      }
+    })
+  })
+
+  // console.log(queryResponse);
+
+  if (queryResponse[0].username) {
+    res.status(200).send({ api_msg: "success" })
+  }
+  else {
+    res.status(200).send({ api_msg: "fail" })
+  }
+}));
+
+/****************************************************************************
+ * Verify Username
+ ****************************************************************************
+ */
+router.get('/resetpassword/:username', asyncHandler(async(req, res) => {
+  // Assuming that we pass the form data into the route
+  // 1. We will need to decode the form and draw out the data
+  // console.log(req.body);
+  const username = req.params.username;
+
+  // Generate a default password
+  const default_pw = pw_gen.generate({
+    length: 15,
+    numbers: true,
+    symbols: '!@#$*?%^&',
+    strict: true
+  });
+
+  // 1. GET THE USER TYPE
+  var userTypeQuery = `SELECT user_type, username FROM app_user WHERE username="${username}"`;
+
+  const userInfo = await new Promise((resolve, reject) => {
+    dbconn.query(userTypeQuery, function(err, results, fields){
+      if (err) {
+        console.log(err)
+        reject(err);
+      }
+      else {
+        resolve(results);
+      }
+    })
+  })
+
+  // 2. CONSTRUCT SELECT STATEMENT ACCORDINGLY
+  const userType = userInfo[0].user_type;
+
+  var infoQuery = "SELECT first_name, last_name, email ";
+
+  switch (userType) { 
+    case "Customer":
+      infoQuery += "FROM customer_user ";
+      infoQuery += `WHERE cust_username="${username}"`
+      break;
+    //============================================================
+    case "Restaurant General Manager":
+      infoQuery += "FROM restaurant_gm ";
+      infoQuery += `WHERE rgm_username="${username}"`
+      break;
+    //============================================================
+    case "Restaurant Deliveries Manager":
+    case "Restaurant Reservations Manager":
+      infoQuery += "FROM restaurant_subuser ";
+      infoQuery += `WHERE subuser_username="${username}"`
+      break;
+    //============================================================
+    case "System Administrator":
+      infoQuery += "FROM admin_user ";
+      infoQuery += `WHERE admin_username="${username}"`
+      break;
+    default:
+    //============================================================
+  }  
+  
+  // 3. QUERY TO GET THE INFO 
+  const emailInfo = await new Promise((resolve, reject) => {
+    dbconn.query(infoQuery, function(err, results, fields){
+      if (err) {
+        console.log(err);
+      }
+      else {
+        resolve(results);
+      }
+    });
+  });
+
+  const userFullName = emailInfo[0].first_name + " " + emailInfo[0].last_name;
+  const email = emailInfo[0].email;
+
+  // USERNAME QUERY
+  var setNewPassword = `UPDATE app_user SET user_password="${default_pw}", account_status="reset" `
+  setNewPassword += `WHERE username="${username}"`;
+
+  const queryResponse = await new Promise((resolve, reject) => {
+    dbconn.query(setNewPassword, function(err, results, fields){
+      if (err) {
+        console.log(err);
+        reject(err);
+      }
+      else {
+        resolve(results);
+      }
+    })
+  });
+  
+  if (queryResponse.changedRows == 1) {
+    const mailOptions = await resetPWEmail(email, userFullName, default_pw);
+
+    sendMail(mailOptions)
+      .then((emailResponse) => {
+        console.log(timestamp + `Sending password reset email to app_user for ${username}`);
+        if (emailResponse.code) {
+          console.log(timestamp + "Gmail error status - " + emailResponse.response.status);
+          console.log(timestamp + "Gmail error statusText - " + emailResponse.response.statusText);
+          console.log(timestamp + "Gmail error data - " + emailResponse.response.data.error + " - " + emailResponse.response.data.error_description);
+        }
+        else {
+          console.log(timestamp + "Sent to - " + emailResponse.accepted);
+          console.log(timestamp + "Response - " + emailResponse.response);
+          res.status(200).send({ api_msg: "success" });
+        }
+      })
+      .catch(err => {
+        console.log(err);
+        res.status(200).send({ api_msg: "fail" });
+      })
+  }
+  else {
+    res.status(200).send({ api_msg: "fail" });
+  }
+}));
 
 /*******************************************************************************************
  * NO ROUTES FUNCTIONS OR DECLARATIONS BELOW THIS DIVIDER 

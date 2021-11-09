@@ -41,23 +41,38 @@ const timestamp = `[${chalk.green(datetime_T.format(new Date(), 'YYYY-MM-DD HH:m
  * For users to get their account status																		*
  ****************************************************************************
  */
-router.get('/accountstatus', (req, res) => {
-  // console.log(path.resolve(`../0-test-pictures/${req.params.imageName}`));
-  // console.log(req.params.imageName);
-  // console.log(pathName);
-	const { username } = res.locals.userData;
+router.route('/accountstatus')
+	.get((req, res) => {
+		// console.log(path.resolve(`../0-test-pictures/${req.params.imageName}`));
+		// console.log(req.params.imageName);
+		// console.log(pathName);
+		const { username } = res.locals.userData;
 
-	var sqlGetQuery = `SELECT account_status FROM app_user WHERE username="${username}"`;
+		var sqlGetQuery = `SELECT account_status FROM app_user WHERE username="${username}"`;
 
-	dbconn.query(sqlGetQuery, function(err, results, fields){
-		if (err) {
-			console.log(err);
-		}
-		else {
-			res.status(200).send(results[0]);
-		}
+		dbconn.query(sqlGetQuery, function(err, results, fields){
+			if (err) {
+				console.log(err);
+			}
+			else {
+				res.status(200).send(results[0].account_status);
+			}
+		})
 	})
-});
+	.put((req, res) => {
+		const { username } = res.locals.userData;
+		const accStatus = req.body.accStatus;
+
+		var updateStatus = `UPDATE app_user SET account_status="${accStatus}" WHERE username="${username}"`;
+		dbconn.query(updateStatus, function(err, results, fields) {
+			if (err) {
+				console.log(err);
+			}
+			else {
+				res.status(200).send({ api_msg: "success" });
+			}
+		})
+	});
 
 /****************************************************************************
  * For users to get their account status																		*
@@ -774,18 +789,18 @@ router
 		dbconn.query(sqlQuery, function(err, results, fields) {
 			if (err) {
 				console.log(err);
-				res.status(400).send("MySQL error. If you're the client, contact your developer");
+				res.status(200).send("MySQL error. If you're the client, contact your developer");
 			}
 			else {
 				// console.log(results);
 				if (results['changedRows'] == 1){
 					res.status(200).json({ 
-						api_msg: "Password has been updated!", 
+						api_msg: "success", 
 						userType: userType
 					 });
 				}
 				else {
-					res.status(200).json({ api_msg: "Old password mismatch or Username err!" });
+					res.status(200).json({ api_msg: "fail" });
 				}
 			}
 		});

@@ -255,6 +255,118 @@ router.get('/allRestaurantInfo', asyncHandler(async(req, res, next) => {
 }));
 
 /****************************************************************************
+ * Retrieve top restaurant Info
+ ****************************************************************************
+ */
+router.get('/topRestaurantInfo', asyncHandler(async(req, res, next) => {
+	// Save the restaurantID first from the URL
+	const { username } = res.locals.userData;
+
+	// Construct getQuery
+	var sqlGetQuery =  `SELECT * FROM restaurant WHERE rest_rating>=3.5`;
+  // sqlGetQuery += `WHERE NOT rest_status IN ("closed", "first", "pending")`; // Remove this line if want to show all
+
+	const allRestaurantInfo = await new Promise((resolve, reject) => {
+    dbconn.query(sqlGetQuery, function (err, results, fields){
+      if (err) {
+        console.log(err);
+        reject(err);
+      }
+      else {
+        // Since the result is an Array, we will need to transform accordingly
+        // using the for each array element method
+        let restaurantsArray = [];
+
+        results.forEach(restaurant => {
+          // 2. We need to transform 2 things:
+          //		- Time	
+          var rest_op_hours = datetime_T.transform(restaurant.rest_opening_time, 'HH:mm:ss', 'hh:mm A');
+          rest_op_hours += ' to ' + datetime_T.transform(restaurant.rest_closing_time, 'HH:mm:ss', 'hh:mm A');
+
+          //		- Tags
+          var rest_tags = [];
+
+          if (restaurant.rest_tag_1) 
+            rest_tags.push(restaurant.rest_tag_1);
+
+          if (restaurant.rest_tag_2) 
+            rest_tags.push(restaurant.rest_tag_2);
+
+          if (restaurant.rest_tag_3) 
+            rest_tags.push(restaurant.rest_tag_3);
+
+          // 3. Then we send the other necessary information together with it back to the frontend
+          // in json format
+          var restaurantProfileData = {
+            restaurant_ID: restaurant.restaurant_ID,
+            restaurant_name: restaurant.restaurant_name,
+            rest_rgm_username: restaurant.rest_rgm_username,
+            rest_banner: restaurant.rest_banner_ID ?? "no_file.png",
+            rest_op_hours: rest_op_hours,
+            rest_phone_no: restaurant.rest_phone_no,
+            rest_address_info: restaurant.rest_address_info,
+            rest_postal_code: restaurant.rest_postal_code,
+            rest_tags: rest_tags,
+            rest_rating: restaurant.rest_rating,
+            rest_status: restaurant.rest_status,
+            rest_opening_time: restaurant.rest_opening_time,
+            rest_closing_time: restaurant.rest_closing_time,
+            rest_tag_1: restaurant.rest_tag_1, 
+            rest_tag_2: restaurant.rest_tag_2,
+            rest_tag_3: restaurant.rest_tag_3
+          }  
+
+          // Push into the array that will send the data back
+          restaurantsArray.push(restaurantProfileData);      
+        });
+
+        resolve(restaurantsArray);      
+      }
+    }); // Closing db query
+  }); // closing promise
+
+  // Declare a temp array
+  var restaurantArray = [];
+
+  // Within this for loop, we convert the image to something that we can use
+  for (let restaurant of allRestaurantInfo) {
+    if (restaurant.rest_banner) {
+			const pathName = process.env.ASSETS_SAVE_LOC + 'rest_banners/' + restaurant.rest_banner;
+
+			// Check if path exist. If yes, great, otherwise send an err image instead
+			// Of course, we use our favourite promises
+			const imagebase64 = await new Promise((resolve, reject) => {
+				fs.access(pathName, fs.F_OK, (err) => {
+					if (err) {
+						// Console log the error
+						console.log(timestamp + "restaurant.js line 172 " + err);
+						
+						var bitmap = fs.readFileSync('./public/assets/default-shopfront.png', 'base64');
+						var imageString = "data:image/png;base64, " + bitmap;
+
+						resolve(imageString);
+					}
+					else {
+						// console.log(pathName);
+						const imagePath = path.resolve(pathName);
+
+						var bitmap = fs.readFileSync(imagePath, 'base64');
+						var imageString = "data:image/png;base64, " + bitmap;
+
+						resolve(imageString);
+					};
+				});
+			});
+
+			restaurant['rest_banner'] = imagebase64;
+			restaurantArray.push(restaurant);	
+		}
+  }
+
+  res.status(200).send(restaurantArray);
+}));
+
+/****************************************************************************
  * Retrieve restaurant's menu and all items information											*
  ****************************************************************************/
 router.get('/selectedRestaurantInfo/:tag', asyncHandler(async(req, res) => {

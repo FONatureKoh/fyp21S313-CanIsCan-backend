@@ -404,7 +404,10 @@ router
 			}
 		}	= req;
 
-		if (oldImageFile || oldImageFile != '') {
+		console.log(file, oldImageFile);
+
+		if (oldImageFile != '' && file != null) {
+			console.log("Image delete triggered")
 			// Path of original file
 			const pathName = process.env.ASSETS_SAVE_LOC + 'profile_pictures/' + oldImageFile ;
 

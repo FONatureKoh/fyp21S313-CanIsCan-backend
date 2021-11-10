@@ -2067,7 +2067,10 @@ router.get('/rgm/getdeliverystatistics', asyncHandler(async(req, res, next) => {
 					reject(err);
 				}
 				else {
-					resolve(results);
+					if(results[0])
+						resolve(results[0]);
+					else
+						resolve({ itemName: "No data yet", sum: 0 });
 				}
 			})
 		});

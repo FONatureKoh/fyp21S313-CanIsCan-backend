@@ -59,14 +59,14 @@ router.get("/pending", (req, res) => {
 });
 
 /****************************************************************************
- * Getting all the pending restaurants																			*
+ * Getting all the EXISTING restaurants
  ****************************************************************************
  */
 router.get("/activerestaurants", (req, res) => {
   // This route retrieves all the restaurants that are registered as a pending
   // account.
   // 1. Select all the restaurants that have the pending status and return it
-  var sqlGetQuery = `SELECT * FROM restaurant WHERE rest_status!="pending"`
+  var sqlGetQuery = `SELECT * FROM restaurant WHERE rest_status!="pending" AND rest_status!="disabled"`
 
   dbconn.query(sqlGetQuery, function(error, results, fields){
     if (error) {
@@ -79,13 +79,68 @@ router.get("/activerestaurants", (req, res) => {
 });
 
 /****************************************************************************
- * Getting all the pending restaurants																			*
+ * Disabling Existing Restaurant
+ ****************************************************************************
+ */
+router.put("/disablerestaurant", asyncHandler(async(req, res, next) => {
+  // This route retrieves all the existing tags
+  // TEMP ARRAY TO RETURN TO FRONTEND
+  const { selectedUsername } = req.body;
+
+  var updateUserQuery = `UPDATE app_user SET account_status="disabled" WHERE username="${selectedUsername}"`
+
+  const userResponse = await new Promise((resolve, reject) => {
+    dbconn.query(updateUserQuery, function(err, results, fields){
+      if (err) {
+        console.log(err);
+        reject(err);
+      }
+      else {
+        if (results.affectedRows == 1) {
+          resolve("success")
+        }
+        else {
+          resolve("fail");
+        }
+      }
+    });
+  });
+
+  var updateResQuery = `UPDATE restaurant SET rest_status="disabled" WHERE rest_rgm_username="${selectedUsername}"`
+
+  const restaurantResponse = await new Promise((resolve, reject) => {
+    dbconn.query(updateResQuery, function(err, results, fields){
+      if (err) {
+        console.log(err);
+        reject(err);
+      }
+      else {
+        if (results.affectedRows == 1) {
+          resolve("success")
+        }
+        else {
+          resolve("fail");
+        }
+      }
+    });
+  });
+
+  if (userResponse == "success" && restaurantResponse == "success") {
+    res.status(200).send({ api_msg: "success" });
+  }
+  else {
+    res.status(200).send({ api_msg: "fail" });
+  }
+}));
+
+/****************************************************************************
+ * Getting all the ACTIVE customers
  ****************************************************************************
  */
 router.get("/activecustomers", (req, res) => {
   // This route retrieves all the restaurants that are registered as a pending
   // account.
-  // 1. Select all the restaurants that have the pending status and return it
+  // 1. Select all the active customers
   var sqlGetQuery = `SELECT customer_ID, cust_username, first_name, last_name, phone_no, email `;
   sqlGetQuery += `FROM customer_user JOIN app_user ON username=cust_username `;
   sqlGetQuery += `WHERE account_status="active"`
@@ -99,6 +154,33 @@ router.get("/activecustomers", (req, res) => {
     }
   });
 });
+
+/****************************************************************************
+ * Disable customer account
+ ****************************************************************************
+ */
+router.put("/disablecustomer", asyncHandler(async(req, res, next) => {
+  // This route retrieves all the existing tags
+  // TEMP ARRAY TO RETURN TO FRONTEND
+  const { selectedUsername } = req.body;
+
+  var sqlCheckQuery = `UPDATE app_user SET account_status="disabled" WHERE username="${selectedUsername}"`
+
+  dbconn.query(sqlCheckQuery, function(err, results, fields){
+    if (err) {
+      console.log(err);
+      res.status(200).send({ api_msg: err });
+    }
+    else {
+      if (results.affectedRows == 1) {
+        res.status(200).send({ api_msg: "success"});
+      }
+      else {
+        res.status(200).send({ api_msg: "fail"});
+      }
+    }
+  });
+}));
 
 /****************************************************************************
  * Getting all restaurant Tags																			*

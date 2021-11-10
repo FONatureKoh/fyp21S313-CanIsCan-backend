@@ -169,6 +169,67 @@ router.post("/newtag", (req, res) => {
 });
 
 /****************************************************************************
+ * Check tag
+ ****************************************************************************
+ */
+router.get("/verifytag/:tag", asyncHandler(async(req, res, next) => {
+  // This route retrieves all the existing tags
+  // TEMP ARRAY TO RETURN TO FRONTEND
+  const selectedTag = req.params.tag;
+
+  var sqlCheckQuery = `SELECT EXISTS(SELECT rest_tag_1, rest_tag_2, rest_tag_3 FROM restaurant WHERE rest_tag_1="${selectedTag}" `
+  sqlCheckQuery +=`OR rest_tag_2="${selectedTag}" OR rest_tag_3="${selectedTag}") AS EXISTCHECK`
+
+  const queryResponse = await new Promise((resolve, reject) => {
+    dbconn.query(sqlCheckQuery, function(err, results, fields){
+      if (err) {
+        console.log(err);
+        reject(err);
+      }
+      else {
+        resolve(results);
+      }
+    });
+  });
+
+  if (queryResponse[0].EXISTCHECK == 1) {
+    res.status(200).send({ api_msg: "exist"});
+  }
+  else {
+    res.status(200).send({ api_msg: "not found"});
+  }
+}));
+
+/****************************************************************************
+ * Delete tag
+ ****************************************************************************
+ */
+router.delete("/deletetag", asyncHandler(async(req, res, next) => {
+  // This route retrieves all the existing tags
+  // TEMP ARRAY TO RETURN TO FRONTEND
+  const tagName = req.body.tagName;
+
+  console.log(tagName)
+
+  var sqlCheckQuery = `DELETE FROM rest_tags WHERE restaurant_tag="${tagName}"`
+
+  dbconn.query(sqlCheckQuery, function(err, results, fields){
+    if (err) {
+      console.log(err);
+      res.status(200).send({ api_msg: err });
+    }
+    else {
+      if (results.affectedRows == 1) {
+        res.status(200).send({ api_msg: "success"});
+      }
+      else {
+        res.status(200).send({ api_msg: "fail"});
+      }
+    }
+  });
+}));
+
+/****************************************************************************
  * Route Template                     																			*
  ****************************************************************************
  */

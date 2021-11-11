@@ -765,10 +765,11 @@ router.get('/pastreservation', asyncHandler(async(req, res, next) => {
   });
 
   // 2. Once we get the custID, we can now get all the reservations from the reservation table
+  // DATE(cr_date) < DATE(NOW()) AND 
   const custID = custInfo.customer_ID;
 
   var sqlGetReservations = `SELECT * FROM cust_reservation `;
-  sqlGetReservations += `WHERE cr_cust_ID=${custID} AND (DATE(cr_date) < DATE(NOW()) AND cr_status IN ("No Show", "Fulfilled")) `;
+  sqlGetReservations += `WHERE cr_cust_ID=${custID} AND (cr_status IN ("No Show", "Fulfilled")) `;
   sqlGetReservations += `ORDER BY cr_date`;
 
   const custReservations = await new Promise((resolve, reject) => {

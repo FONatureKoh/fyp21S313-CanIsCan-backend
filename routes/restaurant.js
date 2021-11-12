@@ -159,7 +159,7 @@ router.get('/retrieveAllItems', asyncHandler(async(req, res, next) => {
 }));
 
 /****************************************************************************
- * Retrieve restaurant's item category / categories information							*
+ * Retrieve restaurant's item category / categories information (Old)
  ****************************************************************************
  */
 router.get('/retrieveCategories', (req, res) => {

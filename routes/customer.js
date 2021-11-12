@@ -979,7 +979,7 @@ router.post('/submitreview', (req, res) => {
       // Then we construct an insert query within that query to push the review
       var sqlInsertQuery = "INSERT INTO rest_review(`rr_rest_ID`, `rr_rest_name`, "
       sqlInsertQuery += "`rr_cust_name`, `review_rating`, `review_title`, `review_desc`)" 
-      sqlInsertQuery += `VALUES (${restID}, "${restName}", "${fullName}", "${restRating}",`
+      sqlInsertQuery += `VALUES (${restID}, "${restName}", "${fullName}", ${restRating},`
       sqlInsertQuery += `"${reviewTitle}", "${reviewDesc}")`
 
       dbconn.query(sqlInsertQuery, function(err, results, fields){

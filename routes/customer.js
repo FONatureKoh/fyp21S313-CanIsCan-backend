@@ -629,7 +629,7 @@ router.get('/alldeliveryorders', asyncHandler(async(req, res, next) => {
 
   var sqlGetOrders = `SELECT * FROM delivery_order `;
   sqlGetOrders += `WHERE o_cust_ID=${custID} `;
-  sqlGetOrders += `ORDER BY o_datetime`;
+  sqlGetOrders += `ORDER BY o_datetime DESC`;
 
   const custOrders = await new Promise((resolve, reject) => {
     dbconn.query(sqlGetOrders, function(err, results, fields) {

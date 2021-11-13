@@ -1003,25 +1003,25 @@ router.post('/submitreview', asyncHandler(async(req, res, next) => {
   if (submitResponse.status == "OK") {
     var getNewRating = `SELECT AVG(review_rating) AS new_rating FROM rest_review WHERE rr_rest_ID=${restID}`;
 
-  dbconn.query(getNewRating, function(err, results, fields){
-    if (err) {
-      console.log(err)
-    }
-    else {
-      const newRating = results[0].new_rating;
+    dbconn.query(getNewRating, function(err, results, fields){
+      if (err) {
+        console.log(err)
+      }
+      else {
+        const newRating = results[0].new_rating;
 
-      var updateRating = `UPDATE restaurant SET rest_rating=${newRating.toFixed(2)} WHERE restaurant_ID=${restID}`;
+        var updateRating = `UPDATE restaurant SET rest_rating=${newRating.toFixed(2)} WHERE restaurant_ID=${restID}`;
 
-      dbconn.query(updateRating, function(err, result, fields){
-        if (err) {
-          console.log(err);
-        }
-        else {
-          console.log(timestamp + `Restaurant Rating updates successfully for restaurantID ${restID}`);
-        }
-      })
-    }
-  }) 
+        dbconn.query(updateRating, function(err, result, fields){
+          if (err) {
+            console.log(err);
+          }
+          else {
+            console.log(timestamp + `Restaurant Rating updates successfully for restaurantID ${restID}`);
+          }
+        })
+      }
+    });
   }
 }));
 

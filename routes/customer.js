@@ -959,14 +959,59 @@ router.get('/ongoingreservations', asyncHandler(async(req, res, next) => {
 /****************************************************************************
  * Submit Restaurant Review                                                 *
  ****************************************************************************/
-router.post('/submitreview', (req, res) => {
+router.post('/submitreview', asyncHandler(async(req, res, next) => {
 	// Save the restaurantID first from the URL
 	const { username } = res.locals.userData;
   const { restID, restName, restRating, reviewTitle, reviewDesc } = req.body;
   
   // First things for this, first we need to get the Customer's name
-  var sqlGetNameQuery = `SELECT first_name, last_name FROM customer_user `;
-  sqlGetNameQuery += `WHERE cust_username="${username}"`;
+  var submitReviewQuery = `SELECT first_name, last_name FROM customer_user `;
+  submitReviewQuery += `WHERE cust_username="${username}"`;
+
+  // SUBMIT REVIEW PROMISE
+  const submitResponse = await new Promise((resolve, reject) => {
+    dbconn.query(submitReviewQuery, function(err, results, fields){
+      if (err) {
+        res.status(200).send({ api_msg: "MySQL " + err });
+      }
+      else {
+        // Construct full name
+        const fullName = results[0].first_name + " " + results[0].last_name;
+
+        // Then we construct an insert query within that query to push the review
+        var sqlInsertQuery = "INSERT INTO rest_review(`rr_rest_ID`, `rr_rest_name`, "
+        sqlInsertQuery += "`rr_cust_name`, `review_rating`, `review_title`, `review_desc`)" 
+        sqlInsertQuery += `VALUES (${restID}, "${restName}", "${fullName}", ${restRating},`
+        sqlInsertQuery += `"${reviewTitle}", "${reviewDesc}")`
+
+        dbconn.query(sqlInsertQuery, function(err, results, fields){
+          if (err) {
+            res.status(200).send({ api_msg: "MySQL " + err });
+          }
+          else {
+            res.status(200).send({ api_msg: "Successful review!" });
+            resolve({ status: "OK" });
+          }
+        }); // Close for nested query
+      }
+    })  // Close for first query
+  })
+  
+  // We will then have to look at triggering a function to update the restaurant's
+  // rating without affecting this route. 
+  // UPDATE RESTAURANT RATING
+
+}));
+
+/****************************************************************************
+ * Submit Restaurant Review                                                 *
+ ****************************************************************************/
+router.get('/testAvg/:restID', (req, res) => {
+	// Save the restaurantID first from the URL
+  const restID = req.params.restID;
+  
+  // First things for this, first we need to get the Customer's name
+  var sqlGetNameQuery = `SELECT AVG(review_rating) FROM rest_review WHERE rr_rest_ID=${restID}`;
 
   dbconn.query(sqlGetNameQuery, function(err, results, fields){
     if (err) {
@@ -974,28 +1019,13 @@ router.post('/submitreview', (req, res) => {
     }
     else {
       // Construct full name
-      const fullName = results[0].first_name + " " + results[0].last_name;
-
-      // Then we construct an insert query within that query to push the review
-      var sqlInsertQuery = "INSERT INTO rest_review(`rr_rest_ID`, `rr_rest_name`, "
-      sqlInsertQuery += "`rr_cust_name`, `review_rating`, `review_title`, `review_desc`)" 
-      sqlInsertQuery += `VALUES (${restID}, "${restName}", "${fullName}", ${restRating},`
-      sqlInsertQuery += `"${reviewTitle}", "${reviewDesc}")`
-
-      dbconn.query(sqlInsertQuery, function(err, results, fields){
-        if (err) {
-          console.log(err);
-          res.status(200).send({ api_msg: "MySQL " + err });
-        }
-        else {
-          res.status(200).send({ api_msg: "Successful review!" });
-        }
-      }); // Close for nested query
+      res.status(200).send(results);
     }
   })  // Close for first query
   // We will then have to look at triggering a function to update the restaurant's
   // rating without affecting this route. 
 });
+
 
 /****************************************************************************
  * Get Restaurant Reviews

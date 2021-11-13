@@ -255,8 +255,6 @@ router.post("/newtag", (req, res) => {
  ****************************************************************************
  */
 router.get("/verifytag/:tag", asyncHandler(async(req, res, next) => {
-  // This route retrieves all the existing tags
-  // TEMP ARRAY TO RETURN TO FRONTEND
   const selectedTag = req.params.tag;
 
   var sqlCheckQuery = `SELECT EXISTS(SELECT rest_tag_1, rest_tag_2, rest_tag_3 FROM restaurant WHERE rest_tag_1="${selectedTag}" `
@@ -287,8 +285,6 @@ router.get("/verifytag/:tag", asyncHandler(async(req, res, next) => {
  ****************************************************************************
  */
 router.delete("/deletetag", asyncHandler(async(req, res, next) => {
-  // This route retrieves all the existing tags
-  // TEMP ARRAY TO RETURN TO FRONTEND
   const tagName = req.body.tagName;
 
   console.log(tagName)
@@ -312,7 +308,7 @@ router.delete("/deletetag", asyncHandler(async(req, res, next) => {
 }));
 
 /****************************************************************************
- * Route Template                     																			*
+ * Approving a restaurant
  ****************************************************************************
  */
 router.post("/approve", (req, res) => {

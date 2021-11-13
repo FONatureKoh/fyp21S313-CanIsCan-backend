@@ -1345,9 +1345,6 @@ router.get('/availableslots/:restID/:date', (req, res) => {
   // Getting some important variables
   const { username } = res.locals.userData;
   const { restID, date } = req.params;
-  
-  // Console logging to see what is going on
-  // console.log(restID, date);
 
   // Okay, so what do we need to do here.
   // 1. Get the settings for the specific restaurant

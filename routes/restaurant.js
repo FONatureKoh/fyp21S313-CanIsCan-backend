@@ -314,7 +314,7 @@ router.route('/itemCategoryManagement')
 	}));
 
 /****************************************************************************
- * Restaurant Items Category Management																			*
+ * Restaurant Check Category
  ****************************************************************************
  */
 router.get('/checkcategory/:catID', asyncHandler(async(req, res) => {
@@ -424,13 +424,6 @@ router.get('/itemImage/:imageName', (req, res) => {
 		})
 	}
 });
-
-/****************************************************************************
- * Restaurant Status retrieval																*
- ****************************************************************************
- * GET route will get the information based on the rgm's username
- */
-
 
 /****************************************************************************
  * Restaurant Profile Information and things																*
@@ -754,11 +747,6 @@ router
 		if (updateResponse.status == "success" && createResponse.status == "success") {
 			res.status(200).send({ api_msg: "Restaurant First Login settings successful!" });
 		}
-		
-		// var sqlUpdateQuery = `UPDATE rest_reservation_setting SET `;
-		// sqlUpdateQuery += `reservation_starttime="${startTime}", reservation_endtime="${endTime}", `;
-		// sqlUpdateQuery += `reservation_interval=${reservationIntervals}, max_tables=${noOfTables} `;
-		// sqlUpdateQuery += `WHERE rrs_ID=${settingsID}`;
 	}));
 
 /****************************************************************************
@@ -794,11 +782,6 @@ router.get('/tags', (req, res) => {
  */
 const itemStorage = multer.diskStorage({
 	destination: (req, file, cb) => {
-		// Test Console I just thinking. When i thinking the mouse dances
-		// console.log('Multer Config');
-		// console.log(path.resolve(pathName));
-		// console.log(path.resolve(pathName));
-
 		// Step 1: Find the exact location on the server to save the file
 		const pathName = process.env.ASSETS_SAVE_LOC + 'rest_items_png/';
 
@@ -907,9 +890,6 @@ router
 				itemDesc, itemAllergy, itemCategory, itemAvailability
 			}
 		} = req;
-
-		// Testing console, remember to remove
-		// console.log(req.body);
 
 		// 2. Check if there was a new file in the first place
 		if (file) {
@@ -1266,12 +1246,6 @@ router.route('/rgm/subuser/:subuser_ID')
 			}
 		})
 	});
-
-/****************************************************************************
- * Everything below is for the subuser 																			*
- ***************************************************************************
- * Subuser covers for the Deliveries Manager and Reservations Manager
- * */
 
 /****************************************************************************
  * Deliveries Manager (DM): Retrieve all the pending delivery 

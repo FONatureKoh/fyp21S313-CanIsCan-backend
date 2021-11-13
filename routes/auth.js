@@ -63,13 +63,6 @@ router.post("/login", (req, res) => {
   }
 });
 
-// router.get("/username", authenticateToken, (req, res) => {
-//   // console.log(req);
-//   res.status(200).json({
-//     username: res.locals.userData.username
-//   });
-// });
-
 /*******************************************************************************************
  * NO ROUTES FUNCTIONS OR DECLARATIONS BELOW THIS DIVIDER 
  *******************************************************************************************

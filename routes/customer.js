@@ -367,8 +367,8 @@ router.get('/topRestaurantInfo', asyncHandler(async(req, res, next) => {
 }));
 
 /****************************************************************************
- * Retrieve restaurant's menu and all items information											*
- ****************************************************************************/
+ * Retrieve restaurantinfo based on the tags
+ * **************************************************************************/
 router.get('/selectedRestaurantInfo/:tag', asyncHandler(async(req, res) => {
 	// Save the restaurantID first from the URL
 	const { username } = res.locals.userData;
@@ -1046,8 +1046,6 @@ router.get('/restaurantreivew/:restID', (req, res) => {
       }); // Close for nested query
     }
   })  // Close for first query
-  // We will then have to look at triggering a function to update the restaurant's
-  // rating without affecting this route. 
 });
 
 /****************************************************************************

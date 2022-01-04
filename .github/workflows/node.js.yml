@@ -13,7 +13,7 @@ jobs:
     
     strategy:
       matrix:
-        node-version: [14.x]
+        node-version: [16.x]
 
     steps:
     - uses: actions/checkout@v2
@@ -25,13 +25,13 @@ jobs:
     - name: Install Dependencies using Yarn
       run: yarn
     
-    # - name: Get .env file from within the system
-    #   run: |
-    #     cd /home/fonature/foodapp-backend/expressjs-api-app/fyp21S313-CanIsCan-backend/fyp21S313-CanIsCan-backend
-    #     cp /home/fonature/foodapp-backend/expressjs-api-app/.env /home/fonature/foodapp-backend/expressjs-api-app/fyp21S313-CanIsCan-backend/fyp21S313-CanIsCan-backend
+    - name: Get .env file from within the system
+      run: |
+        cd /home/fonature/cancanfoodapp-api/foodapp-backend/fyp21S313-CanIsCan-backend/fyp21S313-CanIsCan-backend
+        cp /home/fonature/cancanfoodapp-api/foodapp-backend/.env /home/fonature/cancanfoodapp-api/foodapp-backend/fyp21S313-CanIsCan-backend/fyp21S313-CanIsCan-backend
 
-    # - name: Stop and start pm2 service
-    #   run: |
-    #     pm2 stop 2
-    #     pm2 start 2
-    #     pm2 save
+    - name: Stop and start pm2 service
+      run: |
+        pm2 stop 4
+        pm2 start 4
+        pm2 save
